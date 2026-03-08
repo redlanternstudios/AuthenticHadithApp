@@ -4,6 +4,7 @@ import { Stack, useRouter } from 'expo-router'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { supabase } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth/AuthProvider'
+import { useLanguage } from '@/lib/i18n/LanguageProvider'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
@@ -23,6 +24,11 @@ const COLLECTIONS = [
 
 const LEARNING_LEVELS = ['Beginner', 'Intermediate', 'Advanced']
 
+const LANGUAGES = [
+  { code: 'en' as const, label: 'English', nativeLabel: 'English', flag: '🇬🇧' },
+  { code: 'ar' as const, label: 'Arabic', nativeLabel: 'العربية', flag: '🇦🇪' },
+]
+
 interface OnboardingData {
   name: string
   schoolOfThought: string
@@ -35,6 +41,7 @@ interface OnboardingData {
 export default function OnboardingScreen() {
   const router = useRouter()
   const { user } = useAuth()
+  const { language, setLanguage, isRTL } = useLanguage()
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState<OnboardingData>({
@@ -72,7 +79,6 @@ export default function OnboardingScreen() {
 
     setLoading(true)
     try {
-      // Update profile
       await supabase
         .from('profiles')
         .upsert({
@@ -81,7 +87,6 @@ export default function OnboardingScreen() {
           school_of_thought: data.schoolOfThought || null,
         })
 
-      // Update preferences
       await supabase
         .from('user_preferences')
         .upsert({
@@ -106,8 +111,30 @@ export default function OnboardingScreen() {
     router.replace('/(tabs)')
   }
 
+  // Derived labels based on selected language
+  const isArabic = language === 'ar'
+  const stepLabels = {
+    step: isArabic ? `الخطوة ${currentStep} من ${TOTAL_STEPS}` : `Step ${currentStep} of ${TOTAL_STEPS}`,
+    step1Title: isArabic ? 'مرحباً! لنقم بإعداد ملفك الشخصي' : "Welcome! Let's set up your profile",
+    step1Subtitle: isArabic
+      ? 'أخبرنا قليلاً عن نفسك لتخصيص تجربتك'
+      : 'Tell us a bit about yourself to personalize your experience',
+    namePlaceholder: isArabic ? 'أدخل اسمك' : 'Enter your name',
+    nameLabel: isArabic ? 'اسمك *' : 'Your Name *',
+    schoolLabel: isArabic ? 'المذهب الفقهي' : 'School of Thought (Madhab)',
+    langLabel: isArabic ? 'اختر لغتك' : 'Choose your language',
+    langHint: isArabic ? 'يمكنك تغيير هذا لاحقاً في الإعدادات' : 'You can change this later in Settings',
+    next: isArabic ? 'التالي' : 'Next',
+    back: isArabic ? 'رجوع' : 'Back',
+    skip: isArabic ? 'تخطّ في الوقت الحالي' : 'Skip for now',
+    complete: isArabic ? 'إتمام' : 'Complete',
+  }
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={[styles.content, isRTL && styles.contentRTL]}
+    >
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Progress Dots */}
@@ -129,35 +156,57 @@ export default function OnboardingScreen() {
           </View>
         ))}
       </View>
-      <Text style={styles.stepLabel}>
-        Step {currentStep} of {TOTAL_STEPS}
-      </Text>
+      <Text style={[styles.stepLabel, isRTL && styles.textRTL]}>{stepLabels.step}</Text>
 
-      {/* Step 1: Profile */}
+      {/* Step 1: Language + Profile */}
       {currentStep === 1 && (
         <View style={styles.stepContent}>
-          <Text style={styles.stepTitle}>Welcome! Let's set up your profile</Text>
-          <Text style={styles.stepSubtitle}>
-            Tell us a bit about yourself to personalize your experience
-          </Text>
+          <Text style={[styles.stepTitle, isRTL && styles.textRTL]}>{stepLabels.step1Title}</Text>
+          <Text style={[styles.stepSubtitle, isRTL && styles.textRTL]}>{stepLabels.step1Subtitle}</Text>
 
-          <Text style={styles.label}>Your Name *</Text>
+          {/* Language Selection */}
+          <Text style={[styles.label, isRTL && styles.textRTL]}>{stepLabels.langLabel}</Text>
+          <Text style={[styles.langHint, isRTL && styles.textRTL]}>{stepLabels.langHint}</Text>
+          <View style={[styles.langRow, isRTL && styles.langRowRTL]}>
+            {LANGUAGES.map((lang) => {
+              const isSelected = language === lang.code
+              return (
+                <Pressable
+                  key={lang.code}
+                  style={[styles.langOption, isSelected && styles.langOptionActive]}
+                  onPress={() => setLanguage(lang.code)}
+                >
+                  <Text style={styles.langFlag}>{lang.flag}</Text>
+                  <Text style={[styles.langLabel, isSelected && styles.langLabelActive]}>
+                    {lang.nativeLabel}
+                  </Text>
+                  {isSelected && <Text style={styles.langCheck}>✓</Text>}
+                </Pressable>
+              )
+            })}
+          </View>
+
+          {/* Name */}
+          <Text style={[styles.label, isRTL && styles.textRTL]}>{stepLabels.nameLabel}</Text>
           <TextInput
-            style={styles.input}
-            placeholder="Enter your name"
+            style={[styles.input, isRTL && styles.inputRTL]}
+            placeholder={stepLabels.namePlaceholder}
             placeholderTextColor={COLORS.mutedText}
             value={data.name}
             onChangeText={(text) => updateData({ name: text })}
             maxLength={50}
+            textAlign={isRTL ? 'right' : 'left'}
           />
 
-          <Text style={styles.label}>School of Thought (Madhab)</Text>
+          {/* School of Thought */}
+          <Text style={[styles.label, isRTL && styles.textRTL]}>{stepLabels.schoolLabel}</Text>
           <View style={styles.optionsList}>
             {SCHOOLS_OF_THOUGHT.map((school) => (
               <Pressable
                 key={school}
                 style={[
                   styles.optionItem,
+                  isRTL && styles.optionItemRTL,
                   data.schoolOfThought === school && styles.optionItemActive,
                 ]}
                 onPress={() => updateData({ schoolOfThought: school })}
@@ -182,19 +231,29 @@ export default function OnboardingScreen() {
       {/* Step 2: Preferences */}
       {currentStep === 2 && (
         <View style={styles.stepContent}>
-          <Text style={styles.stepTitle}>Customize your experience</Text>
-          <Text style={styles.stepSubtitle}>
-            Set your preferences to personalize your learning journey
+          <Text style={[styles.stepTitle, isRTL && styles.textRTL]}>
+            {isArabic ? 'خصّص تجربتك' : 'Customize your experience'}
+          </Text>
+          <Text style={[styles.stepSubtitle, isRTL && styles.textRTL]}>
+            {isArabic
+              ? 'اضبط تفضيلاتك لتخصيص رحلة تعلّمك'
+              : 'Set your preferences to personalize your learning journey'}
           </Text>
 
-          <Text style={styles.label}>Collections of Interest</Text>
+          <Text style={[styles.label, isRTL && styles.textRTL]}>
+            {isArabic ? 'المجموعات المفضلة' : 'Collections of Interest'}
+          </Text>
           <View style={styles.collectionsGrid}>
             {COLLECTIONS.map((c) => {
               const isSelected = data.collections.includes(c.id)
               return (
                 <Pressable
                   key={c.id}
-                  style={[styles.collectionItem, isSelected && styles.collectionItemActive]}
+                  style={[
+                    styles.collectionItem,
+                    isRTL && styles.collectionItemRTL,
+                    isSelected && styles.collectionItemActive,
+                  ]}
                   onPress={() => {
                     const updated = isSelected
                       ? data.collections.filter((x) => x !== c.id)
@@ -214,7 +273,9 @@ export default function OnboardingScreen() {
             })}
           </View>
 
-          <Text style={styles.label}>Learning Level</Text>
+          <Text style={[styles.label, isRTL && styles.textRTL]}>
+            {isArabic ? 'مستوى التعلّم' : 'Learning Level'}
+          </Text>
           <View style={styles.levelToggle}>
             {LEARNING_LEVELS.map((level) => (
               <Pressable
@@ -245,60 +306,78 @@ export default function OnboardingScreen() {
           <View style={styles.shieldIcon}>
             <Text style={styles.shieldEmoji}>🛡️</Text>
           </View>
-          <Text style={styles.stepTitle}>Safety & Community Guidelines</Text>
-          <Text style={styles.stepSubtitle}>
-            Authentic Hadith maintains the highest standards of Islamic scholarship and community respect.
+          <Text style={[styles.stepTitle, isRTL && styles.textRTL]}>
+            {isArabic ? 'إرشادات السلامة والمجتمع' : 'Safety & Community Guidelines'}
+          </Text>
+          <Text style={[styles.stepSubtitle, isRTL && styles.textRTL]}>
+            {isArabic
+              ? 'يحافظ تطبيق الأحاديث الصحيحة على أعلى معايير الدراسات الإسلامية واحترام المجتمع.'
+              : 'Authentic Hadith maintains the highest standards of Islamic scholarship and community respect.'}
           </Text>
 
           <Card style={styles.safetyPoint}>
-            <Text style={styles.safetyTitle}>AI assistant filters inappropriate queries</Text>
-            <Text style={styles.safetyDesc}>
-              Our AI assistant is trained to provide only authentic Islamic knowledge from verified sources.
+            <Text style={[styles.safetyTitle, isRTL && styles.textRTL]}>
+              {isArabic
+                ? 'المساعد الذكي يُفلتر الاستفسارات غير المناسبة'
+                : 'AI assistant filters inappropriate queries'}
+            </Text>
+            <Text style={[styles.safetyDesc, isRTL && styles.textRTL]}>
+              {isArabic
+                ? 'تم تدريب مساعدنا الذكي لتقديم المعرفة الإسلامية الأصيلة فقط من مصادر موثّقة.'
+                : 'Our AI assistant is trained to provide only authentic Islamic knowledge from verified sources.'}
             </Text>
           </Card>
 
           <Card style={styles.safetyPoint}>
-            <Text style={styles.safetyTitle}>Scholarly sources only</Text>
-            <Text style={styles.safetyDesc}>
-              All hadiths are sourced from authenticated collections by recognized Islamic scholars.
+            <Text style={[styles.safetyTitle, isRTL && styles.textRTL]}>
+              {isArabic ? 'مصادر علمية فقط' : 'Scholarly sources only'}
+            </Text>
+            <Text style={[styles.safetyDesc, isRTL && styles.textRTL]}>
+              {isArabic
+                ? 'جميع الأحاديث مصدرها مجموعات موثّقة من قبل علماء إسلاميين معترف بهم.'
+                : 'All hadiths are sourced from authenticated collections by recognized Islamic scholars.'}
             </Text>
           </Card>
 
           <Pressable
-            style={styles.agreementRow}
+            style={[styles.agreementRow, isRTL && styles.agreementRowRTL]}
             onPress={() => updateData({ safetyAgreed: !data.safetyAgreed })}
           >
             <View style={[styles.checkbox, data.safetyAgreed && styles.checkboxActive]}>
               {data.safetyAgreed && <Text style={styles.checkboxCheck}>✓</Text>}
             </View>
-            <Text style={styles.agreementText}>
-              I understand and agree to the safety guidelines
+            <Text style={[styles.agreementText, isRTL && styles.textRTL]}>
+              {isArabic
+                ? 'أفهم وأوافق على إرشادات السلامة'
+                : 'I understand and agree to the safety guidelines'}
             </Text>
           </Pressable>
 
           <Pressable
-            style={styles.agreementRow}
+            style={[styles.agreementRow, isRTL && styles.agreementRowRTL]}
             onPress={() => updateData({ termsAgreed: !data.termsAgreed })}
           >
             <View style={[styles.checkbox, data.termsAgreed && styles.checkboxActive]}>
               {data.termsAgreed && <Text style={styles.checkboxCheck}>✓</Text>}
             </View>
-            <Text style={styles.agreementText}>
-              I agree to the Terms of Service and Privacy Policy
+            <Text style={[styles.agreementText, isRTL && styles.textRTL]}>
+              {isArabic
+                ? 'أوافق على شروط الخدمة وسياسة الخصوصية'
+                : 'I agree to the Terms of Service and Privacy Policy'}
             </Text>
           </Pressable>
         </View>
       )}
 
       {/* Navigation */}
-      <View style={styles.navRow}>
+      <View style={[styles.navRow, isRTL && styles.navRowRTL]}>
         {currentStep === 1 ? (
           <Pressable onPress={handleSkip}>
-            <Text style={styles.skipText}>Skip for now</Text>
+            <Text style={styles.skipText}>{stepLabels.skip}</Text>
           </Pressable>
         ) : (
           <Button
-            title="Back"
+            title={stepLabels.back}
             variant="outline"
             size="medium"
             onPress={() => setCurrentStep((s) => s - 1)}
@@ -307,7 +386,7 @@ export default function OnboardingScreen() {
 
         {currentStep < TOTAL_STEPS ? (
           <Button
-            title="Next"
+            title={stepLabels.next}
             variant="primary"
             size="medium"
             onPress={() => setCurrentStep((s) => s + 1)}
@@ -315,7 +394,7 @@ export default function OnboardingScreen() {
           />
         ) : (
           <Button
-            title="Complete"
+            title={stepLabels.complete}
             variant="primary"
             size="medium"
             onPress={handleComplete}
@@ -331,6 +410,8 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   content: { padding: SPACING.md, paddingTop: SPACING.xxl, paddingBottom: SPACING.xxl },
+  contentRTL: { direction: 'rtl' },
+  textRTL: { textAlign: 'right', writingDirection: 'rtl' },
   progressRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: SPACING.sm },
   progressDotRow: { flexDirection: 'row', alignItems: 'center' },
   progressDot: {
@@ -346,18 +427,40 @@ const styles = StyleSheet.create({
   stepContent: { marginBottom: SPACING.xl },
   stepTitle: { fontSize: FONT_SIZES.xxl, fontWeight: '700', color: COLORS.bronzeText, textAlign: 'center', marginBottom: SPACING.sm },
   stepSubtitle: { fontSize: FONT_SIZES.base, color: COLORS.mutedText, textAlign: 'center', marginBottom: SPACING.xl, lineHeight: 22 },
-  label: { fontSize: FONT_SIZES.base, fontWeight: '600', color: COLORS.bronzeText, marginBottom: SPACING.sm, marginTop: SPACING.lg },
+  label: { fontSize: FONT_SIZES.base, fontWeight: '600', color: COLORS.bronzeText, marginBottom: SPACING.xs, marginTop: SPACING.lg },
+  langHint: { fontSize: FONT_SIZES.sm, color: COLORS.mutedText, marginBottom: SPACING.sm },
+  langRow: { flexDirection: 'row', gap: SPACING.sm, marginBottom: SPACING.md },
+  langRowRTL: { flexDirection: 'row-reverse' },
+  langOption: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.xs,
+    padding: SPACING.md,
+    backgroundColor: COLORS.card,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+  },
+  langOptionActive: { borderColor: COLORS.goldMid, backgroundColor: COLORS.goldMid + '15' },
+  langFlag: { fontSize: 20 },
+  langLabel: { fontSize: FONT_SIZES.base, fontWeight: '500', color: COLORS.bronzeText },
+  langLabelActive: { fontWeight: '700', color: COLORS.goldShadow },
+  langCheck: { color: COLORS.goldMid, fontWeight: '700', marginLeft: SPACING.xs },
   input: {
     height: 48, backgroundColor: COLORS.card, borderRadius: BORDER_RADIUS.md,
     borderWidth: 1, borderColor: COLORS.border, paddingHorizontal: SPACING.md,
     fontSize: FONT_SIZES.base, color: COLORS.bronzeText,
   },
+  inputRTL: { textAlign: 'right' },
   optionsList: { gap: SPACING.xs },
   optionItem: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     padding: SPACING.md, backgroundColor: COLORS.card, borderRadius: BORDER_RADIUS.md,
     borderWidth: 1, borderColor: COLORS.border,
   },
+  optionItemRTL: { flexDirection: 'row-reverse' },
   optionItemActive: { borderColor: COLORS.goldMid, backgroundColor: COLORS.goldMid + '10' },
   optionText: { fontSize: FONT_SIZES.base, color: COLORS.bronzeText },
   optionTextActive: { fontWeight: '600' },
@@ -368,6 +471,7 @@ const styles = StyleSheet.create({
     padding: SPACING.md, backgroundColor: COLORS.card, borderRadius: BORDER_RADIUS.md,
     borderWidth: 1, borderColor: COLORS.border,
   },
+  collectionItemRTL: { flexDirection: 'row-reverse' },
   collectionItemActive: { borderColor: COLORS.goldMid, backgroundColor: COLORS.goldMid + '10' },
   checkbox: {
     width: 20, height: 20, borderRadius: 4, borderWidth: 2, borderColor: COLORS.border,
@@ -396,10 +500,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'flex-start', gap: SPACING.md,
     paddingVertical: SPACING.md,
   },
+  agreementRowRTL: { flexDirection: 'row-reverse' },
   agreementText: { flex: 1, fontSize: FONT_SIZES.base, color: COLORS.bronzeText, lineHeight: 22 },
   navRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingTop: SPACING.lg, borderTopWidth: 1, borderTopColor: COLORS.border,
   },
+  navRowRTL: { flexDirection: 'row-reverse' },
   skipText: { fontSize: FONT_SIZES.base, color: COLORS.mutedText },
 })

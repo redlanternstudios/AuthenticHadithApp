@@ -1,0 +1,67 @@
+{
+  "common": {
+    "next": "Next",
+    "back": "Back",
+    "skip": "Skip for now",
+    "complete": "Complete",
+    "save": "Save",
+    "share": "Share",
+    "collection": "Collection",
+    "loading": "Loading…",
+    "error": "Something went wrong. Please try again."
+  },
+  "language": {
+    "name": "English",
+    "nativeName": "English",
+    "select": "Choose your language",
+    "subtitle": "You can change this later in Settings"
+  },
+  "onboarding": {
+    "step": "Step {{current}} of {{total}}",
+    "step1Title": "Welcome! Let's set up your profile",
+    "step1Subtitle": "Tell us a bit about yourself to personalize your experience",
+    "step2Title": "Customize your experience",
+    "step2Subtitle": "Set your preferences to personalize your learning journey",
+    "step3Title": "Safety & Community Guidelines",
+    "step3Subtitle": "Authentic Hadith maintains the highest standards of Islamic scholarship and community respect.",
+    "yourName": "Your Name *",
+    "namePlaceholder": "Enter your name",
+    "schoolLabel": "School of Thought (Madhab)",
+    "collectionsLabel": "Collections of Interest",
+    "levelLabel": "Learning Level",
+    "safetyCheck": "I understand and agree to the safety guidelines",
+    "termsCheck": "I agree to the Terms of Service and Privacy Policy",
+    "safetyTitle": "AI assistant filters inappropriate queries",
+    "safetyDesc": "Our AI assistant is trained to provide only authentic Islamic knowledge from verified sources.",
+    "scholarlyTitle": "Scholarly sources only",
+    "scholarlyDesc": "All hadiths are sourced from authenticated collections by recognized Islamic scholars."
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Manage your app preferences",
+    "preferences": "Preferences",
+    "appearance": "Appearance",
+    "appearanceSubtitle": "Dark mode and theme",
+    "language": "Language",
+    "languageSubtitle": "App language and translations",
+    "notifications": "Notifications",
+    "notificationsSubtitle": "Push notifications and reminders"
+  },
+  "languageSettings": {
+    "title": "Language",
+    "header": "App Language",
+    "subtitle": "Select your preferred language. The app will display in the selected language.",
+    "sectionTitle": "Display Language",
+    "restartNote": "Full RTL layout takes effect after restarting the app."
+  },
+  "hadith": {
+    "arabic": "Arabic",
+    "translation": "Translation",
+    "narrator": "Narrated by {{name}}",
+    "number": "Hadith #{{number}}",
+    "summarize": "Summarize this Hadith",
+    "summarizing": "Summarizing…",
+    "summary": "Summary",
+    "notFound": "Hadith not found"
+  }
+}
