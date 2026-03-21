@@ -7,13 +7,15 @@ import {
   ActivityIndicator,
   StyleSheet,
   Alert,
+  Pressable,
 } from 'react-native'
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useHadith } from '@/hooks/use-hadith'
 import { useAuth } from '@/hooks/use-auth'
 import { useTheme } from '@/lib/theme/ThemeProvider'
-import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
+import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS, SHADOWS, LAYOUT } from '@/lib/styles/colors'
+import { useDeviceLayout } from '@/lib/hooks/use-device-layout'
 import { shareHadith } from '@/components/share/ShareSheet'
 import { SaveHadithModal } from '@/components/my-hadith/SaveHadithModal'
 import { sendChatMessage } from '@/lib/api/groq'
@@ -23,9 +25,13 @@ export default function HadithDetailScreen() {
   const { user } = useAuth()
   const { isDark } = useTheme()
   const colors = getColors(isDark)
+  const { contentBottom, pagePadding, maxContentWidth } = useDeviceLayout()
   const router = useRouter()
 
-  const { hadith, isLoading, isBookmarked, toggleBookmark, isTogglingBookmark } = useHadith(id, user?.id)
+  const { hadith, isLoading, isBookmarked, toggleBookmark, isTogglingBookmark } = useHadith(
+    id,
+    user?.id,
+  )
 
   const [showSaveModal, setShowSaveModal] = useState(false)
   const [summary, setSummary] = useState<string | null>(null)
@@ -68,25 +74,29 @@ export default function HadithDetailScreen() {
     )
   }
 
-  const collectionName = hadith.collection?.name || hadith.collection_slug || 'Unknown Collection'
+  const collectionName =
+    hadith.collection?.name || hadith.collection_slug || 'Unknown Collection'
 
   return (
     <>
       <Stack.Screen
         options={{
-          title: `Hadith ${hadith.hadith_number}`,
-          headerStyle: { backgroundColor: colors.card },
+          title: '',
+          headerStyle: { backgroundColor: colors.background },
           headerTintColor: colors.emeraldMid,
           headerShadowVisible: false,
+          // Transparent header blends with page background on iOS
+          headerTransparent: false,
           headerRight: () => (
             <TouchableOpacity
               onPress={() => toggleBookmark()}
               disabled={isTogglingBookmark || !user}
               style={styles.headerBtn}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               <Ionicons
                 name={isBookmarked ? 'bookmark' : 'bookmark-outline'}
-                size={24}
+                size={22}
                 color={isBookmarked ? colors.emeraldMid : colors.mutedText}
               />
             </TouchableOpacity>
@@ -96,60 +106,71 @@ export default function HadithDetailScreen() {
 
       <ScrollView
         style={[styles.container, { backgroundColor: colors.background }]}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingBottom: contentBottom,
+            paddingHorizontal: pagePadding,
+            alignSelf: 'center',
+            width: '100%',
+            maxWidth: maxContentWidth,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Collection + Hadith Number Header */}
+        {/* Collection + Number */}
         <View style={[styles.metaRow, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.collectionName, { color: colors.emeraldMid }]}>{collectionName}</Text>
+          <Text style={[styles.collectionName, { color: colors.emeraldMid }]}>
+            {collectionName}
+          </Text>
           <Text style={[styles.hadithNumber, { color: colors.mutedText }]}>
             Hadith #{hadith.hadith_number}
           </Text>
         </View>
 
-        {/* Grade Badge */}
-        {hadith.grade && (
-          <View
-            style={[
-              styles.gradeBadge,
-              {
-                backgroundColor:
-                  hadith.grade === 'sahih'
-                    ? colors.sahih + '15'
-                    : hadith.grade === 'hasan'
-                      ? colors.hasan + '15'
-                      : colors.daif + '15',
-              },
-            ]}
-          >
-            <Text
+        {/* Grade badge + narrator */}
+        <View style={styles.badgeRow}>
+          {hadith.grade && (
+            <View
               style={[
-                styles.gradeText,
+                styles.gradeBadge,
                 {
-                  color:
+                  backgroundColor:
                     hadith.grade === 'sahih'
-                      ? colors.sahih
+                      ? colors.sahih + '18'
                       : hadith.grade === 'hasan'
-                        ? colors.hasan
-                        : colors.daif,
+                      ? colors.hasan + '18'
+                      : colors.daif + '18',
                 },
               ]}
             >
-              {hadith.grade.charAt(0).toUpperCase() + hadith.grade.slice(1)}
+              <Text
+                style={[
+                  styles.gradeText,
+                  {
+                    color:
+                      hadith.grade === 'sahih'
+                        ? colors.sahih
+                        : hadith.grade === 'hasan'
+                        ? colors.hasan
+                        : colors.daif,
+                  },
+                ]}
+              >
+                {hadith.grade.charAt(0).toUpperCase() + hadith.grade.slice(1)}
+              </Text>
+            </View>
+          )}
+          {hadith.narrator && (
+            <Text style={[styles.narrator, { color: colors.mutedText }]}>
+              {hadith.narrator}
             </Text>
-          </View>
-        )}
+          )}
+        </View>
 
-        {/* Narrator */}
-        {hadith.narrator && (
-          <Text style={[styles.narrator, { color: colors.mutedText }]}>
-            Narrated by {hadith.narrator}
-          </Text>
-        )}
-
-        {/* Arabic Text — full, no numberOfLines */}
+        {/* Arabic text */}
         {hadith.arabic_text ? (
-          <View style={[styles.section, { borderColor: colors.border }]}>
+          <View style={[styles.textSection, { borderBottomColor: colors.borderSubtle }]}>
             <Text style={[styles.sectionLabel, { color: colors.mutedText }]}>Arabic</Text>
             <Text style={[styles.arabicText, { color: colors.bronzeText }]}>
               {hadith.arabic_text}
@@ -157,64 +178,85 @@ export default function HadithDetailScreen() {
           </View>
         ) : null}
 
-        {/* English Text — full, no numberOfLines */}
-        <View style={[styles.section, { borderColor: colors.border }]}>
+        {/* English */}
+        <View style={[styles.textSection, { borderBottomColor: colors.borderSubtle }]}>
           <Text style={[styles.sectionLabel, { color: colors.mutedText }]}>Translation</Text>
           <Text style={[styles.englishText, { color: colors.bronzeText }]}>
             {hadith.english_text}
           </Text>
         </View>
 
-        {/* Summarize Button */}
-        <TouchableOpacity
-          style={[styles.summarizeBtn, { backgroundColor: colors.goldMid + '20', borderColor: colors.goldMid }]}
+        {/* AI summarise button */}
+        <Pressable
+          style={({ pressed }) => [
+            styles.summarizeBtn,
+            {
+              backgroundColor: colors.goldMid + '18',
+              borderColor: colors.goldMid + '60',
+              opacity: pressed || isSummarizing ? 0.75 : 1,
+            },
+          ]}
           onPress={handleSummarize}
           disabled={isSummarizing}
-          activeOpacity={0.75}
         >
           {isSummarizing ? (
             <ActivityIndicator size="small" color={colors.goldMid} />
           ) : (
-            <Ionicons name="sparkles-outline" size={18} color={colors.goldMid} />
+            <Ionicons name="sparkles-outline" size={17} color={colors.goldMid} />
           )}
           <Text style={[styles.summarizeBtnText, { color: colors.goldMid }]}>
-            {isSummarizing ? 'Summarizing…' : 'Summarize this Hadith'}
+            {isSummarizing ? 'Summarising…' : 'AI Summary'}
           </Text>
-        </TouchableOpacity>
+        </Pressable>
 
-        {/* Summary Result */}
+        {/* Summary result */}
         {summary ? (
-          <View style={[styles.summaryBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.summaryLabel, { color: colors.emeraldMid }]}>Summary</Text>
+          <View
+            style={[
+              styles.summaryBox,
+              { backgroundColor: colors.card, borderColor: colors.border },
+              isDark ? SHADOWS.cardDark : SHADOWS.subtle,
+            ]}
+          >
+            <Text style={[styles.sectionLabel, { color: colors.emeraldMid }]}>Summary</Text>
             <Text style={[styles.summaryText, { color: colors.bronzeText }]}>{summary}</Text>
           </View>
         ) : null}
 
-        {/* Action Buttons */}
+        {/* Action buttons */}
         <View style={styles.actions}>
-          <TouchableOpacity
-            style={[styles.actionBtn, { borderColor: colors.border, backgroundColor: colors.card }]}
-            onPress={() => setShowSaveModal(true)}
-          >
-            <Ionicons name="folder-outline" size={18} color={colors.emeraldMid} />
-            <Text style={[styles.actionBtnText, { color: colors.emeraldMid }]}>Save</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.actionBtn, { borderColor: colors.border, backgroundColor: colors.card }]}
-            onPress={() => shareHadith(hadith)}
-          >
-            <Ionicons name="share-outline" size={18} color={colors.emeraldMid} />
-            <Text style={[styles.actionBtnText, { color: colors.emeraldMid }]}>Share</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.actionBtn, { borderColor: colors.border, backgroundColor: colors.card }]}
-            onPress={() => router.push(`/collection/${hadith.collection_slug}`)}
-          >
-            <Ionicons name="library-outline" size={18} color={colors.emeraldMid} />
-            <Text style={[styles.actionBtnText, { color: colors.emeraldMid }]}>Collection</Text>
-          </TouchableOpacity>
+          {[
+            {
+              icon: 'folder-outline' as const,
+              label: 'Save',
+              onPress: () => setShowSaveModal(true),
+            },
+            {
+              icon: 'share-outline' as const,
+              label: 'Share',
+              onPress: () => shareHadith(hadith),
+            },
+            {
+              icon: 'library-outline' as const,
+              label: 'Collection',
+              onPress: () => router.push(`/collection/${hadith.collection_slug}`),
+            },
+          ].map(btn => (
+            <Pressable
+              key={btn.label}
+              style={({ pressed }) => [
+                styles.actionBtn,
+                { borderColor: colors.border, backgroundColor: colors.card },
+                pressed && { opacity: 0.7 },
+              ]}
+              onPress={btn.onPress}
+            >
+              <Ionicons name={btn.icon} size={18} color={colors.emeraldMid} />
+              <Text style={[styles.actionBtnText, { color: colors.emeraldMid }]}>
+                {btn.label}
+              </Text>
+            </Pressable>
+          ))}
         </View>
       </ScrollView>
 
@@ -232,8 +274,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: SPACING.md,
-    paddingBottom: SPACING.xxl,
+    paddingTop: SPACING.md,
   },
   center: {
     flex: 1,
@@ -244,59 +285,66 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.md,
   },
   headerBtn: {
-    marginRight: SPACING.sm,
+    marginRight: 4,
     padding: SPACING.sm,
   },
   metaRow: {
     marginBottom: SPACING.md,
     paddingBottom: SPACING.md,
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   collectionName: {
     fontSize: FONT_SIZES.lg,
     fontWeight: '700',
+    letterSpacing: -0.2,
     marginBottom: 2,
   },
   hadithNumber: {
     fontSize: FONT_SIZES.sm,
   },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    marginBottom: SPACING.lg,
+    flexWrap: 'wrap',
+  },
   gradeBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.xs,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
     borderRadius: BORDER_RADIUS.full,
-    marginBottom: SPACING.md,
   },
   gradeText: {
     fontSize: FONT_SIZES.sm,
-    fontWeight: '600',
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   narrator: {
     fontSize: FONT_SIZES.sm,
     fontStyle: 'italic',
-    marginBottom: SPACING.md,
+    flex: 1,
   },
-  section: {
+  textSection: {
     marginBottom: SPACING.lg,
     paddingBottom: SPACING.lg,
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   sectionLabel: {
-    fontSize: FONT_SIZES.xs,
+    fontSize: 10,
     fontWeight: '700',
-    letterSpacing: 1,
+    letterSpacing: 1.2,
     textTransform: 'uppercase',
     marginBottom: SPACING.sm,
   },
   arabicText: {
     fontSize: FONT_SIZES.xl,
-    lineHeight: 38,
+    lineHeight: 40,
     textAlign: 'right',
     writingDirection: 'rtl',
   },
   englishText: {
     fontSize: FONT_SIZES.md,
-    lineHeight: 26,
+    lineHeight: 28,
   },
   summarizeBtn: {
     flexDirection: 'row',
@@ -305,26 +353,20 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
     borderWidth: 1,
     borderRadius: BORDER_RADIUS.lg,
-    paddingVertical: SPACING.md,
+    paddingVertical: 13,
     paddingHorizontal: SPACING.lg,
     marginBottom: SPACING.md,
+    minHeight: LAYOUT.touchTarget,
   },
   summarizeBtnText: {
     fontSize: FONT_SIZES.base,
     fontWeight: '600',
   },
   summaryBox: {
-    borderWidth: 1,
-    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: BORDER_RADIUS.xl,
     padding: SPACING.md,
     marginBottom: SPACING.lg,
-  },
-  summaryLabel: {
-    fontSize: FONT_SIZES.xs,
-    fontWeight: '700',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    marginBottom: SPACING.sm,
   },
   summaryText: {
     fontSize: FONT_SIZES.base,
@@ -333,18 +375,18 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     gap: SPACING.sm,
-    marginTop: SPACING.sm,
+    marginTop: SPACING.xs,
   },
   actionBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: SPACING.xs,
-    borderWidth: 1,
-    borderRadius: BORDER_RADIUS.md,
-    paddingVertical: SPACING.sm,
-    paddingHorizontal: SPACING.sm,
+    gap: 5,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: BORDER_RADIUS.lg,
+    paddingVertical: 12,
+    minHeight: LAYOUT.touchTarget,
   },
   actionBtnText: {
     fontSize: FONT_SIZES.sm,

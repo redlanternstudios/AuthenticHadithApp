@@ -1,22 +1,31 @@
 import React, { useCallback } from 'react'
-import { StyleSheet, View, ScrollView, Text, Pressable, Share, RefreshControl } from 'react-native'
+import {
+  StyleSheet,
+  View,
+  ScrollView,
+  Text,
+  Pressable,
+  Share,
+  RefreshControl,
+} from 'react-native'
 import { useRouter } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth/AuthProvider'
+import { useTheme } from '@/lib/theme/ThemeProvider'
 import { HadithCard } from '@/components/hadith/HadithCard'
 import { StreakCounter } from '@/components/gamification/StreakCounter'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
+import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
+import { useDeviceLayout } from '@/lib/hooks/use-device-layout'
 import { trackActivity } from '@/lib/gamification/track-activity'
 import { Hadith } from '@/types/hadith'
 
-// Sunnah practices rotate daily
 const DAILY_ACTIONS = [
   { action: 'Say Bismillah before eating', reference: 'Sahih al-Bukhari 5376' },
-  { action: 'Pray two rak\'ahs of Duha', reference: 'Sahih Muslim 748' },
+  { action: "Pray two rak'ahs of Duha", reference: 'Sahih Muslim 748' },
   { action: 'Read Surah al-Mulk before sleeping', reference: 'Jami at-Tirmidhi 2891' },
   { action: 'Make dhikr after Fajr until sunrise', reference: 'Sahih Muslim 2137' },
   { action: 'Smile at your brother/sister', reference: 'Jami at-Tirmidhi 1956' },
@@ -51,13 +60,14 @@ function getDailyIndex(date: Date, max: number): number {
 export default function TodayScreen() {
   const router = useRouter()
   const { user } = useAuth()
+  const { isDark } = useTheme()
+  const colors = getColors(isDark)
+  const { contentTop, contentBottom, pagePadding, maxContentWidth } = useDeviceLayout()
   const today = new Date()
-  const dailyActionIndex = getDailyIndex(today, DAILY_ACTIONS.length)
-  const reflectionIndex = getDailyIndex(today, REFLECTION_PROMPTS.length)
-  const todayAction = DAILY_ACTIONS[dailyActionIndex]
-  const todayReflection = REFLECTION_PROMPTS[reflectionIndex]
+  const todayAction = DAILY_ACTIONS[getDailyIndex(today, DAILY_ACTIONS.length)]
+  const todayReflection = REFLECTION_PROMPTS[getDailyIndex(today, REFLECTION_PROMPTS.length)]
 
-  const { data: dailyHadith, isLoading: hadithLoading, refetch } = useQuery({
+  const { data: dailyHadith, isLoading, refetch } = useQuery({
     queryKey: ['daily-hadith', today.toDateString()],
     queryFn: async () => {
       const dateStr = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`
@@ -72,7 +82,6 @@ export default function TodayScreen() {
         .from('hadiths')
         .select('id', { count: 'exact', head: true })
         .eq('grade', 'sahih')
-
       if (!count) return null
 
       const offset = seed % count
@@ -82,7 +91,6 @@ export default function TodayScreen() {
         .eq('grade', 'sahih')
         .range(offset, offset)
         .single()
-
       return data as Hadith | null
     },
   })
@@ -108,9 +116,7 @@ export default function TodayScreen() {
       await Share.share({
         message: `Daily Hadith:\n\n${text}\n\n— ${dailyHadith.collection_slug} ${dailyHadith.hadith_number}\n\nShared from Authentic Hadith`,
       })
-      if (user) {
-        trackActivity(user.id, 'share')
-      }
+      if (user) trackActivity(user.id, 'share')
     } catch {}
   }, [dailyHadith, user])
 
@@ -123,23 +129,41 @@ export default function TodayScreen() {
     trackActivity(user.id, 'bookmark')
   }, [dailyHadith, user])
 
-  if (hadithLoading) {
-    return <LoadingSpinner />
-  }
+  if (isLoading) return <LoadingSpinner />
 
   return (
     <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
+      style={[styles.container, { backgroundColor: colors.background }]}
+      contentContainerStyle={[
+        styles.content,
+        {
+          paddingTop: contentTop,
+          paddingBottom: contentBottom,
+          paddingHorizontal: pagePadding,
+          alignSelf: 'center',
+          width: '100%',
+          maxWidth: maxContentWidth,
+        },
+      ]}
       refreshControl={
-        <RefreshControl refreshing={false} onRefresh={() => refetch()} />
+        <RefreshControl
+          refreshing={false}
+          onRefresh={() => refetch()}
+          tintColor={colors.emeraldMid}
+        />
       }
+      showsVerticalScrollIndicator={false}
     >
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.dateText}>
-          {today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+        <Text style={[styles.dateText, { color: colors.goldMid }]}>
+          {today.toLocaleDateString('en-US', {
+            weekday: 'long',
+            month: 'long',
+            day: 'numeric',
+          })}
         </Text>
-        <Text style={styles.title}>Today's Hadith</Text>
+        <Text style={[styles.title, { color: colors.bronzeText }]}>Today</Text>
       </View>
 
       {/* Streak */}
@@ -152,28 +176,41 @@ export default function TodayScreen() {
 
       {/* Daily Hadith */}
       {dailyHadith && (
-        <View>
+        <>
           <HadithCard
             hadith={dailyHadith}
             onPress={() => router.push(`/hadith/${dailyHadith.id}`)}
           />
+          {/* Action pill row */}
           <View style={styles.actionRow}>
-            <Pressable style={styles.actionButton} onPress={handleSave}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.actionPill,
+                { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.7 : 1 },
+              ]}
+              onPress={handleSave}
+            >
               <Text style={styles.actionIcon}>🔖</Text>
-              <Text style={styles.actionLabel}>Save</Text>
+              <Text style={[styles.actionLabel, { color: colors.bronzeText }]}>Save</Text>
             </Pressable>
-            <Pressable style={styles.actionButton} onPress={handleShare}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.actionPill,
+                { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.7 : 1 },
+              ]}
+              onPress={handleShare}
+            >
               <Text style={styles.actionIcon}>📤</Text>
-              <Text style={styles.actionLabel}>Share</Text>
+              <Text style={[styles.actionLabel, { color: colors.bronzeText }]}>Share</Text>
             </Pressable>
           </View>
-        </View>
+        </>
       )}
 
-      {/* Reflection Prompt */}
+      {/* Reflection */}
       <Card variant="elevated" style={styles.reflectionCard}>
-        <Text style={styles.sectionTitle}>💭 Today's Reflection</Text>
-        <Text style={styles.reflectionText}>{todayReflection}</Text>
+        <Text style={[styles.cardEyebrow, { color: colors.emeraldMid }]}>💭 REFLECTION</Text>
+        <Text style={[styles.reflectionText, { color: colors.mutedText }]}>{todayReflection}</Text>
         <Button
           title="Write a Reflection"
           variant="outline"
@@ -182,27 +219,39 @@ export default function TodayScreen() {
         />
       </Card>
 
-      {/* Today's Sunnah Action */}
-      <Card variant="elevated" style={styles.sunnahCard}>
-        <Text style={styles.sectionTitle}>☀️ Today's Small Action</Text>
-        <Text style={styles.sunnahAction}>{todayAction.action}</Text>
-        <Text style={styles.sunnahReference}>{todayAction.reference}</Text>
+      {/* Sunnah action */}
+      <Card
+        variant="elevated"
+        style={[styles.sunnahCard, { borderLeftColor: colors.goldMid }]}
+      >
+        <Text style={[styles.cardEyebrow, { color: colors.goldMid }]}>☀️ TODAY'S SUNNAH</Text>
+        <Text style={[styles.sunnahAction, { color: colors.bronzeText }]}>
+          {todayAction.action}
+        </Text>
+        <Text style={[styles.sunnahReference, { color: colors.mutedText }]}>
+          {todayAction.reference}
+        </Text>
       </Card>
 
-      {/* Quick Links */}
+      {/* Quick links */}
       <View style={styles.quickLinks}>
-        <Pressable style={styles.quickLink} onPress={() => router.push('/sunnah')}>
-          <Text style={styles.quickLinkIcon}>🕌</Text>
-          <Text style={styles.quickLinkText}>All Sunnah</Text>
-        </Pressable>
-        <Pressable style={styles.quickLink} onPress={() => router.push('/stories')}>
-          <Text style={styles.quickLinkIcon}>📖</Text>
-          <Text style={styles.quickLinkText}>Stories</Text>
-        </Pressable>
-        <Pressable style={styles.quickLink} onPress={() => router.push('/quiz')}>
-          <Text style={styles.quickLinkIcon}>🧠</Text>
-          <Text style={styles.quickLinkText}>Quiz</Text>
-        </Pressable>
+        {[
+          { icon: '🕌', label: 'All Sunnah', route: '/sunnah' },
+          { icon: '📖', label: 'Stories', route: '/stories' },
+          { icon: '🧠', label: 'Quiz', route: '/quiz' },
+        ].map(item => (
+          <Pressable
+            key={item.label}
+            style={({ pressed }) => [
+              styles.quickLink,
+              { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.7 : 1 },
+            ]}
+            onPress={() => router.push(item.route as any)}
+          >
+            <Text style={styles.quickLinkIcon}>{item.icon}</Text>
+            <Text style={[styles.quickLinkText, { color: colors.bronzeText }]}>{item.label}</Text>
+          </Pressable>
+        ))}
       </View>
     </ScrollView>
   )
@@ -211,99 +260,101 @@ export default function TodayScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   content: {
-    padding: SPACING.md,
-    paddingBottom: SPACING.xxl,
+    gap: 0,
   },
   header: {
-    paddingTop: SPACING.xl,
     marginBottom: SPACING.lg,
   },
   dateText: {
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.goldMid,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.2,
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: SPACING.xs,
+    marginBottom: 6,
   },
   title: {
-    fontSize: FONT_SIZES.xxxl,
+    fontSize: 30,
     fontWeight: '700',
-    color: COLORS.bronzeText,
+    letterSpacing: -0.5,
   },
   actionRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    gap: SPACING.xl,
+    gap: SPACING.sm,
+    marginTop: -SPACING.xs,
     marginBottom: SPACING.lg,
   },
-  actionButton: {
+  actionPill: {
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: SPACING.xs,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    minHeight: 44,
   },
   actionIcon: {
-    fontSize: 24,
+    fontSize: 18,
   },
   actionLabel: {
     fontSize: FONT_SIZES.sm,
-    color: COLORS.mutedText,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   reflectionCard: {
     marginBottom: SPACING.md,
     gap: SPACING.sm,
   },
-  sectionTitle: {
-    fontSize: FONT_SIZES.md,
+  cardEyebrow: {
+    fontSize: 11,
     fontWeight: '700',
-    color: COLORS.bronzeText,
-    marginBottom: SPACING.xs,
+    letterSpacing: 1,
+    marginBottom: 2,
   },
   reflectionText: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.mutedText,
     lineHeight: 22,
     fontStyle: 'italic',
   },
   sunnahCard: {
     marginBottom: SPACING.md,
     borderLeftWidth: 3,
-    borderLeftColor: COLORS.goldMid,
+    gap: SPACING.xs,
   },
   sunnahAction: {
     fontSize: FONT_SIZES.md,
     fontWeight: '600',
-    color: COLORS.bronzeText,
-    marginBottom: SPACING.xs,
+    lineHeight: 24,
+    marginTop: 2,
   },
   sunnahReference: {
     fontSize: FONT_SIZES.sm,
-    color: COLORS.mutedText,
   },
   quickLinks: {
     flexDirection: 'row',
-    gap: SPACING.md,
-    marginTop: SPACING.sm,
+    gap: SPACING.sm,
+    marginTop: SPACING.xs,
   },
   quickLink: {
     flex: 1,
-    backgroundColor: COLORS.card,
-    borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.md,
+    borderRadius: BORDER_RADIUS.xl,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.sm,
     alignItems: 'center',
-    gap: SPACING.sm,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    gap: SPACING.xs,
+    borderWidth: StyleSheet.hairlineWidth,
+    minHeight: 72,
+    justifyContent: 'center',
   },
   quickLinkIcon: {
     fontSize: 24,
   },
   quickLinkText: {
-    fontSize: FONT_SIZES.sm,
+    fontSize: 12,
     fontWeight: '600',
-    color: COLORS.bronzeText,
+    textAlign: 'center',
   },
 })
