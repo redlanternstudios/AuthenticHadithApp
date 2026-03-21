@@ -6,11 +6,18 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "authentichadith",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.authentichadith.app"
+      "bundleIdentifier": "com.authentichadith.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Authentic Hadith uses the camera to let you set a profile photo.",
+        "NSPhotoLibraryUsageDescription": "Authentic Hadith accesses your photo library to let you set a profile photo.",
+        "NSUserNotificationsUsageDescription": "Authentic Hadith sends daily hadith reminders and learning path updates.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -43,6 +50,20 @@
             "backgroundColor": "#0a2a1f"
           }
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#1b5e43",
+          "defaultChannel": "default"
+        }
+      ],
+      [
+        "react-native-purchases",
+        {
+          "ios": {}
+        }
       ]
     ],
     "experiments": {
@@ -54,7 +75,7 @@
         "origin": "https://authentichadith.app"
       },
       "supabaseUrl": "https://nqklipakrfuwebkdnhwg.supabase.co",
-      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xa2xpcGFrcmZ1d2Via2RuaHdnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyODA3NDUsImV4cCI6MjA4Mzg1Njc0NX0.yhIe3hqiLlyF8atvSmNOL3HBq91V9Frw5jYcat-sZxY",
+      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ5.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xa2xpcGFrcmZ1d2Via2RuaHdnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyODA3NDUsImV4cCI6MjA4Mzg1Njc0NX0.yhIe3hqiLlyF8atvSmNOL3HBq91V9Frw5jYcat-sZxY",
       "eas": {
         "projectId": "66afcbbf-55c3-48fb-9bf1-29efc52d09eb"
       }

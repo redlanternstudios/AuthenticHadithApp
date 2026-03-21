@@ -3,10 +3,14 @@ import Constants from 'expo-constants'
 
 const extra = Constants.expoConfig?.extra ?? {}
 
+// Set revenueCatApiKey in app.json > extra (development) or as an EAS secret (production).
+// Do NOT ship the test key to production — it will show test products only.
 export const REVENUECAT_API_KEY: string =
-  extra.revenueCatApiKey ?? 'test_gngYicqPNakjsEBKvUwfIlFHrUg'
+  extra.revenueCatApiKey ?? ''
 
-export const ENTITLEMENT_ID = 'RedLantern Studios Pro'
+// Must match exactly what is configured in your RevenueCat dashboard.
+// Also used in lib/purchases/revenuecat.ts — keep both in sync.
+export const ENTITLEMENT_ID = 'premium'
 
 export const PRODUCT_IDS = {
   monthly: Platform.select({
