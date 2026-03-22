@@ -1,101 +1,26 @@
-import React from 'react'
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native'
-import { useRouter } from 'expo-router'
-import { Ionicons } from '@expo/vector-icons'
-import { useAuth } from '@/hooks/use-auth'
-
-export default function HomeScreen() {
-  const router = useRouter()
-  const { isAuthenticated } = useAuth()
-
-  return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Authentic Hadith</Text>
-        <Text style={styles.subtitle}>
-          Access 36,000+ verified hadiths from 6 major collections
-        </Text>
-      </View>
-
-      <View style={styles.grid}>
-        <TouchableOpacity
-          style={styles.card}
-          onPress={() => router.push('/collections')}
-        >
-          <View style={[styles.iconContainer, { backgroundColor: '#1B5E43' }]}>
-            <Ionicons name="book" size={32} color="#fff" />
-          </View>
-          <Text style={styles.cardTitle}>Collections</Text>
-          <Text style={styles.cardSubtitle}>Browse hadith collections</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.card}
-          onPress={() => router.push('/bookmarks')}
-        >
-          <View style={[styles.iconContainer, { backgroundColor: '#C5A059' }]}>
-            <Ionicons name="bookmark" size={32} color="#fff" />
-          </View>
-          <Text style={styles.cardTitle}>Bookmarks</Text>
-          <Text style={styles.cardSubtitle}>Your saved hadiths</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.card}
-          onPress={() => router.push('/modal')}
-        >
-          <View style={[styles.iconContainer, { backgroundColor: '#6366F1' }]}>
-            <Ionicons name="search" size={32} color="#fff" />
-          </View>
-          <Text style={styles.cardTitle}>Search</Text>
-          <Text style={styles.cardSubtitle}>Find specific hadiths</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.card}
-          onPress={() => router.push('/modal')}
-        >
-          <View style={[styles.iconContainer, { backgroundColor: '#EC4899' }]}>
-            <Ionicons name="person" size={32} color="#fff" />
-          </View>
-          <Text style={styles.cardTitle}>Profile</Text>
-          <Text style={styles.cardSubtitle}>
-            {isAuthenticated ? 'Manage account' : 'Sign in'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.infoCard}>
-        <Ionicons name="information-circle" size={24} color="#1B5E43" />
-        <View style={styles.infoText}>
-          <Text style={styles.infoTitle}>Getting Started</Text>
-          <Text style={styles.infoDescription}>
-            This mobile app connects to the shared Supabase backend at authentichadith.app. 
-            Configure your environment variables in .env to get started.
-          </Text>
-        </View>
-      </View>
-
-      {!isAuthenticated && (
-        <View style={styles.authPrompt}>
-          <Text style={styles.authText}>Sign in to bookmark hadiths and sync across devices</Text>
-        </View>
-      )}
-    </ScrollView>
-  )
 import React, { useState } from 'react';
-import { StyleSheet, View, ScrollView, Text, RefreshControl, Pressable } from 'react-native';
+import {
+  StyleSheet,
+  View,
+  ScrollView,
+  Text,
+  RefreshControl,
+  Pressable,
+  Dimensions,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth/AuthProvider';
+import { useTheme } from '@/lib/theme/ThemeProvider';
 import { HadithCard } from '@/components/hadith/HadithCard';
 import { StreakCounter } from '@/components/gamification/StreakCounter';
 import { LevelProgressBar } from '@/components/gamification/LevelProgressBar';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors';
+import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors';
 import { getLevelInfo } from '@/lib/gamification/level-calculator';
 import { Hadith } from '@/types/hadith';
 
@@ -108,9 +33,15 @@ const QUICK_ACTIONS = [
   { icon: '🏆', label: 'Badges', route: '/achievements' },
 ];
 
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const IS_TABLET = SCREEN_WIDTH >= 768;
+
 export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const { isDark } = useTheme();
+  const colors = getColors(isDark);
+  const insets = useSafeAreaInsets();
   const [refreshKey, setRefreshKey] = useState(0);
 
   const { data: hadith, isLoading, refetch } = useQuery({
@@ -124,7 +55,6 @@ export default function HomeScreen() {
         .order('id', { ascending: false })
         .range(offset, offset)
         .single();
-
       if (error) throw error;
       return data as Hadith;
     },
@@ -158,38 +88,56 @@ export default function HomeScreen() {
     enabled: !!user,
   });
 
-  const handleRefresh = () => {
-    setRefreshKey(prev => prev + 1);
-  };
-
+  const handleRefresh = () => setRefreshKey(prev => prev + 1);
   const levelInfo = getLevelInfo(stats?.xp || 0);
 
-  if (isLoading) {
-    return <LoadingSpinner />;
-  }
+  if (isLoading) return <LoadingSpinner />;
+
+  // Tablet: 3-column quick actions, wider max content
+  const quickActionWidth = IS_TABLET ? '23%' : '31%';
+  const contentMaxWidth = IS_TABLET ? 680 : undefined;
 
   return (
     <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
+      style={[styles.container, { backgroundColor: colors.background }]}
+      contentContainerStyle={[
+        styles.content,
+        {
+          paddingTop: insets.top + SPACING.md,
+          paddingBottom: insets.bottom + SPACING.xxl,
+          alignSelf: 'center',
+          width: '100%',
+          maxWidth: contentMaxWidth,
+        },
+      ]}
       refreshControl={
-        <RefreshControl refreshing={isLoading} onRefresh={handleRefresh} />
+        <RefreshControl
+          refreshing={isLoading}
+          onRefresh={handleRefresh}
+          tintColor={colors.emeraldMid}
+        />
       }
+      showsVerticalScrollIndicator={false}
     >
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.greeting}>
-          {user ? `Assalamu Alaikum${stats?.xp ? `, ${levelInfo.title}` : ''}` : 'Assalamu Alaikum'}
+        <Text style={[styles.greeting, { color: colors.goldMid }]}>
+          {user
+            ? `Assalamu Alaikum${stats?.xp ? `, ${levelInfo.title}` : ''}`
+            : 'Assalamu Alaikum'}
         </Text>
-        <Text style={styles.title}>Authentic Hadith</Text>
+        <Text style={[styles.title, { color: colors.bronzeText }]}>Authentic Hadith</Text>
+        <Text style={[styles.subtitle, { color: colors.mutedText }]}>
+          36,246 hadiths from 8 major collections
+        </Text>
       </View>
 
-      {/* Level & Streak (logged in users) */}
+      {/* Level + Streak (logged-in users) */}
       {user && stats && (
         <Card variant="elevated" style={styles.levelCard}>
           <LevelProgressBar levelInfo={levelInfo} />
         </Card>
       )}
-
       {user && streak && (
         <StreakCounter
           currentStreak={streak.current_streak || 0}
@@ -197,47 +145,47 @@ export default function HomeScreen() {
         />
       )}
 
-      {/* Quick Actions Grid */}
+      {/* Quick Actions */}
+      <Text style={[styles.sectionLabel, { color: colors.mutedText }]}>EXPLORE</Text>
       <View style={styles.quickActionsGrid}>
-        {QUICK_ACTIONS.map((action) => (
+        {QUICK_ACTIONS.map(action => (
           <Pressable
             key={action.label}
-            style={styles.quickAction}
+            style={({ pressed }) => [
+              styles.quickAction,
+              {
+                width: quickActionWidth,
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                opacity: pressed ? 0.75 : 1,
+              },
+            ]}
             onPress={() => router.push(action.route as any)}
           >
             <Text style={styles.quickActionIcon}>{action.icon}</Text>
-            <Text style={styles.quickActionLabel}>{action.label}</Text>
+            <Text style={[styles.quickActionLabel, { color: colors.bronzeText }]}>
+              {action.label}
+            </Text>
           </Pressable>
         ))}
       </View>
 
       {/* Hadith of the Moment */}
-      <Text style={styles.sectionTitle}>Hadith of the Moment</Text>
+      <View style={styles.sectionRow}>
+        <Text style={[styles.sectionTitle, { color: colors.bronzeText }]}>
+          Hadith of the Moment
+        </Text>
+        <Pressable onPress={handleRefresh}>
+          <Text style={[styles.refreshLink, { color: colors.emeraldMid }]}>Refresh</Text>
+        </Pressable>
+      </View>
 
       {hadith && (
-        <HadithCard
-          hadith={hadith}
-          onPress={() => router.push(`/hadith/${hadith.id}`)}
-        />
+        <HadithCard hadith={hadith} onPress={() => router.push(`/hadith/${hadith.id}`)} />
       )}
 
       <View style={styles.actions}>
-        <Button
-          title="Get Another Hadith"
-          onPress={handleRefresh}
-          variant="primary"
-        />
-        <Button
-          title="Browse Collections"
-          onPress={() => router.push('/(tabs)/collections')}
-          variant="outline"
-        />
-      </View>
-
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>
-          Access 36,246 authentic hadiths from 8 major collections
-        </Text>
+        <Button title="Browse Collections" onPress={() => router.push('/(tabs)/collections')} variant="outline" />
       </View>
     </ScrollView>
   );
@@ -246,104 +194,53 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F6F2',
   },
   content: {
-    padding: 16,
-  },
-  header: {
-    marginBottom: 24,
-    paddingTop: 8,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#1B5E43',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    lineHeight: 24,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 24,
-  },
-  card: {
-    width: '48%',
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  iconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
-  },
-  cardSubtitle: {
-    fontSize: 12,
-    color: '#666',
-    textAlign: 'center',
-  },
-  infoCard: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: '#1B5E43',
-  },
-  infoText: {
-    flex: 1,
-    marginLeft: 12,
-    backgroundColor: COLORS.background,
-  },
-  content: {
-    padding: SPACING.md,
-    paddingBottom: SPACING.xxl,
+    paddingHorizontal: 20,
   },
   header: {
     marginBottom: SPACING.lg,
-    paddingTop: SPACING.xl,
   },
   greeting: {
-    fontSize: FONT_SIZES.base,
-    color: COLORS.goldMid,
+    fontSize: FONT_SIZES.sm,
     fontWeight: '600',
-    marginBottom: SPACING.xs,
+    letterSpacing: 0.3,
+    marginBottom: 4,
   },
   title: {
-    fontSize: FONT_SIZES.xxxl,
+    fontSize: 30,
     fontWeight: '700',
-    color: COLORS.bronzeText,
+    letterSpacing: -0.5,
+    marginBottom: 6,
+  },
+  subtitle: {
+    fontSize: FONT_SIZES.sm,
+    lineHeight: 18,
   },
   levelCard: {
+    marginBottom: SPACING.md,
+  },
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    marginBottom: SPACING.sm,
+    marginTop: SPACING.xs,
+  },
+  sectionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
     marginBottom: SPACING.md,
   },
   sectionTitle: {
     fontSize: FONT_SIZES.lg,
     fontWeight: '700',
-    color: COLORS.bronzeText,
-    marginBottom: SPACING.md,
+    letterSpacing: -0.2,
+  },
+  refreshLink: {
+    fontSize: FONT_SIZES.sm,
+    fontWeight: '600',
   },
   quickActionsGrid: {
     flexDirection: 'row',
@@ -352,58 +249,22 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.lg,
   },
   quickAction: {
-    width: '31%',
-    backgroundColor: COLORS.card,
-    borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.md,
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: SPACING.sm,
     alignItems: 'center',
-    gap: SPACING.xs,
+    gap: 6,
     borderWidth: 1,
-    borderColor: COLORS.border,
   },
   quickActionIcon: {
-    fontSize: 24,
+    fontSize: 26,
   },
   quickActionLabel: {
-    fontSize: FONT_SIZES.sm,
+    fontSize: 12,
     fontWeight: '600',
-    color: COLORS.bronzeText,
   },
   actions: {
     gap: SPACING.md,
-    marginTop: SPACING.md,
+    marginTop: SPACING.sm,
   },
-  footer: {
-    marginTop: SPACING.xl,
-    padding: SPACING.md,
-    alignItems: 'center',
-  },
-  footerText: {
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.mutedText,
-    textAlign: 'center',
-  },
-  infoTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
-  },
-  infoDescription: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
-  },
-  authPrompt: {
-    backgroundColor: '#1B5E43',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-  },
-  authText: {
-    fontSize: 14,
-    color: '#fff',
-    textAlign: 'center',
-  },
-})
-
+});

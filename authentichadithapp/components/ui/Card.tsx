@@ -1,20 +1,32 @@
 import React from 'react'
 import { View, StyleSheet, ViewProps } from 'react-native'
-import { COLORS, BORDER_RADIUS, SPACING } from '../../lib/styles/colors'
+import { useTheme } from '@/lib/theme/ThemeProvider'
+import { getColors, BORDER_RADIUS, SPACING, SHADOWS } from '@/lib/styles/colors'
 
 interface CardProps extends ViewProps {
   children: React.ReactNode
-  variant?: 'default' | 'elevated'
+  variant?: 'default' | 'elevated' | 'ghost'
 }
 
 export function Card({ children, variant = 'default', style, ...props }: CardProps) {
+  const { isDark } = useTheme()
+  const colors = getColors(isDark)
+
+  const shadowStyle = variant === 'elevated'
+    ? (isDark ? SHADOWS.cardDark : SHADOWS.card)
+    : variant === 'default'
+    ? SHADOWS.subtle
+    : {}
+
   return (
-    <View 
+    <View
       style={[
-        styles.card, 
-        variant === 'elevated' && styles.elevated,
-        style
-      ]} 
+        styles.card,
+        { backgroundColor: colors.card, borderColor: colors.border },
+        variant === 'ghost' && styles.ghost,
+        shadowStyle,
+        style,
+      ]}
       {...props}
     >
       {children}
@@ -24,17 +36,12 @@ export function Card({ children, variant = 'default', style, ...props }: CardPro
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: COLORS.card,
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: BORDER_RADIUS.xl,  // 20 — premium iOS card radius
     padding: SPACING.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    borderWidth: StyleSheet.hairlineWidth,
   },
-  elevated: {
-    shadowColor: COLORS.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+  ghost: {
+    backgroundColor: 'transparent',
+    borderWidth: 0,
   },
 })

@@ -1,6 +1,7 @@
 import React from 'react'
 import { TextInput, StyleSheet, TextInputProps, View, Text } from 'react-native'
-import { COLORS, BORDER_RADIUS, SPACING, FONT_SIZES } from '../../lib/styles/colors'
+import { useTheme } from '@/lib/theme/ThemeProvider'
+import { getColors, BORDER_RADIUS, SPACING, FONT_SIZES, LAYOUT } from '@/lib/styles/colors'
 
 interface InputProps extends TextInputProps {
   label?: string
@@ -8,19 +9,30 @@ interface InputProps extends TextInputProps {
 }
 
 export function Input({ label, error, style, ...props }: InputProps) {
+  const { isDark } = useTheme()
+  const colors = getColors(isDark)
+
   return (
     <View style={styles.container}>
-      {label && <Text style={styles.label}>{label}</Text>}
+      {label && (
+        <Text style={[styles.label, { color: colors.bronzeText }]}>{label}</Text>
+      )}
       <TextInput
         style={[
           styles.input,
-          error && styles.inputError,
+          {
+            backgroundColor: isDark ? colors.card : colors.white,
+            borderColor: error ? colors.error : colors.border,
+            color: colors.bronzeText,
+          },
           style,
         ]}
-        placeholderTextColor={COLORS.mutedText}
+        placeholderTextColor={colors.mutedText}
         {...props}
       />
-      {error && <Text style={styles.error}>{error}</Text>}
+      {error && (
+        <Text style={[styles.error, { color: colors.error }]}>{error}</Text>
+      )}
     </View>
   )
 }
@@ -30,27 +42,20 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
   label: {
-    fontSize: FONT_SIZES.base,
-    color: COLORS.bronzeText,
+    fontSize: FONT_SIZES.sm,
+    fontWeight: '600',
+    letterSpacing: 0.3,
     marginBottom: SPACING.sm,
-    fontWeight: '500',
   },
   input: {
-    backgroundColor: COLORS.white,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1.5,
+    borderRadius: BORDER_RADIUS.lg,  // 14 — matches button radius
     paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.md,
+    paddingVertical: 0,
     fontSize: FONT_SIZES.base,
-    color: COLORS.bronzeText,
-    minHeight: 44,
-  },
-  inputError: {
-    borderColor: COLORS.error,
+    minHeight: LAYOUT.inputHeight,   // 52 — generous tap target
   },
   error: {
-    color: COLORS.error,
     fontSize: FONT_SIZES.sm,
     marginTop: SPACING.xs,
   },
