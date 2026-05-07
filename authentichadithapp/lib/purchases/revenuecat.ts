@@ -31,9 +31,9 @@ try {
 
 // ─── Product identifiers (must match App Store Connect + RevenueCat) ───
 export const PRODUCT_IDS = {
-  MONTHLY_PREMIUM: 'ah_premium_monthly',
-  ANNUAL_PREMIUM: 'ah_premium_annual',
-  LIFETIME: 'ah_lifetime',
+  MONTHLY_PREMIUM: 'ah_monthly_premium',
+  ANNUAL_PREMIUM: 'ah_annual_premium',
+  LIFETIME: 'ah_lifetime_premium',
 } as const
 
 // ─── Entitlement identifier (configured in RevenueCat dashboard) ───

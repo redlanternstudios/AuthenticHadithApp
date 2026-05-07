@@ -18,10 +18,11 @@ export interface Hadith {
 export interface Collection {
   id: string
   slug: string
-  name: string
-  description?: string
-  hadith_count: number
-  author?: string
+  name_en: string
+  name_ar?: string
+  description_en?: string
+  total_hadiths: number
+  scholar?: string
   image_url?: string
   created_at: string
 }
@@ -32,7 +33,7 @@ export interface Book {
   book_number: number
   name: string
   arabic_name?: string
-  hadith_count: number
+  total_hadiths: number
 }
 
 export interface Chapter {
@@ -66,12 +67,12 @@ export interface UserProfile {
 
 export interface LearningPath {
   id: string
-  name: string
+  title: string
   description: string
-  difficulty: 'beginner' | 'intermediate' | 'advanced' | 'scholar'
-  estimated_days: number
+  level: 'beginner' | 'intermediate' | 'advanced' | 'scholar'
+  estimated_hours: number
   is_premium: boolean
-  order_index: number
+  sort_order: number
   created_at: string
 }
 
@@ -80,7 +81,7 @@ export interface Lesson {
   title: string
   description: string
   content?: string
-  order_index: number
+  sort_order: number
   estimated_minutes: number
   created_at: string
 }

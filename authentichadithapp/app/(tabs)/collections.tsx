@@ -17,7 +17,7 @@ export default function CollectionsScreen() {
       const { data, error } = await supabase
         .from('collections')
         .select('*')
-        .order('name');
+        .order('name_en');
 
       if (error) throw error;
       return data as Collection[];
@@ -48,9 +48,9 @@ export default function CollectionsScreen() {
           >
             <Card variant="elevated">
               <Text style={styles.collectionEmoji}>📖</Text>
-              <Text style={styles.collectionName}>{item.name}</Text>
+              <Text style={styles.collectionName}>{item.name_en}</Text>
               <Text style={styles.collectionCount}>
-                {item.hadith_count} hadiths
+                {item.total_hadiths} hadiths
               </Text>
             </Card>
           </Pressable>

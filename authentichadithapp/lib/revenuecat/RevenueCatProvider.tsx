@@ -61,12 +61,13 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
     init()
 
     // Listen for customer info updates
-    const listener = Purchases.addCustomerInfoUpdateListener((info) => {
+    const listener = (info: CustomerInfo) => {
       setCustomerInfo(info)
-    })
+    }
+    Purchases.addCustomerInfoUpdateListener(listener)
 
     return () => {
-      listener.remove()
+      Purchases.removeCustomerInfoUpdateListener(listener)
     }
   }, [])
 

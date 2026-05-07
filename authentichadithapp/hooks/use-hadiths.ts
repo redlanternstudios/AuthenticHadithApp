@@ -8,7 +8,7 @@ export function useCollections() {
       const { data, error } = await supabase
         .from('collections')
         .select('*')
-        .order('name', { ascending: true })
+        .order('name_en', { ascending: true })
       
       if (error) throw error
       return data
@@ -49,7 +49,7 @@ export function useHadiths(filters?: {
         .from('hadiths')
         .select(`
           *,
-          collection:collections(name, arabic_name),
+          collection:collections(name_en, name_ar),
           book:books(name)
         `)
       

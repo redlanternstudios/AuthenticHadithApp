@@ -104,26 +104,26 @@ export interface QuizAttempt {
 export interface ProphetStory {
   id: string
   slug: string
-  name: string
-  arabic_name?: string
+  name_en: string
+  name_ar?: string
   quran_mentions: number
   era?: string
-  description: string
+  title_en: string
   content_parts: string[]
-  read_time_minutes: number
+  estimated_read_time_minutes: number
   display_order: number
-  theme_color?: string
+  color_theme?: string
 }
 
 export interface CompanionStory {
   id: string
   slug: string
-  name: string
-  arabic_name?: string
-  notable_tags: string[]
-  description: string
+  name_en: string
+  name_ar?: string
+  notable_for: string[]
+  title_en: string
   content_parts: string[]
-  read_time_minutes: number
+  estimated_read_time_minutes: number
 }
 
 export interface StoryReadingProgress {

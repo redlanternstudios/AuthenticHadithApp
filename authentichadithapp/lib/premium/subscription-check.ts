@@ -1,5 +1,5 @@
 import Purchases from 'react-native-purchases'
-import { ENTITLEMENT_ID } from '../revenuecat/config'
+import { ENTITLEMENT_ID } from '../purchases/revenuecat'
 
 export async function checkPremiumFeature(userId: string | undefined): Promise<boolean> {
   if (!userId) return false

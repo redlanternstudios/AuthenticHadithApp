@@ -52,8 +52,8 @@ export default function ProgressScreen() {
       // Get collections with their total counts and user's read counts
       const { data: collections } = await supabase
         .from('collections')
-        .select('id, slug, name, hadith_count')
-        .order('name')
+        .select('id, slug, name_en, total_hadiths')
+        .order('name_en')
 
       if (!collections) return []
 
@@ -75,8 +75,8 @@ export default function ProgressScreen() {
       return collections.map((c) => ({
         ...c,
         read: readByCollection[c.slug] || 0,
-        percentage: c.hadith_count > 0
-          ? Math.round(((readByCollection[c.slug] || 0) / c.hadith_count) * 100)
+        percentage: c.total_hadiths > 0
+          ? Math.round(((readByCollection[c.slug] || 0) / c.total_hadiths) * 100)
           : 0,
       }))
     },
@@ -166,9 +166,9 @@ export default function ProgressScreen() {
           {collectionProgress.map((c) => (
             <View key={c.id} style={styles.collectionRow}>
               <View style={styles.collectionHeader}>
-                <Text style={styles.collectionName} numberOfLines={1}>{c.name}</Text>
+                <Text style={styles.collectionName} numberOfLines={1}>{c.name_en}</Text>
                 <Text style={styles.collectionCount}>
-                  {c.read} / {c.hadith_count}
+                  {c.read} / {c.total_hadiths}
                 </Text>
               </View>
               <View style={styles.progressBarBg}>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { StyleSheet, View, ScrollView, Text, Pressable, TextInput, Alert } from 'react-native'
+import { StyleSheet, View, ScrollView, Text, Pressable, TextInput, Alert, Linking } from 'react-native'
 import { Stack, useRouter } from 'expo-router'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { supabase } from '@/lib/supabase/client'
@@ -361,9 +361,20 @@ export default function OnboardingScreen() {
               {data.termsAgreed && <Text style={styles.checkboxCheck}>✓</Text>}
             </View>
             <Text style={[styles.agreementText, isRTL && styles.textRTL]}>
-              {isArabic
-                ? 'أوافق على شروط الخدمة وسياسة الخصوصية'
-                : 'I agree to the Terms of Service and Privacy Policy'}
+              {isArabic ? 'أوافق على ' : 'I agree to the '}
+              <Text
+                style={styles.linkText}
+                onPress={() => Linking.openURL('https://byredllc.com/terms')}
+              >
+                {isArabic ? 'شروط الخدمة' : 'Terms of Service'}
+              </Text>
+              {isArabic ? ' و' : ' and '}
+              <Text
+                style={styles.linkText}
+                onPress={() => Linking.openURL('https://byredllc.com/privacy')}
+              >
+                {isArabic ? 'سياسة الخصوصية' : 'Privacy Policy'}
+              </Text>
             </Text>
           </Pressable>
         </View>
@@ -502,6 +513,7 @@ const styles = StyleSheet.create({
   },
   agreementRowRTL: { flexDirection: 'row-reverse' },
   agreementText: { flex: 1, fontSize: FONT_SIZES.base, color: COLORS.bronzeText, lineHeight: 22 },
+  linkText: { color: COLORS.goldMid, textDecorationLine: 'underline' },
   navRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingTop: SPACING.lg, borderTopWidth: 1, borderTopColor: COLORS.border,

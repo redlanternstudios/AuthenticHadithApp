@@ -1,37 +1,40 @@
 {
   "expo": {
-    "name": "Authentic Hadith",
+    "name": "AuthenticHadithApp",
     "slug": "authentichadithapp",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "authentichadith",
-    "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "scheme": "authentichadithapp",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1b5e43"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.authentichadith.app"
+      "bundleIdentifier": "com.byred.authentichadith",
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#1b5e43",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
-      },
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
-      "package": "com.authentichadith.app"
+        "backgroundColor": "#ffffff"
+      }
     },
     "web": {
-      "output": "static",
+      "bundler": "metro",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
       "expo-router",
-      "expo-secure-store",
-      "expo-sqlite",
-      "expo-sharing",
       [
         "expo-splash-screen",
         {
@@ -40,25 +43,20 @@
           "resizeMode": "contain",
           "backgroundColor": "#1b5e43",
           "dark": {
-            "backgroundColor": "#0a2a1f"
+            "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "expo-secure-store",
+      "expo-web-browser"
     ],
-    "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
-    },
     "extra": {
-      "router": {
-        "origin": "https://authentichadith.app"
-      },
-      "supabaseUrl": "https://nqklipakrfuwebkdnhwg.supabase.co",
-      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xa2xpcGFrcmZ1d2Via2RuaHdnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyODA3NDUsImV4cCI6MjA4Mzg1Njc0NX0.yhIe3hqiLlyF8atvSmNOL3HBq91V9Frw5jYcat-sZxY",
+      "apiUrl": "https://authentichadith.app",
+      "appEnv": "development",
       "eas": {
         "projectId": "66afcbbf-55c3-48fb-9bf1-29efc52d09eb"
-      }
-    },
-    "owner": "redlantern"
+      },
+      "router": {}
+    }
   }
 }

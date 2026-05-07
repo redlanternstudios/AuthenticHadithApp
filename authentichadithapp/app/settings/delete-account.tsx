@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityInd
-icator } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { SPACING, FONT_SIZES } from '@/lib/styles/colors';
 import { useTheme } from '@/lib/theme/ThemeProvider';
@@ -8,8 +7,7 @@ import { getColors } from '@/lib/styles/colors';
 import { supabase } from '@/lib/supabase/client';
 import Constants from 'expo-constants';
 
-const API_URL = Constants.expoConfig?.extra?.router?.origin || 'https://authenti
-chadith.app';
+const API_URL = Constants.expoConfig?.extra?.router?.origin || 'https://authentichadith.app';
 export default function DeleteAccountScreen() {
   const { isDark } = useTheme();
   const colors = getColors(isDark);
@@ -21,8 +19,7 @@ export default function DeleteAccountScreen() {
 
     Alert.alert(
       'Are you sure?',
-      'This will permanently delete your account and all associated data. This c
-annot be undone.',
+      'This will permanently delete your account and all associated data. This cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -34,8 +31,7 @@ annot be undone.',
               // Get session token
               const { data: { session } } = await supabase.auth.getSession();
               if (!session?.access_token) {
-                Alert.alert('Error', 'You must be signed in to delete your accou
-nt.');
+                Alert.alert('Error', 'You must be signed in to delete your account.');
                 setIsDeleting(false);
                 return;
               }
@@ -61,8 +57,7 @@ nt.');
                 [{ text: 'OK', onPress: () => router.replace('/') }],
               );
             } catch (err: any) {
-              Alert.alert('Deletion Failed', err.message || 'Something went wro
-ng. Please try again or contact support.');
+              Alert.alert('Deletion Failed', err.message || 'Something went wrong. Please try again or contact support.');
               setIsDeleting(false);
             }
           },
@@ -107,7 +102,7 @@ ng. Please try again or contact support.');
           style={[styles.input, {
             backgroundColor: colors.card,
             borderColor: colors.border,
-            color: colors.foreground,
+            color: colors.bronzeText,
           }]}
           value={confirmText}
           onChangeText={setConfirmText}

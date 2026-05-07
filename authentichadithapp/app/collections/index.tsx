@@ -33,11 +33,11 @@ export default function CollectionsScreen() {
                 <Ionicons name="book" size={32} color="#1B5E43" />
               </View>
               <View style={styles.textContainer}>
-                <Text style={styles.collectionName}>{item.name}</Text>
-                <Text style={styles.arabicName}>{item.arabic_name}</Text>
-                {item.description && (
+                <Text style={styles.collectionName}>{item.name_en}</Text>
+                <Text style={styles.arabicName}>{item.name_ar}</Text>
+                {item.description_en && (
                   <Text style={styles.description} numberOfLines={2}>
-                    {item.description}
+                    {item.description_en}
                   </Text>
                 )}
                 <Text style={styles.count}>

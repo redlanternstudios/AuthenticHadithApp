@@ -232,10 +232,6 @@ export default function QuizScreen() {
               const isCorrect = index === questions[currentQuestion].correctIndex
               const showResult = selectedAnswer !== null
 
-              let optionStyle = styles.option
-              if (showResult && isCorrect) optionStyle = styles.optionCorrect
-              else if (showResult && isSelected && !isCorrect) optionStyle = styles.optionWrong
-
               return (
                 <Pressable
                   key={index}

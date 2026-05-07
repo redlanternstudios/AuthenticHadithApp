@@ -78,20 +78,20 @@ export default function CompanionStoryScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Stack.Screen options={{ title: companion.name, headerShown: true }} />
+      <Stack.Screen options={{ title: companion.name_en, headerShown: true }} />
 
       {/* Hero Header */}
       <View style={styles.hero}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{companion.name?.charAt(0)}</Text>
+          <Text style={styles.avatarText}>{companion.name_en?.charAt(0)}</Text>
         </View>
-        <Text style={styles.heroName}>{companion.name}</Text>
-        {companion.arabic_name && (
-          <Text style={styles.heroArabic}>{companion.arabic_name}</Text>
+        <Text style={styles.heroName}>{companion.name_en}</Text>
+        {companion.name_ar && (
+          <Text style={styles.heroArabic}>{companion.name_ar}</Text>
         )}
-        {companion.notable_tags && companion.notable_tags.length > 0 && (
+        {companion.notable_for && companion.notable_for.length > 0 && (
           <View style={styles.tagsRow}>
-            {companion.notable_tags.map((tag: string) => (
+            {companion.notable_for.map((tag: string) => (
               <View key={tag} style={styles.tag}>
                 <Text style={styles.tagText}>{tag}</Text>
               </View>
@@ -99,12 +99,12 @@ export default function CompanionStoryScreen() {
           </View>
         )}
         <Text style={styles.readTime}>
-          {companion.read_time_minutes || 5} min read
+          {companion.estimated_read_time_minutes || 5} min read
         </Text>
       </View>
 
       {/* Description */}
-      <Text style={styles.description}>{companion.description}</Text>
+      <Text style={styles.description}>{companion.title_en}</Text>
 
       {/* Content Parts */}
       {contentParts.map((part: string, index: number) => (

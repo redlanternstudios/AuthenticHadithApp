@@ -61,9 +61,9 @@ export type Hadith = {
 
 export type Collection = {
   id: string
-  name: string
-  arabic_name: string
-  description: string
+  name_en: string
+  name_ar: string
+  description_en: string
   total_hadiths: number
 }
 

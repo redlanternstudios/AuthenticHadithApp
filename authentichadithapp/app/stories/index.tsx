@@ -62,20 +62,20 @@ export default function StoriesScreen() {
               style={styles.storyCard}
               onPress={() => router.push(`/stories/prophet/${prophet.slug}`)}
             >
-              <View style={[styles.storyAvatar, { backgroundColor: prophet.theme_color || COLORS.emeraldMid + '20' }]}>
+              <View style={[styles.storyAvatar, { backgroundColor: prophet.theme_primary || COLORS.emeraldMid + '20' }]}>
                 <Text style={styles.storyAvatarText}>
-                  {prophet.name?.charAt(0) || 'P'}
+                  {prophet.name_en?.charAt(0) || 'P'}
                 </Text>
               </View>
-              <Text style={styles.storyName} numberOfLines={1}>{prophet.name}</Text>
-              {prophet.arabic_name && (
-                <Text style={styles.storyArabic} numberOfLines={1}>{prophet.arabic_name}</Text>
+              <Text style={styles.storyName} numberOfLines={1}>{prophet.name_en}</Text>
+              {prophet.name_ar && (
+                <Text style={styles.storyArabic} numberOfLines={1}>{prophet.name_ar}</Text>
               )}
               <Text style={styles.storyMeta}>
                 {prophet.quran_mentions || 0} Quran mentions
               </Text>
               <Text style={styles.readTime}>
-                {prophet.read_time_minutes || 5} min read
+                {prophet.estimated_read_time_minutes || 5} min read
               </Text>
             </Pressable>
           ))}
@@ -97,20 +97,20 @@ export default function StoriesScreen() {
               <View style={styles.companionRow}>
                 <View style={styles.companionAvatar}>
                   <Text style={styles.companionAvatarText}>
-                    {companion.name?.charAt(0) || 'C'}
+                    {companion.name_en?.charAt(0) || 'C'}
                   </Text>
                 </View>
                 <View style={styles.companionInfo}>
-                  <Text style={styles.companionName}>{companion.name}</Text>
-                  {companion.arabic_name && (
-                    <Text style={styles.companionArabic}>{companion.arabic_name}</Text>
+                  <Text style={styles.companionName}>{companion.name_en}</Text>
+                  {companion.name_ar && (
+                    <Text style={styles.companionArabic}>{companion.name_ar}</Text>
                   )}
                   <Text style={styles.companionDesc} numberOfLines={2}>
-                    {companion.description}
+                    {companion.title_en}
                   </Text>
-                  {companion.notable_tags && companion.notable_tags.length > 0 && (
+                  {companion.notable_for && companion.notable_for.length > 0 && (
                     <View style={styles.tagsRow}>
-                      {companion.notable_tags.slice(0, 3).map((tag: string) => (
+                      {companion.notable_for.slice(0, 3).map((tag: string) => (
                         <View key={tag} style={styles.tag}>
                           <Text style={styles.tagText}>{tag}</Text>
                         </View>

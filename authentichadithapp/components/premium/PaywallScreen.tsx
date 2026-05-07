@@ -13,8 +13,7 @@ interface PaywallScreenProps {
  * Renders the RevenueCat paywall configured in the RevenueCat Dashboard.
  * Make sure to configure a Paywall template in the RevenueCat Dashboard first.
  */
-export function PaywallScreen({ onDismiss, onPurchaseCompleted, onRestoreComplet
-ed }: PaywallScreenProps) {
+export function PaywallScreen({ onDismiss, onPurchaseCompleted, onRestoreCompleted }: PaywallScreenProps) {
   return (
     <View style={styles.container}>
       <RevenueCatUI.Paywall

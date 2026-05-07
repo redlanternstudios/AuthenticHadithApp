@@ -23,7 +23,7 @@ export default function LearningPathDetailScreen() {
           path_lessons!inner(learning_path_id)
         `)
         .eq('path_lessons.learning_path_id', pathId)
-        .order('order_index');
+        .order('sort_order');
 
       if (error) throw error;
       return data as Lesson[];

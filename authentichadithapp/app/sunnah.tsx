@@ -99,19 +99,20 @@ export default function SunnahScreen() {
       const { data: categories } = await supabase
         .from('sunnah_categories')
         .select('*')
-        .order('name')
+        .order('sort_order')
 
       if (!categories || categories.length === 0) return null
 
       const { data: practices } = await supabase
         .from('sunnah_practices')
         .select('*')
-        .order('order_index')
+        .order('sort_order')
 
-      // Group practices by category
       const grouped = categories.map((cat) => ({
         ...cat,
-        practices: (practices || []).filter((p) => p.category === cat.name),
+        name: cat.title,
+        icon: cat.icon || '📿',
+        practices: (practices || []).filter((p) => p.category_id === cat.id),
       }))
 
       return grouped

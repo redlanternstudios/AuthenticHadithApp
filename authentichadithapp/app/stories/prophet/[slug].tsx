@@ -78,13 +78,13 @@ export default function ProphetStoryScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Stack.Screen options={{ title: prophet.name, headerShown: true }} />
+      <Stack.Screen options={{ title: prophet.name_en, headerShown: true }} />
 
       {/* Hero Header */}
-      <View style={[styles.hero, { backgroundColor: prophet.theme_color || COLORS.emeraldMid + '15' }]}>
-        <Text style={styles.heroName}>{prophet.name}</Text>
-        {prophet.arabic_name && (
-          <Text style={styles.heroArabic}>{prophet.arabic_name}</Text>
+      <View style={[styles.hero, { backgroundColor: prophet.theme_primary || COLORS.emeraldMid + '15' }]}>
+        <Text style={styles.heroName}>{prophet.name_en}</Text>
+        {prophet.name_ar && (
+          <Text style={styles.heroArabic}>{prophet.name_ar}</Text>
         )}
         <View style={styles.metaRow}>
           {prophet.era && (
@@ -99,7 +99,7 @@ export default function ProphetStoryScreen() {
           </View>
           <View style={styles.metaBadge}>
             <Text style={styles.metaBadgeText}>
-              {prophet.read_time_minutes || 5} min read
+              {prophet.estimated_read_time_minutes || 5} min read
             </Text>
           </View>
         </View>

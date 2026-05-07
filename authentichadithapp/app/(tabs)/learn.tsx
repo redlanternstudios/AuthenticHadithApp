@@ -18,7 +18,7 @@ export default function LearnScreen() {
       const { data, error } = await supabase
         .from('learning_paths')
         .select('*')
-        .order('order_index');
+        .order('sort_order');
 
       if (error) throw error;
       return data as LearningPath[];
@@ -29,8 +29,8 @@ export default function LearnScreen() {
     return <LoadingSpinner />;
   }
 
-  const freePaths = paths?.filter(p => !p.is_premium) || [];
-  const premiumPaths = paths?.filter(p => p.is_premium) || [];
+  const freePaths = (paths?.filter(p => !p.is_premium) || []) as LearningPath[];
+  const premiumPaths = (paths?.filter(p => p.is_premium) || []) as LearningPath[];
 
   return (
     <View style={styles.container}>
@@ -48,12 +48,12 @@ export default function LearnScreen() {
           <Pressable onPress={() => router.push(`/learn/${item.id}`)}>
             <Card variant="elevated" style={styles.pathCard}>
               <View style={styles.pathHeader}>
-                <Text style={styles.pathName}>{item.name}</Text>
-                <Text style={styles.difficultyBadge}>{item.difficulty}</Text>
+                <Text style={styles.pathName}>{item.title}</Text>
+                <Text style={styles.difficultyBadge}>{item.level}</Text>
               </View>
               <Text style={styles.pathDescription}>{item.description}</Text>
               <Text style={styles.pathDuration}>
-                📅 {item.estimated_days} days
+                📅 {item.estimated_hours} hours
               </Text>
             </Card>
           </Pressable>
@@ -68,12 +68,12 @@ export default function LearnScreen() {
                 <Pressable key={item.id} onPress={() => router.push(`/learn/${item.id}`)}>
                   <Card variant="elevated" style={styles.pathCard}>
                     <View style={styles.pathHeader}>
-                      <Text style={styles.pathName}>{item.name} 🔒</Text>
-                      <Text style={styles.difficultyBadge}>{item.difficulty}</Text>
+                      <Text style={styles.pathName}>{item.title} 🔒</Text>
+                      <Text style={styles.difficultyBadge}>{item.level}</Text>
                     </View>
                     <Text style={styles.pathDescription}>{item.description}</Text>
                     <Text style={styles.pathDuration}>
-                      📅 {item.estimated_days} days
+                      📅 {item.estimated_hours} hours
                     </Text>
                   </Card>
                 </Pressable>

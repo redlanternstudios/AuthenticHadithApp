@@ -9,14 +9,13 @@ interface CustomerCenterScreenProps {
 
 /**
  * Renders the RevenueCat Customer Center UI.
- * Allows users to manage their subscriptions (cancel, change plan, request refu
-nd).
+ * Allows users to manage their subscriptions (cancel, change plan, request refund).
  * Configure Customer Center paths in the RevenueCat Dashboard.
  */
 export function CustomerCenterScreen({ onDismiss }: CustomerCenterScreenProps) {
   return (
     <View style={styles.container}>
-      <RevenueCatUI.CustomerCenter
+      <RevenueCatUI.CustomerCenterView
         onDismiss={onDismiss}
       />
     </View>

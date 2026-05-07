@@ -15,11 +15,11 @@ export default function PrivacyScreen() {
   const colors = getColors(isDark);
 
   const handleOpenPrivacyPolicy = () => {
-    Linking.openURL('https://authentichadith.app/privacy');
+    Linking.openURL('https://byredllc.com/privacy');
   };
 
   const handleOpenTerms = () => {
-    Linking.openURL('https://authentichadith.app/terms');
+    Linking.openURL('https://byredllc.com/terms');
   };
 
   return (

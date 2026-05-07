@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIn
-dicator, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Platform } from 'react-native';
 import { Stack } from 'expo-router';
 import { SPACING, FONT_SIZES } from '@/lib/styles/colors';
 import { useTheme } from '@/lib/theme/ThemeProvider';
@@ -24,8 +23,7 @@ export default function SubscriptionScreen() {
 
   useEffect(() => {
     (async () => {
-      const [off, sub] = await Promise.all([getOfferings(), getSubscriptionStatu
-s()]);
+      const [off, sub] = await Promise.all([getOfferings(), getSubscriptionStatus()]);
       setOfferings(off);
       setStatus(sub);
       setLoading(false);
@@ -42,8 +40,7 @@ s()]);
         Alert.alert('Welcome to Premium!', 'Your subscription is now active.');
       }
     } catch (err: any) {
-      Alert.alert('Purchase Failed', err.message || 'Something went wrong. Plea
-se try again.');
+      Alert.alert('Purchase Failed', err.message || 'Something went wrong. Please try again.');
     } finally {
       setPurchasing(false);
     }
@@ -57,8 +54,7 @@ se try again.');
       if (restoredStatus.isActive) {
         Alert.alert('Restored!', 'Your subscription has been restored.');
       } else {
-        Alert.alert('Nothing to Restore', 'No previous purchases were found for t
-his account.');
+        Alert.alert('Nothing to Restore', 'No previous purchases were found for this account.');
       }
     } catch (err: any) {
       Alert.alert('Restore Failed', err.message || 'Something went wrong.');
@@ -68,7 +64,7 @@ his account.');
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}> 
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen
         options={{
           title: 'Subscription',
@@ -80,47 +76,40 @@ his account.');
         }}
       />
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollCo
-ntent}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Current status */}
-        <View style={[styles.statusCard, { backgroundColor: colors.card, borderC
-olor: colors.border }]}>
-          <Text style={[styles.statusLabel, { color: colors.mutedText }]}>Curren
-t Plan</Text>
-          <Text style={[styles.statusTier, { color: colors.bronzeText }]}> 
-            {status?.tier === 'free' ? 'Free' : status?.tier === 'lifetime' ? 'Li
-fetime' : 'Premium'}
+        <View style={[styles.statusCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Text style={[styles.statusLabel, { color: colors.mutedText }]}>Current Plan</Text>
+          <Text style={[styles.statusTier, { color: colors.bronzeText }]}>
+            {status?.tier === 'free' ? 'Free' : status?.tier === 'lifetime' ? 'Lifetime' : 'Premium'}
           </Text>
           {status?.isActive && status.expiresAt && (
-            <Text style={[styles.statusExpiry, { color: colors.mutedText }]}> 
-              {status.willRenew ? 'Renews' : 'Expires'}: {new Date(status.expiresA
-t).toLocaleDateString()}
+            <Text style={[styles.statusExpiry, { color: colors.mutedText }]}>
+              {status.willRenew ? 'Renews' : 'Expires'}: {new Date(status.expiresAt).toLocaleDateString()}
             </Text>
           )}
         </View>
 
         {/* Packages */}
         {loading ? (
-          <ActivityIndicator size="large" color={colors.bronzeText} style={{ 
-marginTop: 40 }} />
+          <ActivityIndicator size="large" color={colors.bronzeText} style={{ marginTop: 40 }} />
         ) : offerings?.availablePackages ? (
           <View style={styles.packages}>
             {offerings.availablePackages.map((pkg: any) => (
               <TouchableOpacity
                 key={pkg.identifier}
-                style={[styles.packageCard, { backgroundColor: colors.card, bord
-erColor: colors.border }]}
+                style={[styles.packageCard, { backgroundColor: colors.card, borderColor: colors.border }]}
                 onPress={() => handlePurchase(pkg)}
                 disabled={purchasing || (status?.isActive ?? false)}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.packageTitle, { color: colors.foreground }]}
-> {pkg.product.title}
+                <Text style={[styles.packageTitle, { color: colors.bronzeText }]}>
+                  {pkg.product.title}
                 </Text>
-                <Text style={[styles.packagePrice, { color: colors.bronzeText }]}
-> {pkg.product.priceString}
+                <Text style={[styles.packagePrice, { color: colors.bronzeText }]}>
+                  {pkg.product.priceString}
                 </Text>
-                <Text style={[styles.packageDesc, { color: colors.mutedText }]}> 
+                <Text style={[styles.packageDesc, { color: colors.mutedText }]}>
                   {pkg.product.description}
                 </Text>
               </TouchableOpacity>
@@ -128,11 +117,10 @@ erColor: colors.border }]}
           </View>
         ) : (
           <View style={styles.fallback}>
-            <Text style={[styles.fallbackText, { color: colors.mutedText }]}> 
+            <Text style={[styles.fallbackText, { color: colors.mutedText }]}>
               {Platform.OS === 'web'
                 ? 'In-app purchases are available on iOS and Android.'
-                : 'No subscription plans available right now. Please try again la
-ter.'}
+                : 'No subscription plans available right now. Please try again later.'}
             </Text>
           </View>
         )}
@@ -147,18 +135,14 @@ ter.'}
           {restoring ? (
             <ActivityIndicator size="small" color={colors.bronzeText} />
           ) : (
-            <Text style={[styles.restoreText, { color: colors.bronzeText }]}> 
+            <Text style={[styles.restoreText, { color: colors.bronzeText }]}>
               Restore Purchases
             </Text>
           )}
         </TouchableOpacity>
 
-        <Text style={[styles.legalText, { color: colors.mutedText }]}> 
-          Payment will be charged to your Apple ID account at confirmation of pu
-rchase. Subscriptions automatically renew unless auto-renew is turned off at l
-east 24 hours before the end of the current period. Your account will be char
-ged for renewal within 24 hours prior to the end of the current period. You c
-an manage and cancel your subscriptions in your App Store account settings.
+        <Text style={[styles.legalText, { color: colors.mutedText }]}>
+          Payment will be charged to your Apple ID account at confirmation of purchase. Subscriptions automatically renew unless auto-renew is turned off at least 24 hours before the end of the current period. Your account will be charged for renewal within 24 hours prior to the end of the current period. You can manage and cancel your subscriptions in your App Store account settings.
         </Text>
       </ScrollView>
     </View>
