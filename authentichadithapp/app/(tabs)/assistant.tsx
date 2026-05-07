@@ -6,6 +6,14 @@ import { ChatMessage, sendChatMessage } from '@/lib/api/groq';
 import { Ionicons } from '@expo/vector-icons';
 
 const MAX_INPUT_LENGTH = 500;
+const FREE_DAILY_LIMIT = 3;
+
+const SUGGESTED_PROMPTS = [
+  { icon: '\u{1F4D6}', text: 'Explain the hadith about intentions' },
+  { icon: '\u{1F932}', text: 'Find hadiths about prayer' },
+  { icon: '\u{1F517}', text: 'What makes a hadith authentic?' },
+  { icon: '⚖️', text: 'Who is Prophet Mohammed ﷺ?' },
+];
 
 // Simple unique ID generator with random component to avoid collisions
 const generateMessageId = () => {
@@ -18,6 +26,7 @@ export default function AssistantScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
+  const [freeUsed, setFreeUsed] = useState(0);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -26,38 +35,46 @@ export default function AssistantScreen() {
     }
   }, [messages]);
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
-    
+  const sendMessage = async (text: string) => {
+    if (!text.trim() || isLoading) return;
+
     const userMessage: ChatMessage = {
       id: generateMessageId(),
       role: 'user',
-      content: input.trim(),
+      content: text.trim(),
       timestamp: new Date().toISOString()
     };
-    
+
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const response = await sendChatMessage([...messages, userMessage]);
-      
+
       const aiMessage: ChatMessage = {
         id: generateMessageId(),
         role: 'assistant',
         content: response,
         timestamp: new Date().toISOString()
       };
-      
+
       setMessages(prev => [...prev, aiMessage]);
+      setFreeUsed(prev => prev + 1);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to get response. Please try again.';
       setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSend = () => sendMessage(input);
+
+  const handleSuggestedPrompt = (text: string) => {
+    setInput(text);
+    sendMessage(text);
   };
 
   const handleRetry = () => {
@@ -92,6 +109,26 @@ export default function AssistantScreen() {
               <Text style={styles.emptyText}>Start a conversation</Text>
               <Text style={styles.emptySubtext}>
                 Ask anything about Islamic teachings, hadith interpretations, or specific narrators
+              </Text>
+
+              {/* Suggested Prompts Grid */}
+              <View style={styles.suggestedGrid}>
+                {SUGGESTED_PROMPTS.map((prompt, idx) => (
+                  <TouchableOpacity
+                    key={idx}
+                    style={styles.suggestedCard}
+                    onPress={() => handleSuggestedPrompt(prompt.text)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.suggestedIcon}>{prompt.icon}</Text>
+                    <Text style={styles.suggestedText}>{prompt.text}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Disclaimer */}
+              <Text style={styles.disclaimer}>
+                I only answer using authenticated hadith. If none are found, I will say so.
               </Text>
             </View>
           ) : (
@@ -138,6 +175,14 @@ export default function AssistantScreen() {
             </View>
           )}
         </ScrollView>
+
+        {/* Quota Banner */}
+        <View style={styles.quotaBanner}>
+          <Ionicons name="sparkles-outline" size={14} color={COLORS.mutedText} />
+          <Text style={styles.quotaText}>
+            Free explanations today: {Math.max(FREE_DAILY_LIMIT - freeUsed, 0)} / {FREE_DAILY_LIMIT}
+          </Text>
+        </View>
 
         {/* Input Area */}
         <View style={styles.inputContainer}>
@@ -320,5 +365,56 @@ const styles = StyleSheet.create({
   sendButtonDisabled: {
     backgroundColor: COLORS.mutedText,
     opacity: 0.5,
+  },
+  // Suggested prompts
+  suggestedGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.sm,
+    marginTop: SPACING.lg,
+    paddingHorizontal: SPACING.sm,
+    width: '100%',
+  },
+  suggestedCard: {
+    width: '47%',
+    backgroundColor: COLORS.card,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.md,
+    alignItems: 'flex-start',
+    gap: SPACING.xs,
+  },
+  suggestedIcon: {
+    fontSize: 22,
+  },
+  suggestedText: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.bronzeText,
+    lineHeight: 18,
+  },
+  // Disclaimer
+  disclaimer: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.mutedText,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginTop: SPACING.lg,
+    paddingHorizontal: SPACING.xl,
+  },
+  // Quota banner
+  quotaBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.xs,
+    paddingVertical: SPACING.xs,
+    backgroundColor: COLORS.card,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: COLORS.border,
+  },
+  quotaText: {
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.mutedText,
   },
 });

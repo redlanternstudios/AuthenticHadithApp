@@ -10,6 +10,7 @@ import {
   Pressable,
 } from 'react-native'
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router'
+import { useQuery } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
 import { useHadith } from '@/hooks/use-hadith'
 import { useAuth } from '@/hooks/use-auth'
@@ -19,6 +20,9 @@ import { useDeviceLayout } from '@/lib/hooks/use-device-layout'
 import { shareHadith } from '@/components/share/ShareSheet'
 import { SaveHadithModal } from '@/components/my-hadith/SaveHadithModal'
 import { sendChatMessage } from '@/lib/api/groq'
+import { supabase } from '@/lib/supabase/client'
+
+type LanguageMode = 'arabic' | 'both' | 'english'
 
 export default function HadithDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
@@ -36,6 +40,38 @@ export default function HadithDetailScreen() {
   const [showSaveModal, setShowSaveModal] = useState(false)
   const [summary, setSummary] = useState<string | null>(null)
   const [isSummarizing, setIsSummarizing] = useState(false)
+  const [languageMode, setLanguageMode] = useState<LanguageMode>('both')
+
+  // Fetch tags for this hadith
+  const { data: tags } = useQuery({
+    queryKey: ['hadith-tags', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('hadith_tags')
+        .select('tag:tags(id, name_en, slug)')
+        .eq('hadith_id', id)
+      if (error) throw error
+      return (data ?? [])
+        .map((row: any) => row.tag)
+        .filter(Boolean) as { id: string; name_en: string; slug: string }[]
+    },
+    enabled: !!id,
+  })
+
+  // Fetch enriched data (key teaching)
+  const { data: enriched } = useQuery({
+    queryKey: ['enriched-hadith', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('enriched_hadiths')
+        .select('key_teaching_en, summary_line')
+        .eq('id', id)
+        .single()
+      if (error) return null
+      return data as { key_teaching_en: string | null; summary_line: string | null }
+    },
+    enabled: !!id,
+  })
 
   const handleSummarize = async () => {
     if (!hadith) return
@@ -75,7 +111,7 @@ export default function HadithDetailScreen() {
   }
 
   const collectionName =
-    hadith.collection?.name || hadith.collection_slug || 'Unknown Collection'
+    hadith.collection?.name_en || hadith.collection_slug || 'Unknown Collection'
 
   return (
     <>
@@ -168,8 +204,82 @@ export default function HadithDetailScreen() {
           )}
         </View>
 
+        {/* Topic Tags */}
+        {tags && tags.length > 0 && (
+          <View style={styles.tagsRow}>
+            {tags.map(tag => (
+              <Pressable
+                key={tag.id}
+                style={({ pressed }) => [
+                  styles.tagChip,
+                  {
+                    backgroundColor: colors.emeraldMid + '14',
+                    borderColor: colors.emeraldMid + '30',
+                  },
+                  pressed && { opacity: 0.7 },
+                ]}
+                onPress={() => router.push(`/topics/${tag.slug}`)}
+              >
+                <Text style={[styles.tagChipText, { color: colors.emeraldMid }]}>
+                  {tag.name_en}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
+
+        {/* Language Toggle */}
+        <View style={[styles.langToggleRow, { borderColor: colors.border, backgroundColor: colors.card }]}>
+          {([
+            { key: 'arabic' as LanguageMode, label: 'العربية' },
+            { key: 'both' as LanguageMode, label: 'Both' },
+            { key: 'english' as LanguageMode, label: 'English' },
+          ]).map(seg => {
+            const isActive = languageMode === seg.key
+            return (
+              <Pressable
+                key={seg.key}
+                style={[
+                  styles.langSegment,
+                  isActive && { backgroundColor: colors.emeraldMid },
+                ]}
+                onPress={() => setLanguageMode(seg.key)}
+              >
+                <Text
+                  style={[
+                    styles.langSegmentText,
+                    { color: isActive ? colors.white : colors.mutedText },
+                    isActive && { fontWeight: '700' },
+                  ]}
+                >
+                  {seg.label}
+                </Text>
+              </Pressable>
+            )
+          })}
+        </View>
+
+        {/* Key Teaching Panel */}
+        {enriched?.key_teaching_en ? (
+          <View
+            style={[
+              styles.keyTeachingPanel,
+              {
+                backgroundColor: colors.goldMid + '12',
+                borderLeftColor: colors.goldMid,
+                borderColor: colors.goldMid + '30',
+              },
+            ]}
+          >
+            <Text style={[styles.keyTeachingTitle, { color: colors.goldMid }]}>Key Teaching</Text>
+            <Text style={[styles.keyTeachingBody, { color: colors.bronzeText }]}>
+              {enriched.key_teaching_en}
+            </Text>
+          </View>
+        ) : null}
+
         {/* Arabic text */}
-        {hadith.arabic_text ? (
+        {hadith.arabic_text && languageMode !== 'english' ? (
           <View style={[styles.textSection, { borderBottomColor: colors.borderSubtle }]}>
             <Text style={[styles.sectionLabel, { color: colors.mutedText }]}>Arabic</Text>
             <Text style={[styles.arabicText, { color: colors.bronzeText }]}>
@@ -179,11 +289,66 @@ export default function HadithDetailScreen() {
         ) : null}
 
         {/* English */}
-        <View style={[styles.textSection, { borderBottomColor: colors.borderSubtle }]}>
-          <Text style={[styles.sectionLabel, { color: colors.mutedText }]}>Translation</Text>
-          <Text style={[styles.englishText, { color: colors.bronzeText }]}>
-            {hadith.english_text}
-          </Text>
+        {languageMode !== 'arabic' ? (
+          <View style={[styles.textSection, { borderBottomColor: colors.borderSubtle }]}>
+            <Text style={[styles.sectionLabel, { color: colors.mutedText }]}>Translation</Text>
+            <Text style={[styles.englishText, { color: colors.bronzeText }]}>
+              {hadith.english_text}
+            </Text>
+          </View>
+        ) : null}
+
+        {/* Reference Table */}
+        <View style={[styles.referenceCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Text style={[styles.sectionLabel, { color: colors.mutedText, marginBottom: SPACING.sm }]}>Reference</Text>
+          <View style={styles.referenceRow}>
+            <Text style={[styles.referenceLabel, { color: colors.mutedText }]}>Reference</Text>
+            <Text style={[styles.referenceValue, { color: colors.bronzeText }]}>
+              {hadith.collection_slug} {hadith.hadith_number}
+            </Text>
+          </View>
+          {hadith.narrator ? (
+            <View style={styles.referenceRow}>
+              <Text style={[styles.referenceLabel, { color: colors.mutedText }]}>Narrator</Text>
+              <Text style={[styles.referenceValue, { color: colors.bronzeText }]}>
+                {hadith.narrator}
+              </Text>
+            </View>
+          ) : null}
+          {hadith.grade ? (
+            <View style={styles.referenceRow}>
+              <Text style={[styles.referenceLabel, { color: colors.mutedText }]}>Grade</Text>
+              <View
+                style={[
+                  styles.gradeBadge,
+                  {
+                    backgroundColor:
+                      hadith.grade === 'sahih'
+                        ? colors.sahih + '18'
+                        : hadith.grade === 'hasan'
+                        ? colors.hasan + '18'
+                        : colors.daif + '18',
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.gradeText,
+                    {
+                      color:
+                        hadith.grade === 'sahih'
+                          ? colors.sahih
+                          : hadith.grade === 'hasan'
+                          ? colors.hasan
+                          : colors.daif,
+                    },
+                  ]}
+                >
+                  {hadith.grade.charAt(0).toUpperCase() + hadith.grade.slice(1)}
+                </Text>
+              </View>
+            </View>
+          ) : null}
         </View>
 
         {/* AI summarise button */}
@@ -391,5 +556,83 @@ const styles = StyleSheet.create({
   actionBtnText: {
     fontSize: FONT_SIZES.sm,
     fontWeight: '600',
+  },
+  // Language toggle
+  langToggleRow: {
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderRadius: BORDER_RADIUS.lg,
+    overflow: 'hidden',
+    marginBottom: SPACING.lg,
+  },
+  langSegment: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  langSegmentText: {
+    fontSize: FONT_SIZES.sm,
+    fontWeight: '500',
+  },
+  // Topic tag chips
+  tagsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.xs,
+    marginBottom: SPACING.md,
+  },
+  tagChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: BORDER_RADIUS.full,
+    borderWidth: 1,
+  },
+  tagChipText: {
+    fontSize: FONT_SIZES.xs,
+    fontWeight: '600',
+  },
+  // Key teaching panel
+  keyTeachingPanel: {
+    borderLeftWidth: 3,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.md,
+    marginBottom: SPACING.lg,
+  },
+  keyTeachingTitle: {
+    fontSize: FONT_SIZES.sm,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginBottom: SPACING.xs,
+  },
+  keyTeachingBody: {
+    fontSize: FONT_SIZES.base,
+    lineHeight: 22,
+  },
+  // Reference table
+  referenceCard: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: BORDER_RADIUS.xl,
+    padding: SPACING.md,
+    marginBottom: SPACING.lg,
+  },
+  referenceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: SPACING.xs,
+  },
+  referenceLabel: {
+    fontSize: FONT_SIZES.sm,
+    fontWeight: '500',
+  },
+  referenceValue: {
+    fontSize: FONT_SIZES.sm,
+    fontWeight: '600',
+    flexShrink: 1,
+    textAlign: 'right',
+    maxWidth: '65%',
   },
 })
