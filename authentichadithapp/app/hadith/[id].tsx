@@ -42,6 +42,21 @@ export default function HadithDetailScreen() {
   const [isSummarizing, setIsSummarizing] = useState(false)
   const [languageMode, setLanguageMode] = useState<LanguageMode>('both')
 
+  // Fetch collection display name
+  const { data: collectionData } = useQuery({
+    queryKey: ['hadith-collection', hadith?.collection_slug],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('collections')
+        .select('name_en')
+        .eq('slug', hadith!.collection_slug)
+        .single()
+      if (error) return null
+      return data as { name_en: string }
+    },
+    enabled: !!hadith?.collection_slug,
+  })
+
   // Fetch tags for this hadith
   const { data: tags } = useQuery({
     queryKey: ['hadith-tags', id],
@@ -111,7 +126,7 @@ export default function HadithDetailScreen() {
   }
 
   const collectionName =
-    hadith.collection?.name_en || hadith.collection_slug || 'Unknown Collection'
+    collectionData?.name_en || hadith.collection_slug || 'Unknown Collection'
 
   return (
     <>

@@ -11,11 +11,7 @@ export function useHadith(id: string, userId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('hadiths')
-        .select(`
-          *,
-          collection:collections(*),
-          book:books(*)
-        `)
+        .select('*')
         .eq('id', id)
         .single()
       
