@@ -66,7 +66,7 @@ export default function SearchScreen() {
       // Build OR conditions across expanded terms on both text fields
       const orFilter = terms
         .flatMap((term) => [
-          `english_translation.ilike.%${term}%`,
+          `english_text.ilike.%${term}%`,
           `narrator.ilike.%${term}%`,
           `arabic_text.ilike.%${term}%`,
         ])
