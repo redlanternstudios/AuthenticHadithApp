@@ -47,18 +47,14 @@ export function useHadiths(filters?: {
     queryFn: async () => {
       let query = supabase
         .from('hadiths')
-        .select(`
-          *,
-          collection:collections(name_en, name_ar),
-          book:books(name)
-        `)
-      
+        .select('*')
+
       if (filters?.collectionId) {
-        query = query.eq('collection_id', filters.collectionId)
+        query = query.eq('collection_slug', filters.collectionId)
       }
-      
+
       if (filters?.bookId) {
-        query = query.eq('book_id', filters.bookId)
+        query = query.eq('book_number', Number(filters.bookId))
       }
       
       if (filters?.searchQuery) {

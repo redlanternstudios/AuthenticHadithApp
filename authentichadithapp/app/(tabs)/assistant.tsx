@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { PremiumGate } from '@/components/premium/PremiumGate';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors';
 import { ChatMessage, sendChatMessage } from '@/lib/api/groq';
 import { Ionicons } from '@expo/vector-icons';
@@ -87,7 +86,6 @@ export default function AssistantScreen() {
   };
 
   return (
-    <PremiumGate feature="AI Assistant" description="Chat with TruthSerum v2 AI assistant">
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>✨ AI Assistant</Text>
@@ -208,7 +206,6 @@ export default function AssistantScreen() {
           </TouchableOpacity>
         </View>
       </View>
-    </PremiumGate>
   );
 }
 
