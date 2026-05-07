@@ -27,6 +27,19 @@ export default function CompanionStoryScreen() {
     enabled: !!slug,
   })
 
+  const { data: storyParts } = useQuery({
+    queryKey: ['companion-parts', companion?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('story_parts')
+        .select('*')
+        .eq('sahabi_id', companion!.id)
+        .order('part_number')
+      return data || []
+    },
+    enabled: !!companion,
+  })
+
   const { data: progress } = useQuery({
     queryKey: ['companion-progress', slug, user?.id],
     queryFn: async () => {
@@ -35,8 +48,7 @@ export default function CompanionStoryScreen() {
         .from('sahaba_reading_progress')
         .select('*')
         .eq('user_id', user.id)
-        .eq('story_id', companion.id)
-        .eq('story_type', 'companion')
+        .eq('sahabi_id', companion.id)
         .single()
       return data
     },
@@ -45,15 +57,13 @@ export default function CompanionStoryScreen() {
 
   const handleMarkComplete = async () => {
     if (!user || !companion) return
-    const contentParts = companion.content_parts || []
-    const allParts = contentParts.map((_: any, i: number) => i)
+    const allParts = (storyParts || []).map((_: any, i: number) => i)
 
     await supabase.from('sahaba_reading_progress').upsert({
       user_id: user.id,
-      story_id: companion.id,
-      story_type: 'companion',
+      sahabi_id: companion.id,
       parts_completed: allParts,
-      status: 'completed',
+      is_completed: true,
       updated_at: new Date().toISOString(),
     })
 
@@ -73,8 +83,8 @@ export default function CompanionStoryScreen() {
     )
   }
 
-  const contentParts: string[] = companion.content_parts || []
-  const isComplete = progress?.status === 'completed'
+  const parts = storyParts || []
+  const isComplete = progress?.is_completed === true
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -104,18 +114,29 @@ export default function CompanionStoryScreen() {
       </View>
 
       {/* Description */}
-      <Text style={styles.description}>{companion.title_en}</Text>
+      {companion.title_en && (
+        <Text style={styles.description}>{companion.title_en}</Text>
+      )}
 
       {/* Content Parts */}
-      {contentParts.map((part: string, index: number) => (
-        <Card key={index} variant="elevated" style={styles.partCard}>
-          <Text style={styles.partTitle}>Part {index + 1}</Text>
-          <Text style={styles.partContent}>{part}</Text>
+      {parts.map((part: any) => (
+        <Card key={part.id} variant="elevated" style={styles.partCard}>
+          <Text style={styles.partTitle}>{part.title_en || `Part ${part.part_number}`}</Text>
+          {part.opening_hook && (
+            <Text style={styles.partHook}>{part.opening_hook}</Text>
+          )}
+          <Text style={styles.partContent}>{part.content_en}</Text>
+          {part.key_lesson && (
+            <View style={styles.lessonBox}>
+              <Text style={styles.lessonLabel}>Key Lesson</Text>
+              <Text style={styles.lessonText}>{part.key_lesson}</Text>
+            </View>
+          )}
         </Card>
       ))}
 
       {/* Mark Complete */}
-      {user && !isComplete && contentParts.length > 0 && (
+      {user && !isComplete && parts.length > 0 && (
         <Button
           title="Mark as Complete"
           variant="primary"
@@ -162,7 +183,11 @@ const styles = StyleSheet.create({
   },
   partCard: { marginHorizontal: SPACING.md, marginBottom: SPACING.md },
   partTitle: { fontSize: FONT_SIZES.md, fontWeight: '700', color: COLORS.goldMid, marginBottom: SPACING.sm },
+  partHook: { fontSize: FONT_SIZES.base, color: COLORS.goldMid, fontStyle: 'italic', marginBottom: SPACING.sm, lineHeight: 22 },
   partContent: { fontSize: FONT_SIZES.base, color: COLORS.bronzeText, lineHeight: 24 },
+  lessonBox: { marginTop: SPACING.md, padding: SPACING.sm, backgroundColor: COLORS.emeraldMid + '10', borderRadius: BORDER_RADIUS.md, borderLeftWidth: 3, borderLeftColor: COLORS.emeraldMid },
+  lessonLabel: { fontSize: FONT_SIZES.xs, fontWeight: '700', color: COLORS.emeraldMid, marginBottom: 4, textTransform: 'uppercase' },
+  lessonText: { fontSize: FONT_SIZES.sm, color: COLORS.bronzeText, lineHeight: 20 },
   completeButton: { marginHorizontal: SPACING.md, marginTop: SPACING.md },
   completeBadge: { alignItems: 'center', padding: SPACING.lg },
   completeText: { fontSize: FONT_SIZES.md, color: COLORS.emeraldMid, fontWeight: '600' },

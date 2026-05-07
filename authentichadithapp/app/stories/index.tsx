@@ -16,7 +16,7 @@ export default function StoriesScreen() {
       const { data } = await supabase
         .from('prophets')
         .select('*')
-        .order('display_order', { ascending: true })
+        .order('name_en', { ascending: true })
       return data || []
     },
   })
@@ -27,7 +27,7 @@ export default function StoriesScreen() {
       const { data } = await supabase
         .from('sahaba')
         .select('*')
-        .order('name', { ascending: true })
+        .order('name_en', { ascending: true })
       return data || []
     },
   })

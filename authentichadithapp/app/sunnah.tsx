@@ -163,7 +163,7 @@ export default function SunnahScreen() {
                     <View style={styles.practiceDot} />
                     <View style={styles.practiceContent}>
                       <Text style={styles.practiceTitle}>{practice.title}</Text>
-                      <Text style={styles.practiceRef}>{practice.reference}</Text>
+                      <Text style={styles.practiceRef}>{practice.hadith_ref || practice.reference}</Text>
                     </View>
                   </View>
                 ))}

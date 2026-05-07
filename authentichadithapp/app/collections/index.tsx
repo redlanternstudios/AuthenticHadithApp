@@ -26,7 +26,7 @@ export default function CollectionsScreen() {
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.card}
-            onPress={() => router.push(`/collections/${item.id}`)}
+            onPress={() => router.push(`/collection/${item.slug}`)}
           >
             <View style={styles.cardContent}>
               <View style={styles.iconContainer}>

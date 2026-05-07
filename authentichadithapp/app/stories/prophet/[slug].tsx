@@ -27,16 +27,28 @@ export default function ProphetStoryScreen() {
     enabled: !!slug,
   })
 
+  const { data: storyParts } = useQuery({
+    queryKey: ['prophet-parts', prophet?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('prophet_stories')
+        .select('*')
+        .eq('prophet_id', prophet!.id)
+        .order('part_number')
+      return data || []
+    },
+    enabled: !!prophet,
+  })
+
   const { data: progress } = useQuery({
     queryKey: ['prophet-progress', slug, user?.id],
     queryFn: async () => {
       if (!user || !prophet) return null
       const { data } = await supabase
-        .from('sahaba_reading_progress')
+        .from('prophet_reading_progress')
         .select('*')
         .eq('user_id', user.id)
-        .eq('story_id', prophet.id)
-        .eq('story_type', 'prophet')
+        .eq('prophet_id', prophet.id)
         .single()
       return data
     },
@@ -45,15 +57,13 @@ export default function ProphetStoryScreen() {
 
   const handleMarkComplete = async () => {
     if (!user || !prophet) return
-    const contentParts = prophet.content_parts || []
-    const allParts = contentParts.map((_: any, i: number) => i)
+    const allParts = (storyParts || []).map((_: any, i: number) => i)
 
-    await supabase.from('sahaba_reading_progress').upsert({
+    await supabase.from('prophet_reading_progress').upsert({
       user_id: user.id,
-      story_id: prophet.id,
-      story_type: 'prophet',
+      prophet_id: prophet.id,
       parts_completed: allParts,
-      status: 'completed',
+      is_completed: true,
       updated_at: new Date().toISOString(),
     })
 
@@ -73,8 +83,8 @@ export default function ProphetStoryScreen() {
     )
   }
 
-  const contentParts: string[] = prophet.content_parts || []
-  const isComplete = progress?.status === 'completed'
+  const parts = storyParts || []
+  const isComplete = progress?.is_completed === true
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -106,18 +116,29 @@ export default function ProphetStoryScreen() {
       </View>
 
       {/* Description */}
-      <Text style={styles.description}>{prophet.description}</Text>
+      {prophet.title_en && (
+        <Text style={styles.description}>{prophet.title_en}</Text>
+      )}
 
       {/* Content Parts */}
-      {contentParts.map((part: string, index: number) => (
-        <Card key={index} variant="elevated" style={styles.partCard}>
-          <Text style={styles.partTitle}>Part {index + 1}</Text>
-          <Text style={styles.partContent}>{part}</Text>
+      {parts.map((part: any) => (
+        <Card key={part.id} variant="elevated" style={styles.partCard}>
+          <Text style={styles.partTitle}>{part.title_en || `Part ${part.part_number}`}</Text>
+          {part.opening_hook && (
+            <Text style={styles.partHook}>{part.opening_hook}</Text>
+          )}
+          <Text style={styles.partContent}>{part.content_en}</Text>
+          {part.key_lesson && (
+            <View style={styles.lessonBox}>
+              <Text style={styles.lessonLabel}>Key Lesson</Text>
+              <Text style={styles.lessonText}>{part.key_lesson}</Text>
+            </View>
+          )}
         </Card>
       ))}
 
       {/* Mark Complete */}
-      {user && !isComplete && contentParts.length > 0 && (
+      {user && !isComplete && parts.length > 0 && (
         <Button
           title="Mark as Complete"
           variant="primary"
@@ -157,7 +178,11 @@ const styles = StyleSheet.create({
   },
   partCard: { marginHorizontal: SPACING.md, marginBottom: SPACING.md },
   partTitle: { fontSize: FONT_SIZES.md, fontWeight: '700', color: COLORS.goldMid, marginBottom: SPACING.sm },
+  partHook: { fontSize: FONT_SIZES.base, color: COLORS.goldMid, fontStyle: 'italic', marginBottom: SPACING.sm, lineHeight: 22 },
   partContent: { fontSize: FONT_SIZES.base, color: COLORS.bronzeText, lineHeight: 24 },
+  lessonBox: { marginTop: SPACING.md, padding: SPACING.sm, backgroundColor: COLORS.emeraldMid + '10', borderRadius: BORDER_RADIUS.md, borderLeftWidth: 3, borderLeftColor: COLORS.emeraldMid },
+  lessonLabel: { fontSize: FONT_SIZES.xs, fontWeight: '700', color: COLORS.emeraldMid, marginBottom: 4, textTransform: 'uppercase' },
+  lessonText: { fontSize: FONT_SIZES.sm, color: COLORS.bronzeText, lineHeight: 20 },
   completeButton: { marginHorizontal: SPACING.md, marginTop: SPACING.md },
   completeBadge: { alignItems: 'center', padding: SPACING.lg },
   completeText: { fontSize: FONT_SIZES.md, color: COLORS.emeraldMid, fontWeight: '600' },

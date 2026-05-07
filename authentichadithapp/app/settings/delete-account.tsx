@@ -7,7 +7,7 @@ import { getColors } from '@/lib/styles/colors';
 import { supabase } from '@/lib/supabase/client';
 import Constants from 'expo-constants';
 
-const API_URL = Constants.expoConfig?.extra?.router?.origin || 'https://authentichadith.app';
+const API_URL = Constants.expoConfig?.extra?.apiUrl || 'https://authentichadith.app';
 export default function DeleteAccountScreen() {
   const { isDark } = useTheme();
   const colors = getColors(isDark);
