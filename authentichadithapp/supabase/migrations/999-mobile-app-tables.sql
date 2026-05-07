@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS redemptions (
 );
 
 -- Learning Paths Table
-CREATE TABLE IF NOT EXISTS learning_paths (
+CREATE TABLE IF NOT EXISTS mobile_learning_paths (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   description TEXT,
@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS lessons (
 -- Path-Lessons Join Table (many-to-many relationship)
 CREATE TABLE IF NOT EXISTS path_lessons (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  learning_path_id UUID NOT NULL REFERENCES learning_paths(id) ON DELETE CASCADE,
+  learning_path_id UUID NOT NULL REFERENCES mobile_learning_paths(id) ON DELETE CASCADE,
   lesson_id UUID NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
   order_index INTEGER DEFAULT 0,
   UNIQUE(learning_path_id, lesson_id)
@@ -80,7 +80,7 @@ CREATE TABLE IF NOT EXISTS user_lesson_progress (
 CREATE INDEX IF NOT EXISTS idx_promo_codes_code ON promo_codes(code);
 CREATE INDEX IF NOT EXISTS idx_promo_codes_active ON promo_codes(is_active) WHERE is_active = true;
 CREATE INDEX IF NOT EXISTS idx_redemptions_user ON redemptions(user_id);
-CREATE INDEX IF NOT EXISTS idx_learning_paths_difficulty ON learning_paths(difficulty);
+CREATE INDEX IF NOT EXISTS idx_mobile_learning_paths_difficulty ON mobile_learning_paths(difficulty);
 CREATE INDEX IF NOT EXISTS idx_path_lessons_path ON path_lessons(learning_path_id);
 CREATE INDEX IF NOT EXISTS idx_path_lessons_lesson ON path_lessons(lesson_id);
 CREATE INDEX IF NOT EXISTS idx_lesson_hadith_lesson ON lesson_hadith(lesson_id);
@@ -112,10 +112,10 @@ CREATE POLICY "Users can insert their own redemptions"
   WITH CHECK (auth.uid() = user_id);
 
 -- Learning Paths: Public read access
-ALTER TABLE learning_paths ENABLE ROW LEVEL SECURITY;
+ALTER TABLE mobile_learning_paths ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Anyone can view learning paths"
-  ON learning_paths FOR SELECT
+  ON mobile_learning_paths FOR SELECT
   TO authenticated, anon
   USING (true);
 

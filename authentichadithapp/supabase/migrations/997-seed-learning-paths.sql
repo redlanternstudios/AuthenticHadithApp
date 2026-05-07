@@ -2,7 +2,7 @@
 -- Creates 4 learning paths with sample lesson structure
 
 -- Insert Learning Paths
-INSERT INTO learning_paths (name, description, difficulty, estimated_days, is_premium, order_index)
+INSERT INTO mobile_learning_paths (name, description, difficulty, estimated_days, is_premium, order_index)
 VALUES
   (
     'Foundations of Faith',
@@ -47,7 +47,7 @@ DECLARE
   v_lesson_id UUID;
 BEGIN
   -- Get the Foundations path ID
-  SELECT id INTO v_path_id FROM learning_paths WHERE name = 'Foundations of Faith';
+  SELECT id INTO v_path_id FROM mobile_learning_paths WHERE name = 'Foundations of Faith';
 
   -- Lesson 1: Introduction to Iman
   INSERT INTO lessons (title, description, order_index, estimated_minutes)
@@ -102,7 +102,7 @@ BEGIN
   VALUES (v_path_id, v_lesson_id, 4);
 
   -- Get Daily Practice path ID
-  SELECT id INTO v_path_id FROM learning_paths WHERE name = 'Daily Practice';
+  SELECT id INTO v_path_id FROM mobile_learning_paths WHERE name = 'Daily Practice';
 
   -- Lesson 1: Morning and Evening Duas
   INSERT INTO lessons (title, description, order_index, estimated_minutes)
@@ -131,7 +131,7 @@ BEGIN
   VALUES (v_path_id, v_lesson_id, 2);
 
   -- Get Character & Ethics path ID
-  SELECT id INTO v_path_id FROM learning_paths WHERE name = 'Character & Ethics';
+  SELECT id INTO v_path_id FROM mobile_learning_paths WHERE name = 'Character & Ethics';
 
   -- Lesson 1: Patience and Perseverance
   INSERT INTO lessons (title, description, order_index, estimated_minutes)
@@ -160,7 +160,7 @@ BEGIN
   VALUES (v_path_id, v_lesson_id, 2);
 
   -- Get Scholar Deep Dive path ID
-  SELECT id INTO v_path_id FROM learning_paths WHERE name = 'Scholar Deep Dive';
+  SELECT id INTO v_path_id FROM mobile_learning_paths WHERE name = 'Scholar Deep Dive';
 
   -- Lesson 1: Introduction to Hadith Sciences
   INSERT INTO lessons (title, description, order_index, estimated_minutes)

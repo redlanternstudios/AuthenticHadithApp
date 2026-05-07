@@ -16,7 +16,7 @@ export default function LearnScreen() {
     queryKey: ['learning-paths'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('learning_paths')
+        .from('mobile_learning_paths')
         .select('*')
         .order('order_index');
 
