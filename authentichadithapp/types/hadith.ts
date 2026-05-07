@@ -81,7 +81,7 @@ export interface Lesson {
   title: string
   description: string
   content?: string
-  sort_order: number
+  order_index: number
   estimated_minutes: number
   created_at: string
 }
