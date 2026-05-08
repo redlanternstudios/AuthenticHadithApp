@@ -474,32 +474,56 @@ This rule exists to stop wasted time bouncing between tools and to prevent destr
 
 ---
 
-## Rule 021: Native Packages Must Register Their Expo Plugin
+## Rule 021: Verify a Package Ships an Expo Config Plugin Before Registering It
 
-Every package with native iOS code (entitlements, frameworks, permissions, capabilities) must be registered in `app.json` `expo.plugins` array. A package being in `package.json` alone is not enough — the Expo config plugin is what tells `expo prebuild` to apply the native side effects.
+Every package with native iOS code (entitlements, frameworks, permissions, capabilities) must be wired into the native target. Some packages do this through an Expo config plugin registered in `app.json` `expo.plugins`. Others do it purely through React Native autolinking with capabilities enabled externally (Apple Developer portal, App Store Connect). **Adding a package to `expo.plugins` without first verifying the package actually exports a config plugin will break every EAS build and every local prebuild.**
 
-This caused FIX-026: `react-native-purchases` was installed in `package.json` for months but never registered in plugins. Prebuild produced an iOS target with no In-App Purchase entitlement. Production purchases would have failed silently.
+This rule exists because of FIX-026 (added `react-native-purchases` to `expo.plugins` based on a wrong assumption) and FIX-027 (the resulting EAS build failure with `Unable to resolve a valid config plugin for react-native-purchases`). The package does not ship a config plugin. The IAP capability is enabled through Apple Developer portal, not through Expo plugin registration.
 
-Required for any native package install:
-1. Run `npx expo install <package-name>` — installs and adds to package.json
-2. Check the package README for an Expo config plugin section
-3. If a plugin exists, add the package name (or array with options) to `expo.plugins` in `app.json`
-4. Run `npx expo prebuild --clean` (with KP approval) to regenerate native projects with the plugin's effects applied
-5. Verify the expected capability/entitlement/permission appears in the generated iOS files
+### Mandatory pre-flight before adding ANY entry to `expo.plugins`
 
-Required for any release audit:
-1. Cross-check every package in `package.json` that has an Expo plugin against `expo.plugins` in `app.json`
-2. Cross-check every entitlement in `ios/<App>/<App>.entitlements` against the plugins that should have produced it
-3. Orphan entitlements (entitlements without a registered plugin) indicate either a removed plugin or manual edits — both must be cleaned via `expo prebuild --clean`
+Run all three checks. If any fail, **do not add the entry**.
 
-Common packages with required Expo plugins:
-- `react-native-purchases` (RevenueCat) → adds In-App Purchase capability
-- `expo-notifications` → adds aps-environment, push capability
-- `expo-secure-store` → adds Keychain access
-- `expo-tracking-transparency` → adds NSUserTrackingUsageDescription
-- `expo-camera`, `expo-location`, `expo-media-library` → add corresponding usage descriptions
+1. **`app.plugin.js` exists at the package root**
+   ```bash
+   ls node_modules/<package>/app.plugin.js
+   ```
+2. **OR the package's `package.json` has an `expo` field pointing to a plugin**
+   ```bash
+   node -e "console.log(require('./node_modules/<package>/package.json').expo)"
+   ```
+3. **OR the package documentation explicitly says "add to expo.plugins"** (link required in BUILD_FIX_LOG entry)
 
-If a native package ships without an Expo plugin (rare), document it in `BUILD_FIX_LOG.md` and add manual config plugin code.
+If none of those are true, **the package autolinks via React Native's standard mechanism** and any required iOS capability is enabled externally:
+- Apple Developer portal (capabilities tab on the App ID)
+- App Store Connect (in-app purchases, sign in with Apple, etc.)
+- Manual `infoPlist` keys in `app.json.expo.ios.infoPlist`
+
+### Mandatory post-edit verification
+
+After any change to `expo.plugins`, run:
+```bash
+npx expo config --json > /dev/null
+echo "exit code: $?"
+```
+A non-zero exit code means a plugin entry is invalid. Revert immediately. Do not commit a config that fails this check.
+
+### Common packages and how they wire in
+
+| Package | Mechanism | Plugin entry needed? |
+|---|---|---|
+| `react-native-purchases` (RevenueCat 9.x) | Autolink + Apple Dev portal IAP capability | NO |
+| `expo-notifications` | Expo config plugin | YES (auto via `npx expo install`) |
+| `expo-secure-store` | Expo config plugin | YES |
+| `expo-tracking-transparency` | Expo config plugin | YES |
+| `expo-camera`, `expo-location`, `expo-media-library` | Expo config plugin | YES |
+| `expo-build-properties` | Expo config plugin | YES |
+
+### Required for any release audit
+
+1. For every entry in `expo.plugins`, confirm the package ships a plugin (run the pre-flight checks above).
+2. For every native package in `package.json`, identify which capability mechanism it uses (plugin, autolink, or manual). If autolink + external capability, document in BUILD_FIX_LOG which Apple Developer portal toggle is required.
+3. Orphan entitlements in `ios/<App>/<App>.entitlements` (entitlements without a corresponding plugin or manual config) must be cleaned via `expo prebuild --clean` after the source plugin is removed.
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Audit Date:** 2026-05-07
 **Auditor Role:** Senior Apple Release Engineer
-**Last Update:** 2026-05-07 (FIX-026 — config-layer blockers resolved)
+**Last Update:** 2026-05-07 (FIX-027 — C-01 invalidated, RevenueCat plugin reverted)
 **App Version:** 1.0.0
 **Bundle ID:** com.byred.authentichadith
 **EAS App Store Connect ID:** 6764673665
@@ -10,12 +10,12 @@
 
 ---
 
-## Release Readiness Score: 8.0 / 10 (was 6.5 / 10)
+## Release Readiness Score: 7.5 / 10 (was 6.5 / 10, briefly 8.0 before FIX-027 correction)
 
-All 3 critical config-layer blockers resolved in `app.json`. Native verification deferred until `npx expo prebuild --clean` runs with KP approval. Remaining work is external (App Store Connect, Supabase, web hosting) plus one low-risk hybrid-layer item.
+C-02, C-03, and M-01 are resolved at the config layer. **C-01 has been INVALIDATED** by FIX-027 — the original audit premise was wrong. `react-native-purchases` v9.x does not ship an Expo config plugin; the In-App Purchase capability is enabled externally through the Apple Developer portal (now consolidated into M-05). Native verification deferred until `npx expo prebuild --clean` or an EAS build runs with KP approval. Remaining work is external (Apple Developer portal IAP capability toggle, App Store Connect, Supabase demo account, web hosting) plus one low-risk hybrid-layer item.
 
-### Resolved in FIX-026
-- ✅ C-01 RevenueCat plugin — `react-native-purchases` added to `expo.plugins`
+### Status from FIX-026 / FIX-027
+- ❌ C-01 RevenueCat plugin — **INVALID** (FIX-027). Package does not ship an Expo config plugin. Capability enabling moved to M-05.
 - ✅ C-02 Push entitlement — confirmed orphaned (no plugin, no code); will be eliminated by next clean prebuild
 - ✅ C-03 Display name — `expo.name` and `CFBundleDisplayName` both set to "Authentic Hadith"
 - ✅ M-01 Build number — `app.json` synced to "4"; EAS production `autoIncrement` will manage from here
@@ -32,24 +32,27 @@ All 3 critical config-layer blockers resolved in `app.json`. Native verification
 
 ## CRITICAL BLOCKERS (Must fix before TestFlight)
 
-### C-01: react-native-purchases missing from Expo plugins array — ✅ RESOLVED (FIX-026)
-- **File:** `app.json` (line 36-52)
-- **Root Cause:** The `plugins` array does not include `react-native-purchases`. RevenueCat's Expo config plugin registers the In-App Purchase capability on the native target. Without it, StoreKit entitlements may not be present in the provisioning profile during EAS builds.
-- **Evidence:** `app.json` plugins only list: expo-router, expo-splash-screen, expo-secure-store, expo-web-browser. No StoreKit/IAP capability found in `project.pbxproj`.
-- **Risk:** In-app purchases silently fail. Apple review rejects for broken subscription flow.
-- **Fix Location:** VS Code (app.json)
-- **Fix:**
-  ```json
-  "plugins": [
-    "expo-router",
-    ["expo-splash-screen", { ... }],
-    "expo-secure-store",
-    "expo-web-browser",
-    "react-native-purchases"
-  ]
+### C-01: react-native-purchases plugin registration — ❌ INVALID (FIX-027)
+**This blocker was based on a wrong premise. There is no fix to apply at the Expo plugin layer.**
+
+- **Original claim:** "RevenueCat's Expo config plugin registers the In-App Purchase capability on the native target. Without it, StoreKit entitlements may not be present in the provisioning profile during EAS builds."
+- **Why it was wrong:** `react-native-purchases` v9.x (currently 9.15.2 installed) does not ship an Expo config plugin. There is no `app.plugin.js` at the package root and no `expo` field in its `package.json`. Adding it to `expo.plugins` causes `npx expo config --json` to fail with `Unable to resolve a valid config plugin for react-native-purchases`, which blocks every EAS build and local prebuild.
+- **What FIX-026 did:** Added `"react-native-purchases"` to `expo.plugins`. The next EAS preview build immediately failed pre-flight.
+- **What FIX-027 did:** Removed the entry. Restored the build pipeline.
+- **How RevenueCat actually wires into Expo:** Standard React Native autolinking handles the JS bridge during prebuild. The In-App Purchase capability is enabled externally:
+  1. Apple Developer portal → Identifiers → `com.byred.authentichadith` → Capabilities → toggle In-App Purchase ON
+  2. App Store Connect → My Apps → Authentic Hadith → Features → In-App Purchases → create products with IDs matching `lib/purchases/revenuecat.ts` (consolidated into M-05)
+  3. RevenueCat dashboard → Products → confirm product IDs match
+- **Verification (post-prebuild or post-EAS-build):**
+  ```bash
+  # Option 1: After local prebuild
+  grep -i "in-app-payments\|InAppPurchase" ios/AuthenticHadithApp/AuthenticHadithApp.entitlements
+  # If missing, the Apple Developer portal capability is not toggled — fix in (1) above
+  
+  # Option 2: After EAS build
+  # Inspect the EAS build logs for "in-app-payments" or check the .ipa entitlements
   ```
-- **Verification:** Run `npx expo prebuild --clean` (with KP approval), then verify `AuthenticHadithApp.entitlements` contains in-app purchase capability. Or run an EAS build and check the build logs for StoreKit entitlement.
-- **App Store Risk:** REJECTION — broken payment flow is a guaranteed rejection under Guideline 3.1.1.
+- **App Store Risk:** ZERO at the config-plugin layer (no fix exists there). Risk now lives entirely in M-05 (external capability + product ID verification).
 
 ### C-02: Push notification entitlement present but push not implemented — ✅ RESOLVED (FIX-026)
 **Resolution note:** No `expo-notifications` plugin registered, no push code anywhere in the JS layer. The orphan `aps-environment` entitlement in the existing `ios/` folder will be eliminated automatically on the next `npx expo prebuild --clean` run. No code change needed; verification deferred to post-prebuild.
@@ -223,23 +226,24 @@ All 3 critical config-layer blockers resolved in `app.json`. Native verification
 
 ## What Is Missing
 
-1. `react-native-purchases` Expo plugin in app.json
-2. In-App Purchase capability verification in Apple Developer portal
+1. ~~`react-native-purchases` Expo plugin in app.json~~ — INVALID, package does not ship one (FIX-027)
+2. In-App Purchase capability toggle in Apple Developer portal for `com.byred.authentichadith`
 3. Product IDs verified in App Store Connect
 4. Demo review account created in Supabase
 5. Privacy policy deployed to live URL
-6. Clean display name in Info.plist
-7. Push notification entitlement resolved (remove or implement)
+6. ~~Clean display name in Info.plist~~ — RESOLVED at config layer (FIX-026), pending prebuild verification
+7. ~~Push notification entitlement resolved~~ — RESOLVED at config layer (FIX-026), pending prebuild verification
 8. Deployment target alignment
 
 ---
 
 ## What Must Be Fixed Before TestFlight
 
-1. **Add `react-native-purchases` to app.json plugins** (C-01)
-2. **Fix CFBundleDisplayName to "Authentic Hadith"** (C-03)
-3. **Resolve push entitlement** — remove `aps-environment` if not shipping push (C-02)
-4. **Run `npx expo prebuild --clean`** to regenerate native project with fixes (requires KP approval)
+1. ~~Add `react-native-purchases` to app.json plugins~~ — REMOVED (FIX-027); not a real fix
+2. **Fix CFBundleDisplayName to "Authentic Hadith"** (C-03) — done in app.json (FIX-026)
+3. **Resolve push entitlement** — remove `aps-environment` if not shipping push (C-02) — handled by next clean prebuild (no plugin produces it)
+4. **Run `npx expo prebuild --clean` OR an EAS build** to regenerate native project with fixes (requires KP approval)
+5. **Toggle In-App Purchase capability** in Apple Developer portal for `com.byred.authentichadith` (the real fix that the original C-01 was trying to point at)
 
 ---
 

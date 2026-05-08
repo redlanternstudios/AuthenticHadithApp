@@ -91,6 +91,93 @@ Before any EAS build:
 
 ## FIXES
 
+### [FIX-027] — Revert invalid `react-native-purchases` plugin registration (FIX-026 follow-up)
+**Date**: 2026-05-07
+**Session**: Claude Code (Senior Release Verification Engineer)
+**Severity**: Critical (broke every EAS build)
+
+**Error Message**:
+```
+Failed to read the app config from the project using "npx expo config" command:
+npx expo config --json exited with non-zero code: 1.
+Falling back to the version of "@expo/config" shipped with the EAS CLI.
+Unable to resolve a valid config plugin for react-native-purchases.
+• No "app.plugin.js" file found in react-native-purchases: config plugins are typically
+  exported from an "app.plugin.js" file in the package root.
+• main export of react-native-purchases does not appear to be a config plugin: the following
+  error was thrown when importing /node_modules/react-native-purchases/dist/index.js:
+  Unexpected token 'typeof'
+Verify that react-native-purchases includes a config plugin. If it does not, then remove
+the entry from plugins in your app config file.
+    Error: build command failed.
+```
+
+**Root Cause**:
+FIX-026 added `react-native-purchases` to `expo.plugins` based on a faulty assumption in `XCODE_NATIVE_RELEASE_AUDIT.md` C-01. The audit claimed the package's "Expo config plugin registers the In-App Purchase capability on the native target." This is wrong for `react-native-purchases` v9.x. The package ships a runtime SDK at `dist/index.js` and a native iOS plugin at `ios/PurchasesPlugin.swift` (Swift-side native helper, unrelated to Expo). It does **not** ship an Expo config plugin. There is no `app.plugin.js` file. Its `package.json` has no `expo` field. Importing `dist/index.js` as a config plugin throws a TypeScript syntax error because it is not a config plugin.
+
+How RevenueCat actually wires into Expo: standard React Native autolinking handles the JS bridge. The In-App Purchase capability is enabled externally through the Apple Developer portal for the bundle ID, not through Expo plugin registration. This is exactly the manual task already tracked as M-05 in the audit doc (verify product IDs across App Store Connect and RevenueCat dashboard).
+
+The other three FIX-026 edits (display name, buildNumber, CFBundleDisplayName) are valid and remain in place.
+
+**Fix Applied**:
+```
+File: app.json
+Removed line: "react-native-purchases" from expo.plugins array
+
+Before:
+  "plugins": [
+    "expo-router",
+    [...],
+    "expo-secure-store",
+    "expo-web-browser",
+    "react-native-purchases"
+  ]
+
+After:
+  "plugins": [
+    "expo-router",
+    [...],
+    "expo-secure-store",
+    "expo-web-browser"
+  ]
+```
+
+**Files Changed**:
+- `app.json` — removed `react-native-purchases` plugin entry
+- `BUILD_FIX_LOG.md` — this entry
+- `SYSTEM_RULES.md` — Rule 021 rewritten to require pre-flight verification that a package actually ships a config plugin before registering, and a post-edit `npx expo config --json` check
+- `XCODE_NATIVE_RELEASE_AUDIT.md` — C-01 status changed from RESOLVED to INVALID, Release Readiness note corrected, "What Is Missing" item 1 corrected
+- `APP_LAUNCH_PLAYBOOK.md` — pre-prebuild checklist strengthened to require config-plugin existence verification
+
+**Verification Command**:
+```bash
+# 1. app.json must remain valid JSON
+node -e "JSON.parse(require('fs').readFileSync('app.json'))"
+
+# 2. The bad plugin entry must be gone
+grep -c "react-native-purchases" app.json
+# Expected: 0
+
+# 3. Expo config must now parse cleanly (this was the failing gate)
+npx expo config --json > /dev/null
+echo "exit: $?"
+# Expected: exit: 0
+
+# 4. EAS preview build must clear pre-flight (run only with KP approval)
+npx eas-cli build --platform ios --profile preview --non-interactive
+```
+
+**Result**: Fixed at config layer. Build pipeline unblocked.
+
+**Lesson**:
+A package in `package.json` is not an Expo config plugin unless the package explicitly ships one. Three signals confirm a config plugin exists: (a) `app.plugin.js` at the package root, (b) `expo` field in the package's `package.json`, (c) explicit "add to expo.plugins" instruction in the package's official documentation. If none are present, the package autolinks via React Native and any iOS capability is enabled externally (Apple Developer portal, App Store Connect, or manual `infoPlist` keys). Adding a package to `expo.plugins` without one of those three signals breaks every EAS and local build.
+
+The deeper meta-lesson: an audit document is not ground truth. FIX-026 trusted the audit's C-01 claim without running `npx expo config --json` after the edit. The edit committed and pushed to `main` because no verification gate caught it. Every plugin change must be followed by `npx expo config --json` before commit. SYSTEM_RULES.md Rule 021 now codifies this gate.
+
+**Pattern Category**: Native plugin registration / Config validation gate
+
+---
+
 ### [FIX-026] — iOS Release Blockers: RevenueCat Plugin, Push Entitlement, Display Name
 **Date**: 2026-05-07
 **Session**: Claude Code (Senior Expo/iOS Release Engineer)

@@ -136,12 +136,13 @@ Controls:
 
 ## 4b. PRE-PREBUILD CONFIG CHECKLIST
 
-Before running `npx expo prebuild --clean` (always KP-approved), verify in `app.json`:
+Before running `npx expo prebuild --clean` or any EAS build (always KP-approved), verify in `app.json`:
 
-- [ ] Every native package in `package.json` is registered in `expo.plugins` (SYSTEM_RULES Rule 021)
-  - `react-native-purchases` → must be in plugins
-  - `expo-secure-store` → must be in plugins
-  - Add others as the dependency list grows
+- [ ] Every entry in `expo.plugins` is verified to ship a real config plugin (SYSTEM_RULES Rule 021). For each entry, at least ONE of the following must be true:
+  - `ls node_modules/<package>/app.plugin.js` succeeds
+  - `node -e "console.log(require('./node_modules/<package>/package.json').expo)"` returns a non-undefined value
+  - The package documentation explicitly says "add to expo.plugins" (link captured in BUILD_FIX_LOG)
+- [ ] **Adding a package to `expo.plugins` without one of the above signals is forbidden.** Packages that autolink (e.g. `react-native-purchases`) must NOT be added to `expo.plugins`. Their iOS capabilities are enabled externally (Apple Developer portal, App Store Connect) or via manual `infoPlist` keys.
 - [ ] `expo.name` matches the marketing name on the App Store listing
 - [ ] `expo.ios.bundleIdentifier` is `com.byred.authentichadith`
 - [ ] `expo.ios.buildNumber` is current (or rely on EAS `autoIncrement` for production)
@@ -149,12 +150,22 @@ Before running `npx expo prebuild --clean` (always KP-approved), verify in `app.
 - [ ] `expo.ios.infoPlist.ITSAppUsesNonExemptEncryption` is set (false unless encryption used)
 - [ ] No orphan capabilities will result from removed plugins (cross-check existing `ios/<App>/<App>.entitlements`)
 
+**Mandatory gate before commit on any `expo.plugins` change:**
+
+```bash
+node -e "JSON.parse(require('fs').readFileSync('app.json'))"   # JSON validity
+npx expo config --json > /dev/null                              # Plugin resolution
+echo "exit: $?"                                                 # Must be 0
+```
+
+A non-zero exit code means a plugin entry is invalid. Revert before committing. This gate exists because FIX-026 was committed and pushed without running it, which broke every EAS build until FIX-027 reverted the bad entry.
+
 After prebuild completes, verify:
 
 - [ ] `ios/<App>/<App>.entitlements` contains expected capabilities and nothing more
 - [ ] `ios/<App>/Info.plist` `CFBundleDisplayName` matches the configured value
 - [ ] No `aps-environment` unless push is intentionally shipping
-- [ ] In-App Purchase capability present if RevenueCat is in plugins
+- [ ] In-App Purchase capability is present if RevenueCat is in use AND the Apple Developer portal toggle is ON for the bundle ID. If the entitlement is missing, the fix is in the Apple Developer portal, not in `expo.plugins`.
 
 ---
 
