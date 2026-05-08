@@ -527,6 +527,52 @@ A non-zero exit code means a plugin entry is invalid. Revert immediately. Do not
 
 ---
 
+## Rule 022: CocoaPods Requires UTF-8 Locale Before iOS Native Install
+
+Before running `pod install`, `npx expo run:ios`, `npx expo prebuild` (which runs pod install), or any local EAS iOS build, the shell environment MUST have a UTF-8 locale set. CocoaPods (specifically `Pod::Config#installation_root`) calls `String#unicode_normalize`, which throws `Encoding::CompatibilityError: Unicode Normalization not appropriate for ASCII-8BIT` if `LANG` and `LC_ALL` are unset or set to `C`/`POSIX`.
+
+This caused FIX-028: prebuild's pod install step failed with a Ruby encoding error during iOS regeneration. The error was misleading — it looks like a CocoaPods or Ruby version bug, but the actual cause is an unset shell locale. KP's terminal had `LANG=""` and `LC_ALL=""`, falling back to `C` (ASCII).
+
+### Required before any iOS native install
+
+```bash
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+```
+
+For permanent fix, add to `~/.zshrc` or `~/.bashrc`:
+```bash
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+```
+
+### Diagnostic
+
+```bash
+locale                  # All LC_* should be UTF-8, not "C"
+echo $LANG              # Must not be empty
+echo $LC_ALL            # Must not be empty
+pod --version           # If this prints the UTF-8 warning, locale is broken
+```
+
+CocoaPods itself prints a warning when locale is wrong:
+```
+WARNING: CocoaPods requires your terminal to be using UTF-8 encoding.
+Consider adding the following to ~/.profile: export LANG=en_US.UTF-8
+```
+That warning is the canary. Treat it as a build blocker, not a warning.
+
+### Do not blame Expo or CocoaPods first
+
+When pod install fails with a Ruby encoding error, the diagnosis order is:
+1. Locale (LANG / LC_ALL)
+2. Workspace state (corrupted `ios/` from interrupted prebuild → `expo prebuild --clean`)
+3. Ruby/CocoaPods version mismatch (only after 1 and 2 are confirmed clean)
+
+Reinstalling Ruby, reinstalling CocoaPods, or running `expo prebuild --clean` casually wastes 30+ minutes when the actual fix is a one-line export. SYSTEM_RULES Rule 020 still applies: classify before acting.
+
+---
+
 # Required File System
 
 Every serious app build must include:

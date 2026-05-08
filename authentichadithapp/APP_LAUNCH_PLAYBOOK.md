@@ -171,6 +171,22 @@ After prebuild completes, verify:
 
 ## 5. iOS BUILD PROCESS
 
+### Preflight: UTF-8 locale (SYSTEM_RULES Rule 022)
+
+Every shell that runs `pod install`, `npx expo run:ios`, `npx expo prebuild`, or a local EAS iOS build must have a UTF-8 locale exported. CocoaPods crashes with a Ruby encoding error if `LANG` and `LC_ALL` are unset or `C`.
+
+```bash
+# Run once per shell, or add to ~/.zshrc for permanence
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+
+# Verify before continuing
+locale | grep -E "LANG|LC_ALL"
+# Expect: LANG=en_US.UTF-8, LC_ALL=en_US.UTF-8 (not empty, not "C")
+```
+
+If `pod --version` prints `WARNING: CocoaPods requires your terminal to be using UTF-8 encoding`, stop and fix the locale before any build command.
+
 ### Build Profiles (eas.json)
 | Profile | Purpose | Distribution | When to Use |
 |---------|---------|-------------|-------------|

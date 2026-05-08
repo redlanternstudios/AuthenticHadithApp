@@ -91,6 +91,82 @@ Before any EAS build:
 
 ## FIXES
 
+### [FIX-028] — CocoaPods UTF-8 Locale Failure After iOS Prebuild
+**Date**: 2026-05-07
+**Session**: Claude Code (Senior iOS Release Engineer)
+**Severity**: Build blocker (environment, not code)
+
+**Problem**:
+```
+After `npx expo prebuild --clean` regenerated `ios/`, the downstream `pod install` step failed with:
+
+WARNING: CocoaPods requires your terminal to be using UTF-8 encoding.
+/opt/homebrew/Cellar/ruby/4.0.2/lib/ruby/4.0.0/unicode_normalize/normalize.rb:153:in 'UnicodeNormalize.normalize':
+Unicode Normalization not appropriate for ASCII-8BIT (Encoding::CompatibilityError)
+    from .../cocoapods-1.16.2/lib/cocoapods/config.rb:167:in 'String#unicode_normalize'
+    from .../cocoapods-1.16.2/lib/cocoapods/config.rb:167:in 'Pod::Config#installation_root'
+```
+
+**Root Cause**:
+KP's shell had `LANG=""` and `LC_ALL=""`. All `LC_*` variables fell back to `C` (ASCII-8BIT). CocoaPods 1.16.2's `Pod::Config#installation_root` calls `String#unicode_normalize`, which raises `Encoding::CompatibilityError` on ASCII-8BIT strings. This is an environment problem, not a CocoaPods bug, not a Ruby version bug, not an Expo bug. The CocoaPods warning printed during the failure was the literal canary: "CocoaPods requires your terminal to be using UTF-8 encoding."
+
+**Fix Applied**:
+```bash
+cd /Users/kp/Projects/AuthenticHadithApp/authentichadithapp/ios
+LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 pod install --repo-update
+```
+
+Result: 101 dependencies / 111 pods installed in 103 seconds. RevenueCat 5.67.1 and RevenueCatUI 5.67.1 autolinked correctly via React Native autolinking — confirming FIX-027's diagnosis that no Expo config plugin is needed for `react-native-purchases`. CocoaPods generated `ios/AuthenticHadith.xcworkspace`.
+
+**Files Changed**:
+- `BUILD_FIX_LOG.md` — this entry
+- `SYSTEM_RULES.md` — added Rule 022 (CocoaPods Requires UTF-8 Locale Before iOS Native Install)
+- `APP_LAUNCH_PLAYBOOK.md` — Section 5 now opens with the UTF-8 preflight
+
+**Environment fix only — no app code changed.** No native iOS files were committed (entire `ios/` directory is gitignored).
+
+**Commands Used**:
+```bash
+# Diagnostic (before fix)
+locale && echo $LANG && echo $LC_ALL && pod --version
+
+# Apply fix (per-command, environment-scoped)
+cd ios
+LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 pod install --repo-update
+
+# Permanent fix (for KP's shell)
+echo 'export LANG=en_US.UTF-8' >> ~/.zshrc
+echo 'export LC_ALL=en_US.UTF-8' >> ~/.zshrc
+```
+
+**Verification**:
+```bash
+ls ios/Pods                            # exists
+ls ios/Podfile.lock                    # exists, 80 KB
+ls ios/AuthenticHadith.xcworkspace     # exists
+plutil -extract CFBundleDisplayName raw ios/AuthenticHadith/Info.plist
+# → "Authentic Hadith"
+plutil -extract CFBundleVersion raw ios/AuthenticHadith/Info.plist
+# → "4"
+grep -n "PRODUCT_BUNDLE_IDENTIFIER" ios/AuthenticHadith.xcodeproj/project.pbxproj
+# → com.byred.authentichadith (Debug + Release)
+grep "RevenueCat" ios/Podfile.lock | head
+# → RevenueCat (5.67.1), RevenueCatUI (5.67.1)
+grep -R "aps-environment" ios/AuthenticHadith
+# → no match (push entitlement gone, FIX-026 effect preserved)
+```
+
+**Result**: Fixed at environment layer. iOS native build is now ready for `npx expo run:ios` (KP-approved) or local archive.
+
+**Lesson**:
+When pod install fails with a Ruby encoding error, the diagnosis order is: (1) locale, (2) workspace state, (3) Ruby/CocoaPods version. Don't reinstall Ruby or CocoaPods or run `expo prebuild --clean` until locale is verified. The CocoaPods warning about UTF-8 encoding is not a soft suggestion — it's the canary for the failure that follows.
+
+There's also a stale `ios/AuthenticHadithApp.xcworkspace` left from a pre-rename prebuild attempt. It's gitignored cruft. Manual cleanup: `rm -rf ios/AuthenticHadithApp.xcworkspace` (KP discretion, not run automatically).
+
+**Pattern Category**: Environment / locale / build prerequisites
+
+---
+
 ### [FIX-027] — Revert invalid `react-native-purchases` plugin registration (FIX-026 follow-up)
 **Date**: 2026-05-07
 **Session**: Claude Code (Senior Release Verification Engineer)
