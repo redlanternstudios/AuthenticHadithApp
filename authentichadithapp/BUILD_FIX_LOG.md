@@ -91,6 +91,188 @@ Before any EAS build:
 
 ## FIXES
 
+### [FIX-021] — Home Screen Random Offset Crash
+**Date**: 2026-05-07
+**Session**: Claude Code
+**Severity**: Critical
+
+**Error Message**:
+```
+"Hadith of the Moment" section blank — .single() throws when offset exceeds row count
+```
+
+**Root Cause**: 
+`Math.floor(Math.random() * 1000)` generated a random offset up to 999, but if the hadiths table had fewer rows, `.range(offset, offset).single()` returned zero rows and threw.
+
+**Fix Applied**:
+```
+Query actual row count first with { count: 'exact', head: true }
+Cap random offset to the real count
+Use .maybeSingle() instead of .single() for graceful null return
+```
+
+**Files Changed**:
+- app/(tabs)/index.tsx — safe random offset with count query and maybeSingle
+
+**Verification Command**:
+```
+Refresh home screen 20+ times — should never crash or show blank
+```
+
+**Result**: Fixed
+
+**Lesson**: 
+Never use hardcoded limits with `.single()`. Always query the actual count or use `.maybeSingle()` to handle the zero-row case gracefully.
+
+---
+
+### [FIX-020] — Duplicate QueryClientProvider + Missing Stack Routes
+**Date**: 2026-05-07
+**Session**: Claude Code
+**Severity**: Warning
+
+**Error Message**:
+```
+Potential cache inconsistency — two QueryClients active
+4 routes showing default Expo header instead of custom
+```
+
+**Root Cause**: 
+`_layout.tsx` wrapped app with both `QueryClientProvider` (line 59) and `ReactQueryProvider` (line 64). `ReactQueryProvider` creates its own `QueryClientProvider` internally, so the outer one was a shadowed duplicate. Also, routes for book, chapter, topics, bookmarks, and collections were missing from the Stack, causing them to render with the default Expo header.
+
+**Fix Applied**:
+```
+Removed outer QueryClientProvider and queryClient constant from _layout.tsx
+Moved ReactQueryProvider to outermost position (after ErrorBoundary)
+Added Stack.Screen entries for: book, chapter, topics, bookmarks, collections
+```
+
+**Files Changed**:
+- app/_layout.tsx — single QueryClientProvider via ReactQueryProvider, 5 new Stack routes
+
+**Verification Command**:
+```
+Navigate to book, chapter, topics screens — verify no default Expo header appears
+```
+
+**Result**: Fixed
+
+**Lesson**: 
+Only one QueryClientProvider should exist in the component tree. If a provider component creates its own internally, do not wrap it with another one. Check provider source code before nesting.
+
+---
+
+### [FIX-019] — Subscription Screen Crashes on RevenueCat Init Failure
+**Date**: 2026-05-07
+**Session**: Claude Code
+**Severity**: Critical
+
+**Error Message**:
+```
+Unhandled promise rejection in useEffect — infinite spinner if RevenueCat fails
+```
+
+**Root Cause**: 
+The async IIFE in `useEffect` had no `.catch()` handler. If `getOfferings()` or `getSubscriptionStatus()` threw (network error, wrong API key, cold start), the promise rejected unhandled. The `loading` state never reached `false`, leaving the user stuck on a spinner.
+
+**Fix Applied**:
+```
+Added try/catch/finally around the async init
+Added initError state for error display
+Moved loading indicator and error fallback above the content
+Guarded status card behind !loading check
+```
+
+**Files Changed**:
+- app/settings/subscription.tsx — error handling on init, loading/error state guards
+
+**Verification Command**:
+```
+Test subscription screen with network off — should show error message, not infinite spinner
+```
+
+**Result**: Fixed
+
+**Lesson**: 
+Every async IIFE in useEffect MUST have a .catch() or be wrapped in try/catch. Unhandled rejections in useEffect can crash or hang the screen.
+
+---
+
+### [FIX-018] — Boilerplate modal.tsx Shipping to Production
+**Date**: 2026-05-07
+**Session**: Claude Code
+**Severity**: Critical
+
+**Error Message**:
+```
+Expo template screen "This is a modal" reachable in production app
+```
+
+**Root Cause**: 
+The default Expo Router template `modal.tsx` was never replaced with real content. It displayed "This is a modal" with a home link. Registered in `_layout.tsx` as a Stack.Screen. Apple reviewers would flag this as an incomplete app (Guideline 2.1).
+
+**Fix Applied**:
+```
+Deleted app/modal.tsx
+Removed Stack.Screen name="modal" entry from _layout.tsx
+```
+
+**Files Changed**:
+- app/modal.tsx — DELETED
+- app/_layout.tsx — removed modal Stack.Screen
+
+**Verification Command**:
+```
+grep -r "modal" app/_layout.tsx  # should return nothing
+ls app/modal.tsx  # should not exist
+```
+
+**Result**: Fixed
+
+**Lesson**: 
+After scaffolding with Expo, immediately audit for template boilerplate screens. Delete anything that says "This is a modal" or references ThemedText/ThemedView from the template.
+
+---
+
+### [FIX-017] — 3 Screens Unreachable (Delete Account, Subscription, Bookmarks)
+**Date**: 2026-05-07
+**Session**: Claude Code
+**Severity**: Critical
+
+**Error Message**:
+```
+Delete account, subscription, and bookmarks screens exist but have zero navigation paths
+Apple Guideline 5.1.1: account deletion must be accessible
+```
+
+**Root Cause**: 
+All three screens were created as route files but no button or link in the app pointed to them. The delete-account screen is required by Apple for apps with account creation. The subscription screen is required for revenue. The bookmarks screen completes the save-and-view loop.
+
+**Fix Applied**:
+```
+Added to profile.tsx ACCOUNT section:
+  - "Saved Hadiths" row → router.push('/bookmarks')
+  - "Subscription" row → router.push('/settings/subscription')
+
+Added to profile.tsx SETTINGS section:
+  - "Delete Account" row → router.push('/settings/delete-account') with error-red tint
+```
+
+**Files Changed**:
+- app/(tabs)/profile.tsx — added 3 new SettingsRow navigation links
+
+**Verification Command**:
+```
+Open Profile tab → verify "Saved Hadiths", "Subscription", and "Delete Account" rows appear and navigate correctly
+```
+
+**Result**: Fixed
+
+**Lesson**: 
+After creating a new screen file, ALWAYS add at least one navigation path to it from an existing screen. Audit for orphan routes before every submission: `grep -r "router.push" app/ | grep -v node_modules` and cross-reference against the app/ directory listing.
+
+---
+
 ### [FIX-016] — Search Querying Non-Existent Column (english_translation)
 **Date**: 2026-05-07
 **Session**: Claude Code
@@ -741,10 +923,12 @@ Supabase sign-out must use scope:global AND clear server-side cookies via a dedi
 | Pattern | Occurrences | Root Cause | Systemic Fix Needed |
 |---------|-------------|------------|---------------------|
 | DB column name mismatch | 6 (FIX-002, 009, 010, 011, 013, 015, 016) | Code written against assumed schema, not actual production schema | Add HADITH_COLUMNS constant + always verify columns against Supabase dashboard before any query work |
+| Orphan screens (no nav path) | 4 (FIX-003, 005, 017, 020) | Screen files created but no button/link navigates to them | After creating any screen, ALWAYS add at least one navigation path. Audit with grep before submission |
 | PostgREST FK join on hadiths | 3 (FIX-011, 012, 014) | Hadiths table has no foreign keys but code assumes FK relationships | Never use FK join syntax on hadiths table. Use simple .select() + separate lookups |
 | RevenueCat config scattered | 3 (FIX-004, 006, 007) | Config duplicated across multiple files with different values | Single source of truth: lib/revenuecat/config.ts only |
+| Unhandled async in useEffect | 2 (FIX-019, FIX-004) | Async IIFE with no .catch() causes crash or infinite spinner | Every async IIFE in useEffect MUST have try/catch/finally |
 | Hardcoded test keys in prod | 2 (FIX-004, 006) | Test API keys committed directly in source | Use EAS secrets + app.config.js extra interpolation. Never hardcode keys |
-| Missing stub screens | 2 (FIX-003, 005) | Routes defined in navigation but screen files never created | Always create stub screens when adding new routes |
+| Template boilerplate shipped | 2 (FIX-005, 018) | Expo scaffolding files never cleaned up | Audit for template files (modal.tsx, ThemedText, react-logo) after scaffolding |
 | Silent PostgREST failures | 1 (FIX-016) | PostgREST does not error on non-existent filter columns | Test search/filter results manually. Column typos cause silent zero-result returns |
 
 ---

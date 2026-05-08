@@ -325,6 +325,58 @@ No agent should start editing files without first reviewing project memory.
 
 ---
 
+## Rule 014: Every Screen Must Have a Navigation Path
+
+After creating any new screen file in the `app/` directory, at least one navigation path must be wired to it from an existing screen.
+
+This caused 4 separate issues (FIX-003, 005, 017, 020). Screens were created but never linked from buttons or menus, making them invisible to users.
+
+Required verification before submission:
+1. List all route files in `app/`
+2. For each route, grep for at least one `router.push` or `Link` reference pointing to it
+3. Any route with zero references is an orphan — either wire it or delete it
+
+Apple-specific: account deletion (Guideline 5.1.1) and subscription management MUST be reachable. Orphan screens in these areas cause rejection.
+
+---
+
+## Rule 015: Async useEffect Must Have Error Handling
+
+Every async function called inside `useEffect` must be wrapped in `try/catch/finally` or have a `.catch()` handler.
+
+This caused 2 production failures (FIX-019, FIX-004). Unhandled promise rejections in useEffect cause infinite spinners, crash warnings, or blank screens.
+
+Required pattern:
+```typescript
+useEffect(() => {
+  (async () => {
+    try {
+      // async work
+    } catch (err) {
+      // set error state
+    } finally {
+      setLoading(false);
+    }
+  })();
+}, []);
+```
+
+---
+
+## Rule 016: No Template Boilerplate in Production
+
+After scaffolding with Expo or any template, immediately audit and remove all template files.
+
+This caused 2 issues (FIX-005, 018). Default Expo template screens (modal.tsx with "This is a modal", ThemedText, react-logo assets) shipped to production, signaling an unfinished app to Apple reviewers.
+
+Check for and remove:
+- `modal.tsx` with default content
+- `ThemedText` / `ThemedView` components from template
+- `react-logo.png` and variant assets in `assets/images/`
+- Any screen with "This is a" placeholder text
+
+---
+
 # Required File System
 
 Every serious app build must include:
