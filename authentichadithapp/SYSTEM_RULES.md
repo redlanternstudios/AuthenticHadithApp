@@ -663,6 +663,93 @@ A clean dev startup is the baseline. If it fails because of missing optional cre
 
 ---
 
+## Rule 026: User Progress Goes Through the Unified Progress Service
+
+All completion writes (story, lesson, sunnah practice, course, daily hadith) MUST go through `lib/progress/progressService.ts` via the hooks in `hooks/useProgress.ts`. Direct `supabase.from(...).upsert(...)` calls in screen components are forbidden for progress data.
+
+This caused FIX-032 across multiple screens. The story screens upserted directly to Supabase but never invalidated React Query cache → UI never refreshed. The lesson screen had a literal `// TODO: Implement lesson completion` and just called `router.back()`. Each screen invented its own state.
+
+### Required pattern
+
+```typescript
+// In any screen that lets the user complete content:
+import { useCompletionStatus } from '@/hooks/useProgress'
+
+const completion = useCompletionStatus('story', slug)
+
+// In the handler:
+await completion.markComplete({ /* optional metadata */ })
+
+// In the render:
+{completion.isComplete ? (
+  <CompletedBadge />
+) : (
+  <Button title="Mark as Complete" isLoading={completion.isMarking} onPress={...} />
+)}
+```
+
+### Forbidden
+
+- `supabase.from('user_lesson_progress').upsert(...)` directly in a screen component
+- `useState<boolean>(false)` for "is this complete" — that loses state on navigate-away and never persists
+- Reading completion state from a separate Supabase query when the service already exposes it
+- Adding a new progress table to Supabase without also wiring the service to mirror to it
+
+### Why
+
+One source of truth for progress means: optimistic UI just works, app restart preserves state, guests get full functionality, badges compute from real data, every screen reflects writes from every other screen.
+
+---
+
+## Rule 027: Local-First Persistence for User Progress
+
+User progress data MUST be persisted locally (AsyncStorage) as the canonical store. Supabase mirror is best-effort and may fail without affecting the user experience.
+
+This caused FIX-032: every progress flow required Supabase auth + a specific table schema. Guest users had zero progress. Network failure left the user staring at a button that did nothing visible.
+
+### Required behavior
+
+| Scenario | Expected |
+|---|---|
+| Authenticated user, network OK | Local write + background Supabase mirror |
+| Authenticated user, network down | Local write succeeds; Supabase mirror queued via best-effort retry on next interaction |
+| Unauthenticated guest | Local write succeeds; no Supabase call attempted |
+| Supabase table missing | Local write succeeds; Supabase mirror swallows the schema error in DEV warn |
+| App restart | All local progress survives |
+| App reinstall | Local progress wiped (acceptable; document in onboarding if cross-device sync becomes a feature) |
+
+### Storage key conventions
+
+- `@authentic_hadith/progress/v1` — main progress store (versioned for migrations)
+- Any new progress-related store keys MUST be namespaced under `@authentic_hadith/` and versioned
+
+---
+
+## Rule 028: Calculated Display Screens Render With Empty Defaults
+
+Screens that display calculated state — badges, achievements, progress summaries, level/XP, streak data — MUST render successfully on first launch with zero data. They must NEVER crash on missing tables, missing auth, or empty progress.
+
+This caused FIX-032 Issue A: the old `achievements.tsx` queried `supabase.from('achievements')` and called `.single()` on `user_stats`. On first launch (no rows), `.single()` threw PGRST116. The screen unmounted abruptly — described to KP as "crashes/closes the app."
+
+### Required behavior for any calculated-display screen
+
+1. Source data through the unified progress service (Rule 026), not direct table queries
+2. If a Supabase fallback is genuinely needed, use `.maybeSingle()` not `.single()`
+3. Render an intentional empty state when the data is empty:
+   - "No badges earned yet. Complete a story, lesson, or Sunnah practice to unlock your first badge."
+   - "Your progress timeline will appear here as you complete lessons, stories, and Sunnah practices."
+4. Never depend on a table existing — wrap any cross-cutting fetches in try/catch and fall through to empty
+5. Use `getColors(isDark)` for theming (Rule 017)
+
+### Forbidden
+
+- `.single()` on user-scoped queries that may return zero rows
+- Throwing inside a queryFn for missing-data conditions
+- Conditional rendering that produces no fallback UI for the empty case
+- Reading from `COLORS` directly (breaks dark mode per Rule 017)
+
+---
+
 # Required File System
 
 Every serious app build must include:

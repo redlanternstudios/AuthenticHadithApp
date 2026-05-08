@@ -91,6 +91,123 @@ Before any EAS build:
 
 ## FIXES
 
+### [FIX-032] — Stabilize Badges and Unified Progress Completion System
+**Date**: 2026-05-08
+**Session**: Claude Code (Senior React Native Product Systems Engineer)
+**Severity**: Critical — Badges crash blocked an entire feature; completion persistence had been entirely cosmetic for lessons (TODO-only) and partially broken for stories (no UI refresh).
+
+**Symptoms**:
+1. Tapping the **Badges** tile on the home screen crashed/closed the app.
+2. Stories: tapping **Mark as Complete** fired a Supabase upsert but the screen never reflected the change — button stayed visible, no state refresh, fire-and-forget `trackActivity` could throw silently.
+3. Lessons: **Mark as Complete** was a literal TODO that just called `router.back()` — no persistence, no XP, no progress.
+4. Sunnah: no completion UI at all.
+5. Progress data was scattered across 5+ Supabase tables (`prophet_reading_progress`, `sahaba_reading_progress`, `user_lesson_progress`, `user_stats`, `user_streaks`) plus undefined `achievements`/`user_achievements` tables that don't exist in any committed migration. No client-side single source of truth. Unauthenticated users had zero progress capability.
+
+**Root Causes**:
+
+1. **Badges crash**: `app/achievements.tsx` queried `supabase.from('achievements')` and `from('user_achievements')` and `from('user_stats').single()`. The `.single()` call throws PGRST116 when no row exists (every first-time user). The `achievements`/`user_achievements` tables don't exist in any migration. Without an `error` check or `maybeSingle()`, the queryFn threw → React Query error → screen unmounted abruptly. Also imported static `COLORS` (Rule 017 violation) for theming.
+
+2. **Stories Mark as Complete didn't refresh**: `handleMarkComplete` in `app/stories/prophet/[slug].tsx` and `companion/[slug].tsx` did `await supabase.from(...).upsert(...)` but never called `queryClient.invalidateQueries`, so the `progress` query (which the `isComplete` flag was derived from) stayed stale. The UI showed "Mark as Complete" indefinitely. Also `trackActivity(...)` was unawaited (fire-and-forget) — its `.single()` on missing `user_stats` would throw an unhandled rejection.
+
+3. **Lesson Mark as Complete was a literal TODO**: `app/learn/lesson/[lessonId].tsx:60-64` just called `router.back()`. No persistence, no XP. The button accomplished nothing.
+
+4. **No unified progress source**: every screen invented its own progress query against its own table. Guest users had zero progress. Restart preserved nothing if Supabase was unavailable. Badge eligibility had no real signal source.
+
+**Fixes Applied**:
+
+Created **`lib/progress/progressService.ts`** — local-first AsyncStorage-backed service:
+- Storage: `@authentic_hadith/progress/v1` with version + records array
+- API: `markComplete(type, id, metadata?)`, `isComplete(...)`, `getCompleted(type?)`, `getProgressSummary()`, `getBadges()`, `subscribe(listener)`, `refresh()`, `_resetForTesting()`
+- Completion types: `story | lesson | sunnah_practice | course | daily_hadith`
+- Best-effort Supabase mirror (lazy-imported, never throws): writes to `prophet_reading_progress` / `sahaba_reading_progress` (story with `entityKind` metadata), `user_lesson_progress` (lesson). Sync failure is silent in DEV warn.
+- Defensive parsing: corrupted store → fresh empty
+- Idempotent: `markComplete` returns existing record without duplicating
+- Subscriber notify pattern so all hooks reactively re-render on any write
+
+Created **`hooks/useProgress.ts`** — React hooks that consume the service:
+- `useCompletionStatus(type, id)` → `{ isComplete, isLoading, isMarking, markComplete }`
+- `useCompletedItems(type?)` → `{ records, isLoading }`
+- `useProgressSummary()` → `{ summary, isLoading }`
+- `useBadges()` → `{ badges, isLoading }`
+
+Each subscribes to `progressService.subscribe(...)` so a write from any screen propagates everywhere on the next render.
+
+Rewrote **`app/achievements.tsx`**:
+- Reads ONLY from `useBadges()` and `useProgressSummary()` — no Supabase queries that can fail or crash
+- Theme-aware via `useTheme() + getColors(isDark)` (Rule 017 compliance)
+- 9 calculated badges (Seeker, First Story, First Lesson, First Sunnah, 5-of-each tiers, 7-day streak, 25-total Dedicated)
+- Filter chips: All / Unlocked / Locked
+- Empty state: "Complete lessons, stories, and Sunnah practices to unlock badges."
+- XP derived from local progress so level math works without Supabase
+- Cannot crash on missing data, missing auth, missing schema, or first launch
+
+Updated **`app/stories/prophet/[slug].tsx`** + **`app/stories/companion/[slug].tsx`**:
+- Replaced direct `supabase.from(...).upsert(...)` + isComplete-from-query with `useCompletionStatus('story', slug)`
+- Mark-as-Complete now: optimistic local write → notify all subscribers → background Supabase mirror with `entityKind` metadata so the service can resolve the right legacy table
+- `trackActivity(...)` wrapped in try/catch
+- Available to all users (was previously gated on auth — now guests get local progress too)
+- Loading state on the button (`isLoading={completion.isMarking}`)
+
+Updated **`app/learn/lesson/[lessonId].tsx`**:
+- Replaced TODO with full completion: `useCompletionStatus('lesson', lessonId)` + `markComplete()` + best-effort `trackActivity('complete_lesson')`
+- Brief 600ms delay before `router.back()` so the user sees the "✅ Lesson Completed" badge state
+- New "Lesson Completed" badge styling
+
+Hardened **`lib/gamification/track-activity.ts`**:
+- `single()` → `maybeSingle()` for both `user_stats` and `user_streaks` (no PGRST116 throws on missing rows)
+- `updateStreak` wrapped in try/catch — streak failure no longer tanks the rest of trackActivity
+
+Hardened **`app/progress.tsx`**:
+- All `.single()` calls on `user_stats` / `user_streaks` switched to `.maybeSingle()`
+
+**Files Changed**:
+- `lib/progress/progressService.ts` (new, ~330 lines)
+- `hooks/useProgress.ts` (new)
+- `app/achievements.tsx` (rewritten)
+- `app/stories/prophet/[slug].tsx` (completion flow refactor)
+- `app/stories/companion/[slug].tsx` (completion flow refactor)
+- `app/learn/lesson/[lessonId].tsx` (TODO → real persistence)
+- `lib/gamification/track-activity.ts` (single → maybeSingle hardening)
+- `app/progress.tsx` (single → maybeSingle hardening)
+- `BUILD_FIX_LOG.md` (this entry)
+- `SYSTEM_RULES.md` (Rules 026, 027, 028 — see below)
+- `APP_LAUNCH_PLAYBOOK.md` (Runtime QA progression checklist)
+- `ERROR_REPORT.md` (status remains 🟢)
+
+**Verification**:
+
+```bash
+npx tsc --noEmit
+# → only pre-existing unrelated expo-sqlite error (dormant feature, not introduced)
+
+LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 npx expo start --dev-client
+xcrun simctl launch F5384F69-2BE1-40DC-806B-B4C45F03736A com.byred.authentichadith
+xcrun simctl openurl F5384F69-2BE1-40DC-806B-B4C45F03736A "exp+authentichadithapp://expo-development-client/?url=http://localhost:8081"
+```
+
+Result: Metro bundle clean (5.8s on cached, 0 errors). Home screen renders with content. Bundle includes the new progress service / hooks / achievements screen. App launches without redbox. The remaining "RevenueCat SDK Conf..." dev-only toast is the FIX-031 known issue (Apple Developer Portal IAP not enabled — pending KP manual task), not a regression.
+
+**Remaining manual verification** (requires KP to physically tap, since macOS Automation permission for `xcrun simctl ui tap` is not yet granted):
+1. Tap Badges tile → confirm screen renders with 9 badges (locked state on first launch), no crash
+2. Open a Prophet story → tap Mark as Complete → button immediately shows "✅ Completed"
+3. Navigate away and back → still Completed
+4. Hard restart app → still Completed (AsyncStorage persistence)
+5. Open Badges → confirm "First Story" badge unlocked
+6. Open a lesson → tap Mark as Complete → "✅ Lesson Completed" → auto navigate back
+7. Open Badges → confirm "First Lesson" badge unlocked
+
+**Lesson**:
+Three patterns surfaced as worth permanent rules (see SYSTEM_RULES Rules 026-028):
+- Completion / progress writes must go through a unified service, not direct table upserts. Component-only state is not persistence.
+- Local-first storage is the contract for any user-progress feature. Backend mirror is best-effort.
+- Screens that display calculated state (badges, level, summary) must compute from the unified service, never query progress tables directly. They must render with empty defaults on first launch.
+
+The `achievements`/`user_achievements` tables referenced by the old code don't exist in any committed migration. Future work: either ship a migration if server-side achievements are needed for cross-device sync, or remove the references entirely. For now, the local-first calculation is sufficient for shipping.
+
+**Pattern Category**: Product state architecture / Local-first persistence / Crash-proof UI
+
+---
+
 ### [FIX-031] — Harden Runtime Startup Services (RevenueCat, AI Env Validation, i18n)
 **Date**: 2026-05-08
 **Session**: Claude Code (Senior React Native Runtime Engineer)

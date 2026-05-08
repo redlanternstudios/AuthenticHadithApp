@@ -9,10 +9,12 @@ import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
 import { trackActivity } from '@/lib/gamification/track-activity'
+import { useCompletionStatus } from '@/hooks/useProgress'
 
 export default function CompanionStoryScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>()
   const { user } = useAuth()
+  const completion = useCompletionStatus('story', slug ?? null)
 
   const { data: companion, isLoading } = useQuery({
     queryKey: ['companion', slug],
@@ -40,34 +42,21 @@ export default function CompanionStoryScreen() {
     enabled: !!companion,
   })
 
-  const { data: progress } = useQuery({
-    queryKey: ['companion-progress', slug, user?.id],
-    queryFn: async () => {
-      if (!user || !companion) return null
-      const { data } = await supabase
-        .from('sahaba_reading_progress')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('sahabi_id', companion.id)
-        .single()
-      return data
-    },
-    enabled: !!user && !!companion,
-  })
-
   const handleMarkComplete = async () => {
-    if (!user || !companion) return
-    const allParts = (storyParts || []).map((_: any, i: number) => i)
-
-    await supabase.from('sahaba_reading_progress').upsert({
-      user_id: user.id,
-      sahabi_id: companion.id,
-      parts_completed: allParts,
-      is_completed: true,
-      updated_at: new Date().toISOString(),
+    if (!slug) return
+    await completion.markComplete({
+      entityKind: 'sahaba',
+      entityId: companion?.id,
+      slug,
+      title: companion?.name_en,
     })
-
-    trackActivity(user.id, 'complete_story')
+    if (user) {
+      try {
+        await trackActivity(user.id, 'complete_story')
+      } catch (err) {
+        __DEV__ && console.warn('[CompanionStory] trackActivity failed (non-fatal):', err)
+      }
+    }
   }
 
   if (isLoading) {
@@ -84,7 +73,7 @@ export default function CompanionStoryScreen() {
   }
 
   const parts = storyParts || []
-  const isComplete = progress?.is_completed === true
+  const isComplete = completion.isComplete
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -135,13 +124,14 @@ export default function CompanionStoryScreen() {
         </Card>
       ))}
 
-      {/* Mark Complete */}
-      {user && !isComplete && parts.length > 0 && (
+      {/* Mark Complete — available to all users (local-first persistence). */}
+      {!isComplete && parts.length > 0 && (
         <Button
-          title="Mark as Complete"
+          title={completion.isMarking ? 'Marking…' : 'Mark as Complete'}
           variant="primary"
           size="large"
           onPress={handleMarkComplete}
+          isLoading={completion.isMarking}
           style={styles.completeButton}
         />
       )}

@@ -1,96 +1,94 @@
-import React, { useState } from 'react'
+/**
+ * Badges / Achievements screen — local-first, crash-proof.
+ *
+ * Reads from the unified progress service (lib/progress/progressService.ts)
+ * via useBadges() + useProgressSummary(). Does NOT query Supabase tables
+ * that may not exist; cannot crash on missing schema, missing auth, or
+ * empty progress.
+ *
+ * Migrated in FIX-032. Replaces the prior implementation that called
+ * supabase.from('achievements').select(...) on tables that aren't in
+ * any committed migration — that path would crash or hang silently
+ * depending on PostgREST behavior.
+ */
+
+import React, { useMemo, useState } from 'react'
 import { StyleSheet, View, ScrollView, Text, Pressable } from 'react-native'
 import { Stack } from 'expo-router'
-import { useQuery } from '@tanstack/react-query'
-import { supabase } from '@/lib/supabase/client'
-import { useAuth } from '@/lib/auth/AuthProvider'
-import { AchievementCard } from '@/components/gamification/AchievementCard'
-import { LevelProgressBar } from '@/components/gamification/LevelProgressBar'
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Card } from '@/components/ui/Card'
-import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
+import { LevelProgressBar } from '@/components/gamification/LevelProgressBar'
+import { useTheme } from '@/lib/theme/ThemeProvider'
+import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
 import { getLevelInfo } from '@/lib/gamification/level-calculator'
-import { AchievementCategory } from '@/types/gamification'
+import { useBadges, useProgressSummary } from '@/hooks/useProgress'
+import { BadgeDefinition } from '@/lib/progress/progressService'
 
-const CATEGORIES: { key: AchievementCategory | 'all'; label: string }[] = [
+type Filter = 'all' | 'unlocked' | 'locked'
+
+const FILTERS: { key: Filter; label: string }[] = [
   { key: 'all', label: 'All' },
-  { key: 'learning', label: 'Learning' },
-  { key: 'streaks', label: 'Streaks' },
-  { key: 'social', label: 'Social' },
-  { key: 'mastery', label: 'Mastery' },
-  { key: 'milestones', label: 'Milestones' },
+  { key: 'unlocked', label: 'Unlocked' },
+  { key: 'locked', label: 'Locked' },
 ]
 
+/**
+ * XP from local progress. We award the same XP per type as the existing
+ * track-activity helper so the level math stays consistent whether or
+ * not Supabase write succeeded.
+ */
+const XP_PER_TYPE: Record<string, number> = {
+  story: 25,
+  lesson: 15,
+  sunnah_practice: 10,
+  course: 50,
+  daily_hadith: 5,
+}
+
 export default function AchievementsScreen() {
-  const { user } = useAuth()
-  const [activeCategory, setActiveCategory] = useState<AchievementCategory | 'all'>('all')
+  const { isDark } = useTheme()
+  const colors = getColors(isDark)
+  const [filter, setFilter] = useState<Filter>('all')
 
-  const { data: achievements, isLoading } = useQuery({
-    queryKey: ['achievements', user?.id],
-    queryFn: async () => {
-      const { data: allAchievements } = await supabase
-        .from('achievements')
-        .select('*')
-        .eq('is_active', true)
-        .order('tier', { ascending: true })
+  const { badges, isLoading: badgesLoading } = useBadges()
+  const { summary, isLoading: summaryLoading } = useProgressSummary()
 
-      if (!allAchievements) return { achievements: [], unlocked: new Map() }
+  // Derive XP from local progress so the badges screen is fully self-sufficient.
+  const xp = useMemo(() => {
+    let total = 0
+    for (const [type, count] of Object.entries(summary.byType)) {
+      total += (XP_PER_TYPE[type] || 0) * count
+    }
+    return total
+  }, [summary])
 
-      let unlockedMap = new Map<string, string>()
-      if (user) {
-        const { data: userAchievements } = await supabase
-          .from('user_achievements')
-          .select('achievement_id, unlocked_at')
-          .eq('user_id', user.id)
-
-        if (userAchievements) {
-          for (const ua of userAchievements) {
-            unlockedMap.set(ua.achievement_id, ua.unlocked_at)
-          }
-        }
-      }
-
-      return { achievements: allAchievements, unlocked: unlockedMap }
-    },
-  })
-
-  const { data: stats } = useQuery({
-    queryKey: ['user-stats', user?.id],
-    queryFn: async () => {
-      if (!user) return null
-      const { data } = await supabase
-        .from('user_stats')
-        .select('*')
-        .eq('user_id', user.id)
-        .single()
-      return data
-    },
-    enabled: !!user,
-  })
-
-  if (isLoading) {
-    return <LoadingSpinner />
-  }
-
-  const allAchievements = achievements?.achievements || []
-  const unlockedMap = achievements?.unlocked || new Map()
-  const xp = stats?.xp || 0
   const levelInfo = getLevelInfo(xp)
 
-  const filtered = activeCategory === 'all'
-    ? allAchievements
-    : allAchievements.filter((a) => a.category === activeCategory)
+  const filtered = badges.filter((b) => {
+    if (filter === 'unlocked') return b.unlocked
+    if (filter === 'locked') return !b.unlocked
+    return true
+  })
 
-  const unlockedCount = unlockedMap.size
-  const totalCount = allAchievements.length
+  const unlockedCount = badges.filter((b) => b.unlocked).length
+  const totalCount = badges.length
+
+  // Render even on the very first launch with empty progress. The
+  // service returns a stable badge list; loading flags only delay the
+  // first paint by one frame in practice.
+  const isLoading = badgesLoading || summaryLoading
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Stack.Screen options={{ title: 'Achievements', headerShown: true }} />
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      contentContainerStyle={styles.content}
+    >
+      <Stack.Screen options={{ title: 'Badges', headerShown: true }} />
 
-      <Text style={styles.title}>Achievements</Text>
-      <Text style={styles.subtitle}>
-        {unlockedCount} of {totalCount} unlocked
+      <Text style={[styles.title, { color: colors.bronzeText }]}>Badges</Text>
+      <Text style={[styles.subtitle, { color: colors.mutedText }]}>
+        {totalCount === 0
+          ? 'Complete lessons, stories, and Sunnah practices to unlock badges.'
+          : `${unlockedCount} of ${totalCount} unlocked`}
       </Text>
 
       {/* Level Progress */}
@@ -98,105 +96,228 @@ export default function AchievementsScreen() {
         <LevelProgressBar levelInfo={levelInfo} />
       </Card>
 
-      {/* Category Filters */}
+      {/* Quick stats from local progress */}
+      <View style={styles.statsRow}>
+        <StatPill colors={colors} label="Stories" value={summary.byType.story} />
+        <StatPill colors={colors} label="Lessons" value={summary.byType.lesson} />
+        <StatPill colors={colors} label="Sunnah" value={summary.byType.sunnah_practice} />
+      </View>
+
+      {/* Filter chips */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         style={styles.filtersScroll}
         contentContainerStyle={styles.filtersContent}
       >
-        {CATEGORIES.map((cat) => (
-          <Pressable
-            key={cat.key}
-            style={[styles.filterChip, activeCategory === cat.key && styles.filterChipActive]}
-            onPress={() => setActiveCategory(cat.key)}
-          >
-            <Text
+        {FILTERS.map((f) => {
+          const active = filter === f.key
+          return (
+            <Pressable
+              key={f.key}
               style={[
-                styles.filterChipText,
-                activeCategory === cat.key && styles.filterChipTextActive,
+                styles.filterChip,
+                {
+                  backgroundColor: active ? colors.emeraldMid : colors.card,
+                  borderColor: active ? colors.emeraldMid : colors.border,
+                },
               ]}
+              onPress={() => setFilter(f.key)}
             >
-              {cat.label}
-            </Text>
-          </Pressable>
-        ))}
+              <Text
+                style={[
+                  styles.filterChipText,
+                  { color: active ? colors.white : colors.mutedText },
+                ]}
+              >
+                {f.label}
+              </Text>
+            </Pressable>
+          )
+        })}
       </ScrollView>
 
-      {/* Achievement Grid */}
+      {/* Badge grid */}
       <View style={styles.grid}>
-        {filtered.map((achievement) => (
-          <AchievementCard
-            key={achievement.id}
-            achievement={achievement}
-            isUnlocked={unlockedMap.has(achievement.id)}
-            unlockedAt={unlockedMap.get(achievement.id)}
-          />
+        {filtered.map((badge) => (
+          <BadgeTile key={badge.id} badge={badge} colors={colors} />
         ))}
       </View>
 
-      {filtered.length === 0 && (
+      {filtered.length === 0 && !isLoading && (
         <View style={styles.empty}>
-          <Text style={styles.emptyText}>No achievements in this category yet.</Text>
+          <Text style={[styles.emptyText, { color: colors.mutedText }]}>
+            {filter === 'unlocked'
+              ? 'No badges earned yet. Complete a story, lesson, or Sunnah practice to unlock your first badge.'
+              : filter === 'locked'
+              ? 'All badges unlocked. Masha Allah.'
+              : 'No badges yet.'}
+          </Text>
         </View>
       )}
     </ScrollView>
   )
 }
 
+function BadgeTile({
+  badge,
+  colors,
+}: {
+  badge: BadgeDefinition
+  colors: ReturnType<typeof getColors>
+}) {
+  const progressPct = badge.progress != null ? Math.round(badge.progress * 100) : 0
+  return (
+    <Card
+      variant="elevated"
+      style={[
+        styles.badgeTile,
+        { opacity: badge.unlocked ? 1 : 0.65 },
+      ]}
+    >
+      <View
+        style={[
+          styles.badgeIconWrap,
+          {
+            backgroundColor: badge.unlocked
+              ? colors.emeraldMid + '20'
+              : colors.border,
+          },
+        ]}
+      >
+        <Text style={styles.badgeIcon}>{badge.unlocked ? badge.icon : '🔒'}</Text>
+      </View>
+      <Text style={[styles.badgeName, { color: colors.bronzeText }]} numberOfLines={1}>
+        {badge.name}
+      </Text>
+      <Text
+        style={[styles.badgeDescription, { color: colors.mutedText }]}
+        numberOfLines={2}
+      >
+        {badge.description}
+      </Text>
+      {!badge.unlocked && badge.progress != null && (
+        <View style={[styles.badgeProgressBg, { backgroundColor: colors.border }]}>
+          <View
+            style={[
+              styles.badgeProgressFill,
+              { width: `${progressPct}%`, backgroundColor: colors.goldMid },
+            ]}
+          />
+        </View>
+      )}
+    </Card>
+  )
+}
+
+function StatPill({
+  colors,
+  label,
+  value,
+}: {
+  colors: ReturnType<typeof getColors>
+  label: string
+  value: number
+}) {
+  return (
+    <View
+      style={[
+        styles.statPill,
+        { backgroundColor: colors.card, borderColor: colors.border },
+      ]}
+    >
+      <Text style={[styles.statValue, { color: colors.bronzeText }]}>{value}</Text>
+      <Text style={[styles.statLabel, { color: colors.mutedText }]}>{label}</Text>
+    </View>
+  )
+}
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  content: {
-    padding: SPACING.md,
-    paddingBottom: SPACING.xxl,
-  },
+  container: { flex: 1 },
+  content: { padding: SPACING.md, paddingBottom: SPACING.xxl },
   title: {
     fontSize: FONT_SIZES.xxxl,
     fontWeight: '700',
-    color: COLORS.bronzeText,
     paddingTop: SPACING.md,
   },
   subtitle: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.mutedText,
     marginBottom: SPACING.lg,
   },
-  levelCard: {
-    marginBottom: SPACING.md,
-  },
-  filtersScroll: {
-    marginBottom: SPACING.md,
-  },
-  filtersContent: {
+  levelCard: { marginBottom: SPACING.md },
+  statsRow: {
+    flexDirection: 'row',
     gap: SPACING.sm,
+    marginBottom: SPACING.md,
   },
+  statPill: {
+    flex: 1,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: FONT_SIZES.xl,
+    fontWeight: '700',
+  },
+  statLabel: {
+    fontSize: FONT_SIZES.xs,
+  },
+  filtersScroll: { marginBottom: SPACING.md },
+  filtersContent: { gap: SPACING.sm },
   filterChip: {
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
     borderRadius: BORDER_RADIUS.full,
-    backgroundColor: COLORS.card,
     borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  filterChipActive: {
-    backgroundColor: COLORS.emeraldMid,
-    borderColor: COLORS.emeraldMid,
   },
   filterChipText: {
     fontSize: FONT_SIZES.sm,
-    color: COLORS.mutedText,
     fontWeight: '500',
-  },
-  filterChipTextActive: {
-    color: COLORS.white,
   },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
+    gap: SPACING.sm,
+  },
+  badgeTile: {
+    width: '48%',
+    padding: SPACING.md,
+    alignItems: 'center',
+    marginBottom: SPACING.sm,
+  },
+  badgeIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.sm,
+  },
+  badgeIcon: { fontSize: 28 },
+  badgeName: {
+    fontSize: FONT_SIZES.base,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  badgeDescription: {
+    fontSize: FONT_SIZES.xs,
+    textAlign: 'center',
+    minHeight: 32,
+  },
+  badgeProgressBg: {
+    width: '100%',
+    height: 4,
+    borderRadius: 2,
+    marginTop: SPACING.sm,
+    overflow: 'hidden',
+  },
+  badgeProgressFill: {
+    height: '100%',
+    borderRadius: 2,
   },
   empty: {
     padding: SPACING.xl,
@@ -204,6 +325,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.mutedText,
+    textAlign: 'center',
+    lineHeight: 22,
   },
 })

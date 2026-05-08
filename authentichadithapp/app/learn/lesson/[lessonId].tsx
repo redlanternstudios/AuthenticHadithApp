@@ -8,10 +8,16 @@ import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { COLORS, SPACING, FONT_SIZES } from '@/lib/styles/colors';
 import { Lesson } from '@/types/hadith';
+import { useCompletionStatus } from '@/hooks/useProgress';
+import { useAuth } from '@/lib/auth/AuthProvider';
+import { trackActivity } from '@/lib/gamification/track-activity';
+import { View as RNView, Text as RNText } from 'react-native';
 
 export default function LessonDetailScreen() {
   const { lessonId } = useLocalSearchParams<{ lessonId: string }>();
   const router = useRouter();
+  const { user } = useAuth();
+  const completion = useCompletionStatus('lesson', lessonId ?? null);
 
   const { data: lesson, isLoading } = useQuery({
     queryKey: ['lesson', lessonId],
@@ -56,14 +62,32 @@ export default function LessonDetailScreen() {
           )}
         </Card>
 
-        <Button
-          title="Mark as Complete"
-          onPress={() => {
-            // TODO: Implement lesson completion
-            router.back();
-          }}
-          variant="primary"
-        />
+        {completion.isComplete ? (
+          <RNView style={styles.completedBadge}>
+            <RNText style={styles.completedText}>✅ Lesson Completed</RNText>
+          </RNView>
+        ) : (
+          <Button
+            title={completion.isMarking ? 'Marking…' : 'Mark as Complete'}
+            isLoading={completion.isMarking}
+            onPress={async () => {
+              await completion.markComplete({
+                title: lesson.title,
+                lessonId: lesson.id,
+              });
+              if (user) {
+                try {
+                  await trackActivity(user.id, 'complete_lesson');
+                } catch (err) {
+                  __DEV__ && console.warn('[Lesson] trackActivity failed (non-fatal):', err);
+                }
+              }
+              // Brief delay so the "Completed" state is visible before nav.
+              setTimeout(() => router.back(), 600);
+            }}
+            variant="primary"
+          />
+        )}
       </View>
     </ScrollView>
   );
@@ -107,5 +131,18 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.base,
     color: COLORS.bronzeText,
     lineHeight: 24,
+  },
+  completedBadge: {
+    alignItems: 'center',
+    padding: SPACING.lg,
+    borderRadius: 12,
+    backgroundColor: COLORS.emeraldMid + '15',
+    borderWidth: 1,
+    borderColor: COLORS.emeraldMid + '30',
+  },
+  completedText: {
+    fontSize: FONT_SIZES.md,
+    color: COLORS.emeraldMid,
+    fontWeight: '600',
   },
 });

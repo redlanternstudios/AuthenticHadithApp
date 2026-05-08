@@ -218,6 +218,24 @@ Before considering the app ready for QA or an EAS build:
 
 Any failure here is a runtime bug, not a build bug — fix in JS/TS, not in `ios/`.
 
+### Runtime QA: Progression system smoke (FIX-032 / Rules 026-028)
+
+Run on every release candidate before cutting an EAS preview IPA. Each step is manual UI interaction.
+
+1. Cold launch app — no redbox
+2. Tap **Badges** tile on home → screen renders with 9 badges (mostly locked on a fresh install). No crash. Back navigation works.
+3. Open **Stories → Prophets** → tap any prophet → tap **Mark as Complete**. Button immediately shows "✅ Completed".
+4. Navigate away (back) and re-open the same prophet story → still "✅ Completed".
+5. Force-quit app → relaunch → re-open the prophet story → still "✅ Completed". (AsyncStorage persistence, FIX-032 Rule 027.)
+6. Open **Badges** → "First Story" badge unlocked. Filter chips (All / Unlocked / Locked) work.
+7. Open **Learn** → tap a lesson → **Mark as Complete** → "✅ Lesson Completed" → auto navigate back after ~600ms.
+8. Re-open the same lesson → still Completed.
+9. Open Badges → "First Lesson" badge unlocked.
+10. Repeat for **Stories → Companions** if applicable.
+11. Open **Progress** screen → no crash. Stats may show zeros if user is unauthenticated (Supabase user_stats path). Level/XP from local progress visible.
+
+If ANY step shows a redbox, hard crash, or button that visibly does nothing, file ERROR_REPORT.md with severity Critical and stop the release.
+
 ### Preflight: macOS Automation permission for `expo run:ios`
 
 `npx expo run:ios` ends with an AppleScript step that brings Simulator.app to the foreground. macOS blocks this if the host terminal lacks Automation permission for "System Events", producing:

@@ -9,10 +9,14 @@ import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
 import { trackActivity } from '@/lib/gamification/track-activity'
+import { useCompletionStatus } from '@/hooks/useProgress'
 
 export default function ProphetStoryScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>()
   const { user } = useAuth()
+  // Local-first completion. Authoritative for UI state. Supabase mirror happens
+  // best-effort inside the progress service when the user is logged in.
+  const completion = useCompletionStatus('story', slug ?? null)
 
   const { data: prophet, isLoading } = useQuery({
     queryKey: ['prophet', slug],
@@ -40,34 +44,25 @@ export default function ProphetStoryScreen() {
     enabled: !!prophet,
   })
 
-  const { data: progress } = useQuery({
-    queryKey: ['prophet-progress', slug, user?.id],
-    queryFn: async () => {
-      if (!user || !prophet) return null
-      const { data } = await supabase
-        .from('prophet_reading_progress')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('prophet_id', prophet.id)
-        .single()
-      return data
-    },
-    enabled: !!user && !!prophet,
-  })
-
   const handleMarkComplete = async () => {
-    if (!user || !prophet) return
-    const allParts = (storyParts || []).map((_: any, i: number) => i)
-
-    await supabase.from('prophet_reading_progress').upsert({
-      user_id: user.id,
-      prophet_id: prophet.id,
-      parts_completed: allParts,
-      is_completed: true,
-      updated_at: new Date().toISOString(),
+    if (!slug) return
+    // Local-first write. Updates UI immediately via the hook's subscribe path.
+    // Service handles best-effort Supabase mirror when user is authenticated.
+    await completion.markComplete({
+      entityKind: 'prophet',
+      entityId: prophet?.id,
+      slug,
+      title: prophet?.name_en,
     })
-
-    trackActivity(user.id, 'complete_story')
+    // Best-effort XP/streak tracking. Wrapped in catch so a missing user_stats
+    // row or missing table never throws into the void.
+    if (user) {
+      try {
+        await trackActivity(user.id, 'complete_story')
+      } catch (err) {
+        __DEV__ && console.warn('[ProphetStory] trackActivity failed (non-fatal):', err)
+      }
+    }
   }
 
   if (isLoading) {
@@ -84,7 +79,9 @@ export default function ProphetStoryScreen() {
   }
 
   const parts = storyParts || []
-  const isComplete = progress?.is_completed === true
+  // Local progress is the source of truth — no auth required, persists across
+  // restarts, syncs to Supabase opportunistically.
+  const isComplete = completion.isComplete
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -137,13 +134,14 @@ export default function ProphetStoryScreen() {
         </Card>
       ))}
 
-      {/* Mark Complete */}
-      {user && !isComplete && parts.length > 0 && (
+      {/* Mark Complete — available to all users (local-first persistence). */}
+      {!isComplete && parts.length > 0 && (
         <Button
-          title="Mark as Complete"
+          title={completion.isMarking ? 'Marking…' : 'Mark as Complete'}
           variant="primary"
           size="large"
           onPress={handleMarkComplete}
+          isLoading={completion.isMarking}
           style={styles.completeButton}
         />
       )}

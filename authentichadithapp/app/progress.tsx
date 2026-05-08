@@ -25,7 +25,7 @@ export default function ProgressScreen() {
         .from('user_stats')
         .select('*')
         .eq('user_id', user.id)
-        .single()
+        .maybeSingle()
       return data
     },
     enabled: !!user,
@@ -39,7 +39,7 @@ export default function ProgressScreen() {
         .from('user_streaks')
         .select('*')
         .eq('user_id', user.id)
-        .single()
+        .maybeSingle()
       return data
     },
     enabled: !!user,
