@@ -7,150 +7,183 @@
 
 ## CURRENT ERROR
 
-**Status**: 🟢 No active errors
+**Status**: 🔴 ACTIVE — Three runtime errors blocking smoke test and TestFlight IPA
 
-> Resolved by FIX-030 (Option A patch). See BUILD_FIX_LOG.md for full resolution. Below is the historical record of the failure that led to FIX-030 — kept here for the next session to recognize the pattern if it recurs.
+### Headline
+
+The post-FIX-030 launch smoke test ran the dev client successfully (Metro bundled in 27.9s, deep link delivered, splash → JS load worked). But three runtime errors fire on first JS execution. The dev menu overlay shows "Log 2 of 3" and the underlying app is non-exercisable until the errors are resolved.
+
+### What I Ran
+
+```bash
+cd /Users/kp/Projects/AuthenticHadithApp/authentichadithapp
+LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 npx expo start --dev-client &
+open -a Simulator
+xcrun simctl launch F5384F69-2BE1-40DC-806B-B4C45F03736A com.byred.authentichadith
+xcrun simctl openurl F5384F69-2BE1-40DC-806B-B4C45F03736A \
+  "exp+authentichadithapp://expo-development-client/?url=http://localhost:8081"
+```
+
+App launched, Metro bundle completed, then JS surfaced three errors.
 
 ---
 
-## RESOLVED (FIX-030, 2026-05-08)
+### Error 1 of 3 — CRITICAL — Server route bundled into client, throws on module load
 
-**Status**: 🔴 → 🟢
+**File**: `app/api/chat/route.ts` line 6
+**Severity**: Critical (blocks AI feature; will likely crash production IPA on first launch)
+**Classification**: VS_CODE_APP_LAYER
 
-### Headline
-`xcodebuild` fails because Expo's slug-derived workspace `ios/AuthenticHadithApp.xcworkspace` references a non-existent `AuthenticHadithApp.xcodeproj`. The actual project is `AuthenticHadith.xcodeproj` (derived from `expo.name = "Authentic Hadith"`). The slug `authentichadithapp` is unchanged from before the rename, producing the mismatched `AuthenticHadithApp` workspace path.
+**Error message**:
+```
+ERROR  [Error: GROQ_API_KEY environment variable is not configured. Please add it to your .env file.]
 
-### What I Ran
-```bash
-cd /Users/kp/Projects/AuthenticHadithApp/authentichadithapp
-export LANG=en_US.UTF-8
-export LC_ALL=en_US.UTF-8
-npx expo run:ios
+  5 | if (!process.env.GROQ_API_KEY) {
+> 6 |   throw new Error('GROQ_API_KEY environment variable is not configured. Please add it to your .env file.')
 ```
 
-### Full Error Output
-```
-› Planning build
-› 0 error(s), and 0 warning(s)
+**Source**:
+```typescript
+// app/api/chat/route.ts:1-11
+import { generateText } from "ai"
+import { createGroq } from "@ai-sdk/groq"
+import { checkInputSafety, ISLAMIC_ETHICS_ADDENDUM } from "../../../lib/islamic-safety-filter"
 
-CommandError: Failed to build iOS project. "xcodebuild" exited with error code 65.
+if (!process.env.GROQ_API_KEY) {
+  throw new Error('GROQ_API_KEY environment variable is not configured. Please add it to your .env file.')
+}
 
-Command line invocation:
-    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild
-        -workspace /Users/kp/Projects/AuthenticHadithApp/authentichadithapp/ios/AuthenticHadithApp.xcworkspace
-        -configuration Debug
-        -scheme AuthenticHadith
-        -destination id=F5384F69-2BE1-40DC-806B-B4C45F03736A
-
-xcodebuild: error: The workspace named "AuthenticHadithApp" does not contain a scheme named "AuthenticHadith".
-            The "-list" option can be used to find the names of the schemes in the workspace.
-
-Build logs written to /Users/kp/Projects/AuthenticHadithApp/authentichadithapp/.expo/xcodebuild.log
+const groq = createGroq({
+  apiKey: process.env.GROQ_API_KEY,
+})
 ```
 
-### Diagnostic Evidence
+**Root cause analysis**:
 
+1. `app/api/chat/route.ts` is structured as a server route — uses `process.env.GROQ_API_KEY` (a server-only secret, not `EXPO_PUBLIC_*`).
+2. The mobile app's `app.json` has `"extra.apiUrl": "https://authentichadith.app"` — confirming the mobile client should be calling the deployed Vercel server's `/api/*` routes, not running them locally.
+3. Despite being a server route, Expo Router (SDK 54) is bundling `app/api/chat/route.ts` into the **client** JS bundle. The module-load `throw` then fires in the client because `process.env.GROQ_API_KEY` is undefined client-side (Expo only injects `EXPO_PUBLIC_*` vars into the client bundle).
+4. No client file imports `api/chat` (verified via grep). Expo Router itself is crawling `app/` and including the route file.
+
+**Why this matters for the IPA**:
+- EAS production builds also exclude server-only env vars from the client bundle.
+- If Expo Router still includes `app/api/chat/route.ts` in production, the `throw` fires on every fresh app launch in TestFlight or App Store.
+- Production has no LogBox; the throw becomes an unhandled exception → app crashes on launch.
+
+**Likely fixes (do NOT apply this session)**:
+- Wrap the env check + Groq init inside the exported `POST`/`GET` handler so it only runs when the route is invoked on the server, not at module load.
+- OR move `app/api/chat/route.ts` outside the `app/` tree (e.g., into a separate Vercel-only project) so Expo Router doesn't see it.
+- OR configure Expo Router server features properly with `expo-router/server` so api routes are isolated from the client bundle.
+- Audit all of `app/api/*` for the same module-load pattern — `app/api/chat/` is the only directory currently, so just this one file.
+
+---
+
+### Error 2 of 3 — HIGH — RevenueCat singleton not configured
+
+**Severity**: High (subscriptions broken; App Store requires functioning subscription flow)
+**Classification**: VS_CODE_APP_LAYER
+
+**Error message**:
 ```
-ios/
-├── AuthenticHadith.xcodeproj/         ← actual project (correct, expo.name-derived)
-├── AuthenticHadith.xcworkspace/       ← correct workspace, references AuthenticHadith.xcodeproj
-└── AuthenticHadithApp.xcworkspace/    ← STALE, references AuthenticHadithApp.xcodeproj (does not exist)
-    └── contents.xcworkspacedata:
-        <FileRef location="group:AuthenticHadithApp.xcodeproj">  ← broken reference
-```
+ERROR  RevenueCat initialization error:
+  [Error: There is no singleton instance. Make sure you configure Purchases before
+   trying to get the default instance. More info here: https://errors.rev.cat/configuring-sdk]
 
-```
-app.json:
-  expo.name: "Authentic Hadith"     ← drives xcodeproj name → AuthenticHadith.xcodeproj
-  expo.slug: "authentichadithapp"   ← drives xcworkspace name → AuthenticHadithApp.xcworkspace
-```
-
-The previous successful `expo run:ios` (FIX-029, 2026-05-07) used `AuthenticHadith.xcworkspace` because we had just `rm -rf`'d the stale `AuthenticHadithApp.xcworkspace` and Expo's internal prebuild step did not regenerate it on that run. This run, Expo's internal prebuild DID regenerate `AuthenticHadithApp.xcworkspace` with the broken xcodeproj reference, and Expo CLI selected that slug-derived path over the correct one.
-
-### Classification (per WORKFLOW_ROUTER.md)
-
-**EXPO_HYBRID_LAYER**
-
-The failure originates in Expo CLI's path-derivation logic during the internal prebuild step that runs as part of `expo run:ios`. It is not a JS/RN code issue (not VS_CODE_APP_LAYER), not a Swift/native compile issue (not XCODE_NATIVE_LAYER), and not unknown (not UNKNOWN_NEEDS_TRIAGE). The mitigation lives in Expo config or local workspace state.
-
-### Severity
-
-**High** — blocks every local `expo run:ios` run. Does NOT block EAS production builds (EAS CI environment has fresh `ios/` regeneration each build, so the stale workspace artifact does not persist).
-
-### Files Involved
-
-- `app.json` — `expo.name` vs `expo.slug` mismatch is the underlying cause
-- `ios/AuthenticHadithApp.xcworkspace/contents.xcworkspacedata` — broken project reference
-- `ios/AuthenticHadith.xcworkspace/contents.xcworkspacedata` — correct, references AuthenticHadith.xcodeproj
-- `.expo/prebuild/cached-packages.json` — Expo's internal prebuild cache (timestamp matches the broken regeneration)
-
-### Constraints (per current KP authorization)
-
-- Do NOT run `npx expo prebuild --clean` (would otherwise resolve everything in one shot)
-- Do NOT install/upgrade packages
-- Do NOT modify feature code
-- Do NOT change `expo.slug` casually (slug changes affect EAS dev URL and deep linking)
-
-### Recommended Next Safe Action (KP decides)
-
-Three options, ordered by safety:
-
-**Option A — Edit the broken workspace's `contents.xcworkspacedata` (lowest risk)**
-
-The workspace file is in a gitignored directory. The edit is one line:
-```bash
-# Patch the stale workspace to point at the real project
-sed -i '' 's|AuthenticHadithApp.xcodeproj|AuthenticHadith.xcodeproj|g' \
-  ios/AuthenticHadithApp.xcworkspace/contents.xcworkspacedata
-
-# Verify
-cat ios/AuthenticHadithApp.xcworkspace/contents.xcworkspacedata
-# Should show: <FileRef location="group:AuthenticHadith.xcodeproj">
-
-# Re-run
-npx expo run:ios
+Call Stack
+  UninitializedPurchasesError (node_modules/@revenuecat/purchases-typescript-internal/dist/errors.js:69:32)
 ```
 
-Risk: Expo's internal prebuild may re-overwrite the file on a future run. If that happens, repeat the sed command. Document the recurrence in BUILD_FIX_LOG so a future session recognizes it.
+**Root cause hypothesis**:
 
-**Option B — Delete the stale workspace and run again**
+Some hook or screen calls `Purchases.getOfferings()` / `Purchases.getCustomerInfo()` BEFORE `Purchases.configure({ apiKey })` has run. Either:
+- (a) The configure call lives in a provider that mounts after a child consumer
+- (b) The configure call is itself blocked by Error 1 (if `lib/purchases/revenuecat.ts` ever imports anything that pulls in `app/api/chat/route.ts`, the module-load throw kills the chain before configure runs)
+- (c) `EXPO_PUBLIC_REVENUECAT_API_KEY_IOS` is missing from `.env.local` (needs verification)
 
-```bash
-rm -rf ios/AuthenticHadithApp.xcworkspace
-npx expo run:ios
+**Likely fixes (do NOT apply this session)**:
+- Audit the RevenueCat provider mount order in `app/_layout.tsx`.
+- Verify `EXPO_PUBLIC_REVENUECAT_API_KEY_IOS` is set in `.env.local`.
+- Confirm Error 1 is fixed first — Error 2 may resolve once the module-load throw chain is broken.
+
+---
+
+### Error 3 of 3 — MEDIUM — Hermes lacks Intl.PluralRules
+
+**Severity**: Medium (warning only, fallback works; localization quality reduced)
+**Classification**: VS_CODE_APP_LAYER (polyfill in code)
+
+**Error message**:
+```
+ERROR  i18next::pluralResolver: Your environment seems not to be Intl API compatible,
+  use an Intl.PluralRules polyfill. Will fallback to the compatibilityJSON v3 format handling.
 ```
 
-Risk: Expo CLI may regenerate `AuthenticHadithApp.xcworkspace` again with the same broken content (this is what happened between FIX-029 and now). If that happens, Option A is the fallback.
+**Root cause**: Hermes (the JS engine used per `Podfile.properties.json: expo.jsEngine=hermes`) does not include full Intl support by default. i18next plural resolution falls back to its v3 format handling.
 
-**Option C — Run `npx expo prebuild --clean` (KP-approved only, currently disallowed)**
+**Likely fixes (do NOT apply this session)**:
+- `npx expo install intl-pluralrules` and import it once at the top of `app/_layout.tsx` or a polyfill file
+- OR configure i18next explicitly with `compatibilityJSON: 'v3'` to suppress the warning
 
-This is the only option that fixes the root cause permanently in one operation. It regenerates `ios/` from scratch, and the resulting workspace will reference the correct xcodeproj. SYSTEM_RULES Destructive Commands list flags this as KP-approval-required. KP's current authorization explicitly says no.
+---
 
-If KP later authorizes prebuild --clean, the path is:
-```bash
-LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 npx expo prebuild --clean
-LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 cd ios && pod install --repo-update && cd ..
-LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 npx expo run:ios
-```
+### Smoke Test Checklist Result
 
-**Option D — Permanent fix via slug change (high risk)**
+The 13-step UI smoke test from the prompt **could not be exercised** because Errors 1-3 surface as a LogBox dev menu overlay before the home screen is visible. Reported items:
 
-Change `expo.slug` from `authentichadithapp` to `AuthenticHadith` in `app.json`. This aligns the slug with `expo.name` so Expo's path derivation produces consistent workspace + xcodeproj names. Side effects: changes the Expo dev URL (`exp://exp.host/@owner/<slug>`) which can affect deep linking and EAS metadata. Not recommended without further analysis. EAS project linkage is by `eas.projectId` UUID, so EAS itself would not break, but other tooling that reads slug might.
+| # | Step | Result |
+|---|---|---|
+| 1 | App opens, no red screen | ❌ FAIL — red error overlay |
+| 2 | Home tab loads, no `[id]` text | ⏸ blocked by Error 1 |
+| 3 | Bottom nav visible | ⏸ blocked |
+| 4-8 | Tab switches | ⏸ blocked |
+| 9 | Subscription paywall renders | ⏸ blocked + Error 2 |
+| 10 | Notifications stub "coming soon" | ⏸ blocked |
+| 11 | Delete Account reachable (Rule 014) | ⏸ blocked |
+| 12 | Dark mode readable (Rule 017) | ⏸ blocked |
+| 13 | 60s idle no crash | ⏸ blocked |
 
-### Build State After Failure
+### Build State
 
-- `ios/Pods/`, `ios/Podfile.lock`, `ios/AuthenticHadith.xcworkspace/` — intact, correct
-- `ios/AuthenticHadithApp.xcworkspace/` — present, broken
-- DerivedData app bundle from FIX-029 — still installed on simulator F5384F69-2BE1-40DC-806B-B4C45F03736A
-- Working tree — clean (no commits made for this failure beyond ERROR_REPORT.md)
-- Stash `stash@{0}` — preserved, untouched
+- `ios/Pods/`, `ios/Podfile.lock`, both workspaces — intact
+- `AuthenticHadith.app` installed on iPhone 17 Pro simulator (UDID `F5384F69-2BE1-40DC-806B-B4C45F03736A`)
+- Bundle ID `com.byred.authentichadith` confirmed at install
+- The native build itself is fine — this is JS / app-layer logic
+- Metro killed cleanly after smoke test
+- Working tree clean, stash@{0} preserved
+
+### Constraints
+
+- Do NOT install or upgrade packages without KP approval
+- Do NOT run `expo prebuild --clean`
+- Do NOT modify feature code in this session
+- These errors block the IPA — they must be resolved before EAS production build
+
+### Implication for IPA / TestFlight
+
+**Do NOT cut an IPA yet.** Error 1 will likely crash the production app on launch. Error 2 breaks subscriptions which Apple requires functional. Both are in JS code that ships identically to dev and production.
+
+The path forward:
+1. Fix Error 1 (server route module-load throw)
+2. Verify Error 2 resolves once Error 1 is fixed; if not, audit RevenueCat init order
+3. Optionally fix Error 3 (Intl polyfill) — non-blocking but improves UX
+4. Re-run smoke test — confirm all 13 checklist items
+5. Run `npx eas build --platform ios --profile preview` to produce a TestFlight IPA
+6. KP completes the manual Apple Developer Portal / App Store Connect / RevenueCat / Supabase / privacy policy tasks
+7. Submit to TestFlight via `npx eas submit`
+
+### Recommended Next Session Prompt (for KP to send)
+
+> "You are the Senior iOS Release Engineer. ERROR_REPORT.md status is 🔴 with three runtime errors blocking the smoke test and IPA submission. Read ERROR_REPORT.md, then:
+> 1. Fix Error 1 by moving the GROQ_API_KEY env check + Groq init inside the exported route handler in `app/api/chat/route.ts` so it only runs when the route is invoked, not at module load. Verify the fix by re-running the smoke test (Metro + simctl launch).
+> 2. After Error 1 is fixed, observe whether Error 2 (RevenueCat singleton) still fires. If yes, audit `lib/purchases/revenuecat.ts` and `app/_layout.tsx` for the provider mount order and `EXPO_PUBLIC_REVENUECAT_API_KEY_IOS` env presence.
+> 3. Optionally resolve Error 3 with `npx expo install intl-pluralrules` and import it in `app/_layout.tsx`.
+> 4. Re-run the 13-step smoke test. Document each fix with FIX-031 / FIX-032 / FIX-033 entries in BUILD_FIX_LOG.md. Reset ERROR_REPORT.md to 🟢 only when all three errors are gone and the smoke test passes."
 
 ---
 
 ## INSTRUCTIONS FOR CLAUDE (NEXT SESSION)
 
 1. Read this file FIRST.
-2. Confirm the workspace mismatch still exists: `ls ios/*.xcworkspace`
-3. If KP has approved Option A, run the sed command and re-run `expo run:ios`.
-4. If KP has approved Option C, run prebuild --clean per the playbook (UTF-8 locale set first).
-5. After successful build, log the resolution to BUILD_FIX_LOG.md as the next FIX ID and reset this file's status to 🟢.
+2. The three errors above are blockers. Fix in order: Error 1 → re-test → Error 2 if still present → Error 3.
+3. Do NOT cut an EAS IPA until smoke test passes cleanly.
+4. After resolution, log each fix to BUILD_FIX_LOG.md and reset this file to 🟢.
