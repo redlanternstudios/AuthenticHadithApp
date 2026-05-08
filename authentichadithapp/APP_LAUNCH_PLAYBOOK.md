@@ -236,6 +236,20 @@ Run on every release candidate before cutting an EAS preview IPA. Each step is m
 
 If ANY step shows a redbox, hard crash, or button that visibly does nothing, file ERROR_REPORT.md with severity Critical and stop the release.
 
+### Web-to-Mobile Parity QA (FIX-033 / Rules 029-030)
+
+Run when shipping any feature ported from the website or any content-driven screen:
+
+1. Open Sunnah screen → confirm ≥1 category renders even if Supabase is empty (bundled fallback at `lib/sunnah/sunnahFallbackData.ts` provides 35 practices / 7 categories)
+2. Today's Sunnah card displays a practice with hadith reference
+3. Open home → Hadith of the Moment card shows AI Summary button
+4. Tap AI Summary → loading spinner → summary appears in a green-bordered block
+5. If `/api/mobile-chat` is unavailable: friendly fallback "Summary is temporarily unavailable. Please try again later." — NOT a redbox or raw error
+6. Tap the card body → navigates to hadith detail (which has its own Summarize)
+7. Open Collections tab → verify all 8 collections load with proper counts (Bukhari 7,275 hadiths, etc.). If counts show 0 or empty, production Supabase is unseeded — fix is web-side, not mobile
+
+A failure on items 1-5 is a Rule 030 violation (no local fallback) or Rule 029 violation (parity not actually verified). Item 7 is a DB seeding question that lives outside this codebase.
+
 ### Preflight: macOS Automation permission for `expo run:ios`
 
 `npx expo run:ios` ends with an AppleScript step that brings Simulator.app to the foreground. macOS blocks this if the host terminal lacks Automation permission for "System Events", producing:

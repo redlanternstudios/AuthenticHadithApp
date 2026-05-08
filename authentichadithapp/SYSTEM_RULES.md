@@ -663,6 +663,59 @@ A clean dev startup is the baseline. If it fails because of missing optional cre
 
 ---
 
+## Rule 029: Web-to-Mobile Feature Ports Require an Audit Before Implementation
+
+Any task framed as "port the website feature to mobile" or "replicate the web version in mobile" MUST start with a documented parity audit (`WEB_TO_MOBILE_PARITY_AUDIT.md` style) before any code is written.
+
+This caused FIX-033 efficiency: the original premise was *"the website has Sunnah/Summarize/etc. that mobile is missing,"* but the committed web source actually had NO Sunnah page and ZERO summarize references. The mobile app was already at parity or ahead. Without the audit step, dev time would have been spent migrating non-existent web code or building duplicates of features that already exist in mobile.
+
+### Required audit checklist
+
+Before writing any port code:
+1. Locate the canonical web source (this repo: `external/v0-authentic-hadith/`)
+2. `grep -rln <feature>` across both web and mobile trees
+3. Read the actual route/component files on both sides
+4. Build a parity table: feature, web status, mobile status, gap classification (Critical / High / Medium / Polish / Deferred / Already-implemented)
+5. Identify the minimal real work needed
+6. Only then start coding
+
+### Forbidden
+
+- Assuming the web is a superset of mobile without verification
+- Migrating data from "the live website" via scraping (use the committed source or production DB)
+- Hardcoding sample/placeholder content as if it were real seed data without flagging it
+- Faking content counts in the UI
+
+---
+
+## Rule 030: Optional Remote Content Must Have a Local Fallback
+
+Any screen whose primary content comes from a Supabase table the user did not author MUST have a bundled local fallback dataset for first launch, network outage, or unseeded-DB scenarios.
+
+This caused FIX-033: the Sunnah screen was empty when Supabase tables didn't exist. The fix shipped `lib/sunnah/sunnahFallbackData.ts` (35 curated practices, 7 categories, every entry with hadith reference) and made the screen prefer live data when ≥1 row is returned, falling back to bundled data otherwise.
+
+### Required pattern
+
+```typescript
+const liveCount = liveData?.length ?? 0
+const usingFallback = !isLoading && liveCount === 0
+const effectiveData = usingFallback ? FALLBACK_DATASET : (liveData || [])
+```
+
+The fallback dataset must:
+- Live in `lib/<feature>/<feature>FallbackData.ts`
+- Use stable ids that don't collide with live rows (prefix with `<feature>-` is good)
+- Cite real sources where applicable (hadith_ref, etc.)
+- Have a DEV-only duplicate-id check at module load
+- Match the shape of the live data so consumers don't branch on which source is rendering
+
+### Doesn't apply
+
+- Authenticated-user-specific data (bookmarks, progress, customer info) — that's local-first via the progress service or AsyncStorage, not a "fallback" in this sense
+- Truly transient data (search results, AI responses, etc.) — degrade with a friendly empty state instead
+
+---
+
 ## Rule 026: User Progress Goes Through the Unified Progress Service
 
 All completion writes (story, lesson, sunnah practice, course, daily hadith) MUST go through `lib/progress/progressService.ts` via the hooks in `hooks/useProgress.ts`. Direct `supabase.from(...).upsert(...)` calls in screen components are forbidden for progress data.

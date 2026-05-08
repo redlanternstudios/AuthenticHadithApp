@@ -91,6 +91,68 @@ Before any EAS build:
 
 ## FIXES
 
+### [FIX-033] — Web-to-Mobile Parity: Sunnah Fallback Data + Home Summarize Button
+**Date**: 2026-05-08
+**Session**: Claude Code (Senior Full-Stack Mobile/Web Parity Engineer)
+**Severity**: Medium — content robustness + UX parity
+
+**Problem**:
+Runtime QA surfaced concerns that the mobile app was missing content compared to the deployed web version, specifically:
+1. The Sunnah practices screen could go empty if the Supabase `sunnah_categories` / `sunnah_practices` tables were unseeded (and these tables are not in any committed migration in this repo).
+2. The web home page reportedly has a Summarize affordance; the mobile home Hadith of the Moment card had only a Refresh action — no inline summary.
+3. Hadith collection and detail content was suspected to be partial.
+
+**Audit findings** (full document: `WEB_TO_MOBILE_PARITY_AUDIT.md`):
+- The committed web source (`external/v0-authentic-hadith/`) does NOT have a Sunnah page. Sunnah is mobile-exclusive.
+- The committed web source has ZERO matches for "summari" — Summarize is also mobile-exclusive. The mobile hadith detail screen (`app/hadith/[id].tsx`) already implements it (pre-existing).
+- Hadith collections/books/hadith content is read from the same Supabase database by both web and mobile. There's no mobile data gap to migrate from web — both are thin clients over one DB. Production seed completeness is a DB admin question, not a mobile code question.
+- The actual gaps were: (a) Sunnah goes empty if DB is unseeded; (b) Summarize is buried on the detail screen, not exposed on home.
+
+**Fixes Applied**:
+
+1. **`lib/sunnah/sunnahFallbackData.ts` (new)**: Curated 35 well-known Sunnah practices across 7 categories (Purification, Prayer, Daily Adhkar, Eating & Drinking, Sleep & Waking, Greetings & Manners, Fasting). Each practice has a stable id, hadith_ref, source collection, and day_of_year anchor. DEV-only duplicate-id and orphan-category-id checks at module load.
+
+2. **`app/sunnah.tsx`**: Local-first fallback. When Supabase returns 0 categories, the screen renders the bundled dataset transparently. Live data wins whenever ≥1 category is returned. "Today's Sunnah" rotation now deterministically falls back to `dayOfYear % length` if no exact day match exists.
+
+3. **`components/hadith/HadithCard.tsx`**: New optional `showSummarize` prop. When true (and not compact), renders an inline "AI Summary" button + result/error block under the hadith. Calls the same `sendChatMessage` flow the detail screen uses (POST `/api/mobile-chat`). Friendly fallback message: *"Summary is temporarily unavailable. Please try again later."* — no Alert popup, no redbox.
+
+4. **`app/(tabs)/index.tsx`**: Home passes `showSummarize` to the Hadith of the Moment card.
+
+**Files Changed**:
+- `lib/sunnah/sunnahFallbackData.ts` (new, ~430 lines)
+- `app/sunnah.tsx` (fallback wiring)
+- `components/hadith/HadithCard.tsx` (showSummarize prop + inline AI Summary block)
+- `app/(tabs)/index.tsx` (pass showSummarize)
+- `WEB_TO_MOBILE_PARITY_AUDIT.md` (new — full audit)
+- `BUILD_FIX_LOG.md` (this entry)
+
+No web code changed. No native iOS files changed. No packages installed.
+
+**Verification**:
+```bash
+npx tsc --noEmit
+# → only pre-existing unrelated expo-sqlite warning. No new TS errors.
+```
+
+Manual test checklist (KP):
+1. Open Sunnah screen → 7 categories, 35 practices visible (or live Supabase data if seeded)
+2. Tap each category → expands to show practices with hadith refs
+3. Today's Sunnah card at top changes daily (day_of_year rotation)
+4. Open home → tap "AI Summary" on Hadith of the Moment card → loading spinner → summary text in green-bordered block
+5. If Groq endpoint is down: friendly "Summary is temporarily unavailable" — no redbox, no Alert
+6. Tap card body → still navigates to hadith detail (Pressable navigation preserved)
+
+**Result**: Fixed. Parity work documented honestly in `WEB_TO_MOBILE_PARITY_AUDIT.md` — including the finding that several "missing" features (Sunnah, Summarize) are actually mobile-exclusive features the web doesn't have.
+
+**Lesson**:
+A "port web to mobile" task starts with reading both sources, not assuming the web is a superset. In this case the mobile app had MORE features than the web (Sunnah practices, Summarize, Stories, Badges, Progress dashboard) and the actual gap was thinner than presumed. Always run a parity audit doc BEFORE migrating data — it's faster than building the wrong thing.
+
+The bundled fallback pattern (`lib/sunnah/sunnahFallbackData.ts`) is reusable for any feature that depends on optional remote data. Local-first wins when the spec is "must work even if backend is empty."
+
+**Pattern Category**: Web-mobile parity / content robustness / local-first fallback
+
+---
+
 ### [VERIFY-033] — Runtime Smoke Test 01 (post-FIX-032)
 **Date**: 2026-05-08
 **Session**: Claude Code (Senior iOS Runtime QA Automation Engineer)

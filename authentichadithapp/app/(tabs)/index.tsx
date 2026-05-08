@@ -185,7 +185,11 @@ export default function HomeScreen() {
       </View>
 
       {hadith && (
-        <HadithCard hadith={hadith} onPress={() => router.push(`/hadith/${hadith.id}`)} />
+        <HadithCard
+          hadith={hadith}
+          onPress={() => router.push(`/hadith/${hadith.id}`)}
+          showSummarize
+        />
       )}
 
       <View style={styles.actions}>

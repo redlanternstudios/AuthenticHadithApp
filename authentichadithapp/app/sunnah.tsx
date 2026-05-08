@@ -6,6 +6,10 @@ import { supabase } from '@/lib/supabase/client'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Card } from '@/components/ui/Card'
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
+import {
+  FALLBACK_SUNNAH_CATEGORIES,
+  FALLBACK_SUNNAH_PRACTICES,
+} from '@/lib/sunnah/sunnahFallbackData'
 
 interface SunnahCategory {
   id: string
@@ -69,25 +73,37 @@ export default function SunnahScreen() {
     },
   })
 
-  // Today's sunnah practice
+  // Local-first fallback: when Supabase returns nothing (table empty, network
+  // down, or schema not yet migrated), the app falls back to a curated bundled
+  // dataset so users always see real Sunnah content with hadith references.
+  // Live Supabase data wins whenever ≥1 category is returned.
+  const liveCategoriesCount = dbCategories?.length ?? 0
+  const usingFallback = !categoriesLoading && liveCategoriesCount === 0
+  const categories = usingFallback ? FALLBACK_SUNNAH_CATEGORIES : (dbCategories || [])
+  const effectivePractices: any[] = usingFallback
+    ? FALLBACK_SUNNAH_PRACTICES
+    : (dbPractices || [])
+  const isLoading = categoriesLoading || practicesLoading
+
+  // Today's sunnah practice — use whichever dataset the screen is rendering
+  // so the highlight card is consistent with the categories below it.
   const todaysPractice = useMemo(() => {
-    if (!dbPractices || dbPractices.length === 0) return null
-    return dbPractices.find((p) => p.day_of_year === dayOfYear) || null
-  }, [dbPractices, dayOfYear])
+    if (!effectivePractices || effectivePractices.length === 0) return null
+    // Prefer an exact day-of-year match; otherwise rotate through deterministically.
+    const exact = effectivePractices.find((p) => p.day_of_year === dayOfYear)
+    if (exact) return exact
+    return effectivePractices[dayOfYear % effectivePractices.length] || null
+  }, [effectivePractices, dayOfYear])
 
   // Group practices by category for counts
   const practicesByCategory = useMemo(() => {
-    if (!dbPractices) return {}
-    const map: Record<string, SunnahPractice[]> = {}
-    for (const p of dbPractices) {
+    const map: Record<string, any[]> = {}
+    for (const p of effectivePractices) {
       if (!map[p.category_id]) map[p.category_id] = []
       map[p.category_id].push(p)
     }
     return map
-  }, [dbPractices])
-
-  const categories = dbCategories || []
-  const isLoading = categoriesLoading || practicesLoading
+  }, [effectivePractices])
 
   if (isLoading) {
     return (
