@@ -32,7 +32,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
       const savedTheme = await loadThemePreference();
       setThemeState(savedTheme);
     } catch (error) {
-      console.error('Error loading theme:', error);
+      __DEV__ && console.error('Error loading theme:', error);
       setThemeState('light'); // Default to light on error
     } finally {
       setIsLoading(false);

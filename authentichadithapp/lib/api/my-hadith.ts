@@ -110,7 +110,7 @@ export async function generateShareToken(folderId: string, privacy: 'public' | '
   const { data, error: rpcError } = await supabase.rpc('generate_share_token')
   
   if (rpcError) {
-    console.error('Failed to generate share token:', rpcError)
+    __DEV__ && console.error('Failed to generate share token:', rpcError)
     throw rpcError
   }
   
@@ -120,7 +120,7 @@ export async function generateShareToken(folderId: string, privacy: 'public' | '
     await updateFolder(folderId, { share_token: token, privacy })
     return token
   } catch (error) {
-    console.error('Failed to update folder with share token:', error)
+    __DEV__ && console.error('Failed to update folder with share token:', error)
     throw error
   }
 }

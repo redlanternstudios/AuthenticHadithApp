@@ -34,7 +34,7 @@ export default function CreateFolderScreen() {
       })
       router.back()
     } catch (error) {
-      console.error('Failed to create folder:', error)
+      __DEV__ && console.error('Failed to create folder:', error)
       Alert.alert('Error', 'Failed to create folder. Please try again.')
     }
   }

@@ -27,7 +27,7 @@ export function SaveHadithModal({ visible, hadithId, onClose }: Props) {
       setNotes('')
       setSelectedFolder(undefined)
     } catch (error) {
-      console.error('Failed to save hadith:', error)
+      __DEV__ && console.error('Failed to save hadith:', error)
       Alert.alert('Error', 'Failed to save hadith. Please try again.')
     }
   }

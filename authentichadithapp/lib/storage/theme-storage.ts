@@ -11,7 +11,7 @@ export async function saveThemePreference(theme: ThemeMode): Promise<void> {
   try {
     await SecureStore.setItemAsync(THEME_KEY, theme);
   } catch (error) {
-    console.error('Failed to save theme preference:', error);
+    __DEV__ && console.error('Failed to save theme preference:', error);
   }
 }
 
@@ -24,7 +24,7 @@ export async function loadThemePreference(): Promise<ThemeMode> {
     const theme = await SecureStore.getItemAsync(THEME_KEY);
     return (theme === 'dark' ? 'dark' : 'light') as ThemeMode;
   } catch (error) {
-    console.error('Failed to load theme preference:', error);
+    __DEV__ && console.error('Failed to load theme preference:', error);
     return 'light';
   }
 }
@@ -36,6 +36,6 @@ export async function clearThemePreference(): Promise<void> {
   try {
     await SecureStore.deleteItemAsync(THEME_KEY);
   } catch (error) {
-    console.error('Failed to clear theme preference:', error);
+    __DEV__ && console.error('Failed to clear theme preference:', error);
   }
 }

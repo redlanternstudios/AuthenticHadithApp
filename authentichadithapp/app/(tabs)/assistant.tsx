@@ -1,11 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors';
+import { useTheme } from '@/lib/theme/ThemeProvider';
+import { usePremiumStatus } from '@/hooks/usePremiumStatus';
 import { ChatMessage, sendChatMessage } from '@/lib/api/groq';
 import { Ionicons } from '@expo/vector-icons';
 
 const MAX_INPUT_LENGTH = 500;
 const FREE_DAILY_LIMIT = 3;
+const QUOTA_STORAGE_KEY = 'ai_assistant_quota';
 
 const SUGGESTED_PROMPTS = [
   { icon: '\u{1F4D6}', text: 'Explain the hadith about intentions' },
@@ -14,28 +18,67 @@ const SUGGESTED_PROMPTS = [
   { icon: '⚖️', text: 'Who is Prophet Mohammed ﷺ?' },
 ];
 
-// Simple unique ID generator with random component to avoid collisions
 const generateMessageId = () => {
   return `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 };
 
+function getTodayKey() {
+  return new Date().toISOString().split('T')[0];
+}
+
 export default function AssistantScreen() {
+  const { isDark } = useTheme();
+  const colors = getColors(isDark);
+  const { isPremium } = usePremiumStatus();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   const [freeUsed, setFreeUsed] = useState(0);
+  const [quotaLoaded, setQuotaLoaded] = useState(false);
 
-  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    (async () => {
+      try {
+        const stored = await AsyncStorage.getItem(QUOTA_STORAGE_KEY);
+        if (stored) {
+          const { date, count } = JSON.parse(stored);
+          if (date === getTodayKey()) {
+            setFreeUsed(count);
+          }
+        }
+      } catch {
+        // Storage read failed — start fresh
+      } finally {
+        setQuotaLoaded(true);
+      }
+    })();
+  }, []);
+
   useEffect(() => {
     if (scrollViewRef.current) {
       scrollViewRef.current.scrollToEnd({ animated: true });
     }
   }, [messages]);
 
+  const isAtLimit = !isPremium && freeUsed >= FREE_DAILY_LIMIT;
+
+  const persistQuota = async (newCount: number) => {
+    setFreeUsed(newCount);
+    try {
+      await AsyncStorage.setItem(QUOTA_STORAGE_KEY, JSON.stringify({
+        date: getTodayKey(),
+        count: newCount,
+      }));
+    } catch {
+      // Storage write failed — quota still tracked in state for this session
+    }
+  };
+
   const sendMessage = async (text: string) => {
     if (!text.trim() || isLoading) return;
+    if (isAtLimit) return;
 
     const userMessage: ChatMessage = {
       id: generateMessageId(),
@@ -60,7 +103,9 @@ export default function AssistantScreen() {
       };
 
       setMessages(prev => [...prev, aiMessage]);
-      setFreeUsed(prev => prev + 1);
+      if (!isPremium) {
+        await persistQuota(freeUsed + 1);
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to get response. Please try again.';
       setError(errorMessage);
@@ -85,17 +130,19 @@ export default function AssistantScreen() {
     }
   };
 
+  const remaining = Math.max(FREE_DAILY_LIMIT - freeUsed, 0);
+  const canSend = input.trim() && !isLoading && !isAtLimit;
+
   return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>✨ AI Assistant</Text>
-          <Text style={styles.subtitle}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.header, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.title, { color: colors.bronzeText }]}>{'✨'} AI Assistant</Text>
+          <Text style={[styles.subtitle, { color: colors.mutedText }]}>
             Ask questions about Islamic teachings and get answers backed by authentic hadiths
           </Text>
         </View>
 
-        {/* Messages List */}
-        <ScrollView 
+        <ScrollView
           ref={scrollViewRef}
           style={styles.messagesContainer}
           contentContainerStyle={styles.messagesContent}
@@ -103,29 +150,27 @@ export default function AssistantScreen() {
         >
           {messages.length === 0 ? (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyIcon}>💬</Text>
-              <Text style={styles.emptyText}>Start a conversation</Text>
-              <Text style={styles.emptySubtext}>
+              <Text style={styles.emptyIcon}>{'\u{1F4AC}'}</Text>
+              <Text style={[styles.emptyText, { color: colors.bronzeText }]}>Start a conversation</Text>
+              <Text style={[styles.emptySubtext, { color: colors.mutedText }]}>
                 Ask anything about Islamic teachings, hadith interpretations, or specific narrators
               </Text>
 
-              {/* Suggested Prompts Grid */}
               <View style={styles.suggestedGrid}>
                 {SUGGESTED_PROMPTS.map((prompt, idx) => (
                   <TouchableOpacity
                     key={idx}
-                    style={styles.suggestedCard}
+                    style={[styles.suggestedCard, { backgroundColor: colors.card, borderColor: colors.border }]}
                     onPress={() => handleSuggestedPrompt(prompt.text)}
                     activeOpacity={0.7}
                   >
                     <Text style={styles.suggestedIcon}>{prompt.icon}</Text>
-                    <Text style={styles.suggestedText}>{prompt.text}</Text>
+                    <Text style={[styles.suggestedText, { color: colors.bronzeText }]}>{prompt.text}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
 
-              {/* Disclaimer */}
-              <Text style={styles.disclaimer}>
+              <Text style={[styles.disclaimer, { color: colors.mutedText }]}>
                 I only answer using authenticated hadith. If none are found, I will say so.
               </Text>
             </View>
@@ -135,7 +180,9 @@ export default function AssistantScreen() {
                 key={message.id}
                 style={[
                   styles.messageBubble,
-                  message.role === 'user' ? styles.userBubble : styles.aiBubble
+                  message.role === 'user'
+                    ? [styles.userBubble, { backgroundColor: colors.chatUserBubble }]
+                    : [styles.aiBubble, { backgroundColor: colors.chatAiBubble }]
                 ]}
               >
                 <View style={styles.messageHeader}>
@@ -143,66 +190,67 @@ export default function AssistantScreen() {
                     <Ionicons
                       name={message.role === 'user' ? 'person' : 'sparkles'}
                       size={16}
-                      color={COLORS.white}
+                      color={colors.white}
                     />
                   </View>
-                  <Text style={styles.messageRole}>
+                  <Text style={[styles.messageRole, { color: colors.white }]}>
                     {message.role === 'user' ? 'You' : 'AI Assistant'}
                   </Text>
                 </View>
-                <Text style={styles.messageContent}>{message.content}</Text>
+                <Text style={[styles.messageContent, { color: colors.white }]}>{message.content}</Text>
               </View>
             ))
           )}
 
-          {/* Error Message */}
           {error && (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>{error}</Text>
-              <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-                <Text style={styles.retryText}>Retry</Text>
+            <View style={[styles.errorContainer, { backgroundColor: colors.error }]}>
+              <Text style={[styles.errorText, { color: colors.white }]}>{error}</Text>
+              <TouchableOpacity style={[styles.retryButton, { backgroundColor: colors.white }]} onPress={handleRetry}>
+                <Text style={[styles.retryText, { color: colors.error }]}>Retry</Text>
               </TouchableOpacity>
             </View>
           )}
 
-          {/* Loading Indicator */}
           {isLoading && (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color={COLORS.chatAiBubble} />
-              <Text style={styles.loadingText}>Thinking...</Text>
+              <ActivityIndicator size="small" color={colors.chatAiBubble} />
+              <Text style={[styles.loadingText, { color: colors.mutedText }]}>Thinking...</Text>
             </View>
           )}
         </ScrollView>
 
-        {/* Quota Banner */}
-        <View style={styles.quotaBanner}>
-          <Ionicons name="sparkles-outline" size={14} color={COLORS.mutedText} />
-          <Text style={styles.quotaText}>
-            Free explanations today: {Math.max(FREE_DAILY_LIMIT - freeUsed, 0)} / {FREE_DAILY_LIMIT}
+        <View style={[styles.quotaBanner, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
+          <Ionicons name="sparkles-outline" size={14} color={colors.mutedText} />
+          <Text style={[styles.quotaText, { color: colors.mutedText }]}>
+            {isPremium
+              ? 'Unlimited explanations (Premium)'
+              : isAtLimit
+                ? 'Daily limit reached. Upgrade for unlimited access.'
+                : `Free explanations today: ${remaining} / ${FREE_DAILY_LIMIT}`}
           </Text>
         </View>
 
-        {/* Input Area */}
-        <View style={styles.inputContainer}>
+        <View style={[styles.inputContainer, { borderTopColor: colors.border, backgroundColor: colors.card }]}>
           <TextInput
-            style={styles.input}
-            placeholder="Ask about Islamic teachings..."
-            placeholderTextColor={COLORS.mutedText}
+            style={[styles.input, { backgroundColor: colors.background, color: colors.bronzeText, borderColor: colors.border }]}
+            placeholder={isAtLimit ? 'Daily limit reached' : 'Ask about Islamic teachings...'}
+            placeholderTextColor={colors.mutedText}
             value={input}
             onChangeText={setInput}
             multiline
             maxLength={MAX_INPUT_LENGTH}
-            editable={!isLoading}
+            editable={!isLoading && !isAtLimit}
           />
           <TouchableOpacity
             style={[
               styles.sendButton,
-              (!input.trim() || isLoading) && styles.sendButtonDisabled
+              { backgroundColor: colors.chatAiBubble },
+              !canSend && [styles.sendButtonDisabled, { backgroundColor: colors.mutedText }]
             ]}
             onPress={handleSend}
-            disabled={!input.trim() || isLoading}
+            disabled={!canSend}
           >
-            <Ionicons name="send" size={20} color={COLORS.white} />
+            <Ionicons name="send" size={20} color={colors.white} />
           </TouchableOpacity>
         </View>
       </View>
@@ -212,23 +260,19 @@ export default function AssistantScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   header: {
     padding: SPACING.md,
     paddingTop: SPACING.xl,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
   },
   title: {
     fontSize: FONT_SIZES.xxxl,
     fontWeight: '700',
-    color: COLORS.bronzeText,
     marginBottom: SPACING.sm,
   },
   subtitle: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.mutedText,
   },
   messagesContainer: {
     flex: 1,
@@ -250,12 +294,10 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: FONT_SIZES.lg,
     fontWeight: '600',
-    color: COLORS.bronzeText,
     marginBottom: SPACING.sm,
   },
   emptySubtext: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.mutedText,
     textAlign: 'center',
     paddingHorizontal: SPACING.xl,
   },
@@ -266,11 +308,9 @@ const styles = StyleSheet.create({
     maxWidth: '85%',
   },
   userBubble: {
-    backgroundColor: COLORS.chatUserBubble,
     alignSelf: 'flex-end',
   },
   aiBubble: {
-    backgroundColor: COLORS.chatAiBubble,
     alignSelf: 'flex-start',
   },
   messageHeader: {
@@ -290,15 +330,12 @@ const styles = StyleSheet.create({
   messageRole: {
     fontSize: FONT_SIZES.xs,
     fontWeight: '600',
-    color: COLORS.white,
   },
   messageContent: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.white,
     lineHeight: 20,
   },
   errorContainer: {
-    backgroundColor: COLORS.error,
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.md,
     marginVertical: SPACING.sm,
@@ -306,11 +343,9 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.white,
     marginBottom: SPACING.sm,
   },
   retryButton: {
-    backgroundColor: COLORS.white,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.xs,
     borderRadius: BORDER_RADIUS.sm,
@@ -318,7 +353,6 @@ const styles = StyleSheet.create({
   retryText: {
     fontSize: FONT_SIZES.sm,
     fontWeight: '600',
-    color: COLORS.error,
   },
   loadingContainer: {
     flexDirection: 'row',
@@ -328,7 +362,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.mutedText,
     marginLeft: SPACING.sm,
   },
   inputContainer: {
@@ -336,34 +369,26 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     padding: SPACING.md,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    backgroundColor: COLORS.card,
   },
   input: {
     flex: 1,
-    backgroundColor: COLORS.background,
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.md,
     fontSize: FONT_SIZES.base,
-    color: COLORS.bronzeText,
     maxHeight: 100,
     marginRight: SPACING.sm,
     borderWidth: 1,
-    borderColor: COLORS.border,
   },
   sendButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: COLORS.chatAiBubble,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sendButtonDisabled: {
-    backgroundColor: COLORS.mutedText,
     opacity: 0.5,
   },
-  // Suggested prompts
   suggestedGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -374,9 +399,7 @@ const styles = StyleSheet.create({
   },
   suggestedCard: {
     width: '47%',
-    backgroundColor: COLORS.card,
     borderWidth: 1,
-    borderColor: COLORS.border,
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.md,
     alignItems: 'flex-start',
@@ -387,31 +410,24 @@ const styles = StyleSheet.create({
   },
   suggestedText: {
     fontSize: FONT_SIZES.sm,
-    color: COLORS.bronzeText,
     lineHeight: 18,
   },
-  // Disclaimer
   disclaimer: {
     fontSize: FONT_SIZES.sm,
-    color: COLORS.mutedText,
     fontStyle: 'italic',
     textAlign: 'center',
     marginTop: SPACING.lg,
     paddingHorizontal: SPACING.xl,
   },
-  // Quota banner
   quotaBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: SPACING.xs,
     paddingVertical: SPACING.xs,
-    backgroundColor: COLORS.card,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: COLORS.border,
   },
   quotaText: {
     fontSize: FONT_SIZES.xs,
-    color: COLORS.mutedText,
   },
 });

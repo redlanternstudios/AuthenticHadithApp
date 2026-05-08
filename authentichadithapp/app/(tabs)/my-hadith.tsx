@@ -6,20 +6,23 @@ import { useAuth } from '@/lib/auth/AuthProvider'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
-import { COLORS, SPACING, FONT_SIZES } from '@/lib/styles/colors'
+import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors'
+import { useTheme } from '@/lib/theme/ThemeProvider'
 
 export default function MyHadithScreen() {
   const router = useRouter()
   const { user } = useAuth()
+  const { isDark } = useTheme()
+  const colors = getColors(isDark)
   const { data: folders, isLoading } = useFolders()
 
   if (!user) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.authPromptContainer}>
-          <Text style={styles.authPrompt}>Sign in to save and organize hadiths</Text>
-          <Button 
-            title="Sign In" 
+          <Text style={[styles.authPrompt, { color: colors.mutedText }]}>Sign in to save and organize hadiths</Text>
+          <Button
+            title="Sign In"
             onPress={() => router.push('/auth/login')}
             variant="primary"
           />
@@ -33,9 +36,9 @@ export default function MyHadithScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>My Hadith</Text>
+        <Text style={[styles.title, { color: colors.bronzeText }]}>My Hadith</Text>
         <Button
           title="+ New Folder"
           onPress={() => router.push('/my-hadith/create-folder')}
@@ -55,12 +58,12 @@ export default function MyHadithScreen() {
             <Card variant="elevated">
               <View style={styles.cardContent}>
                 <Text style={styles.folderIcon}>{item.icon}</Text>
-                <Text style={styles.folderName}>{item.name}</Text>
-                <Text style={styles.folderCount}>
+                <Text style={[styles.folderName, { color: colors.bronzeText }]}>{item.name}</Text>
+                <Text style={[styles.folderCount, { color: colors.mutedText }]}>
                   {item.saved_hadiths_count || 0} hadiths
                 </Text>
                 {item.privacy === 'public' && (
-                  <Text style={styles.publicBadge}>🌐 Public</Text>
+                  <Text style={[styles.publicBadge, { color: colors.emeraldMid }]}>{'\u{1F310}'} Public</Text>
                 )}
               </View>
             </Card>
@@ -69,8 +72,8 @@ export default function MyHadithScreen() {
         contentContainerStyle={styles.grid}
         ListEmptyComponent={() => (
           <View style={styles.empty}>
-            <Text style={styles.emptyText}>No folders yet</Text>
-            <Text style={styles.emptySubtext}>Create your first folder to organize hadiths</Text>
+            <Text style={[styles.emptyText, { color: colors.bronzeText }]}>No folders yet</Text>
+            <Text style={[styles.emptySubtext, { color: colors.mutedText }]}>Create your first folder to organize hadiths</Text>
           </View>
         )}
       />
@@ -81,7 +84,6 @@ export default function MyHadithScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   authPromptContainer: {
     flex: 1,
@@ -99,7 +101,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONT_SIZES.xxxl,
     fontWeight: '700',
-    color: COLORS.bronzeText,
   },
   grid: {
     padding: SPACING.sm,
@@ -120,24 +121,20 @@ const styles = StyleSheet.create({
   folderName: {
     fontSize: FONT_SIZES.md,
     fontWeight: '600',
-    color: COLORS.bronzeText,
     textAlign: 'center',
     marginBottom: SPACING.xs,
   },
   folderCount: {
     fontSize: FONT_SIZES.sm,
-    color: COLORS.mutedText,
     textAlign: 'center',
   },
   publicBadge: {
     fontSize: FONT_SIZES.xs,
-    color: COLORS.emeraldMid,
     textAlign: 'center',
     marginTop: SPACING.xs,
   },
   authPrompt: {
     fontSize: FONT_SIZES.lg,
-    color: COLORS.mutedText,
     textAlign: 'center',
     marginBottom: SPACING.lg,
   },
@@ -148,12 +145,10 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: FONT_SIZES.lg,
     fontWeight: '600',
-    color: COLORS.bronzeText,
     marginBottom: SPACING.sm,
   },
   emptySubtext: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.mutedText,
     textAlign: 'center',
   },
 })

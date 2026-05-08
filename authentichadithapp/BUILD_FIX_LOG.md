@@ -13,7 +13,7 @@
 
 ---
 
-## GOLDEN RULES (Learned from 16 bugs across 9 sessions)
+## GOLDEN RULES (Learned from 19 bugs across 10 sessions)
 
 These rules were extracted from recurring production failures. Violating any of them WILL break the app.
 
@@ -918,6 +918,135 @@ Supabase sign-out must use scope:global AND clear server-side cookies via a dedi
 
 ---
 
+### [FIX-024] — Dark Mode Broken on 6 Screens (Static COLORS Import)
+**Date**: 2026-05-07
+**Session**: Claude Code — Release Hardening Sprint 02
+**Severity**: Warning
+
+**Error Message**:
+```
+6 screens import static COLORS (always light) instead of getColors(isDark). Dark mode shows light-on-light text, unreadable UI.
+```
+
+**Root Cause**: 
+`export const COLORS = LIGHT_COLORS` on line 98 of colors.ts means any screen importing COLORS is permanently stuck in light mode. The correct pattern is `getColors(isDark)` with `useTheme()` hook, but 6 screens were never converted.
+
+**Fix Applied**:
+```
+For each screen:
+1. Replace import { COLORS } with import { getColors }
+2. Add import { useTheme } from '@/lib/theme/ThemeProvider'
+3. Add const { isDark } = useTheme() + const colors = getColors(isDark) in component
+4. Move all color properties from StyleSheet to inline styles using colors.xxx
+5. bookmarks/index.tsx: full rewrite — had zero color system imports, all hardcoded hex
+```
+
+**Files Changed**:
+- app/(tabs)/assistant.tsx — COLORS → getColors(isDark) + inline color styles
+- app/(tabs)/collections.tsx — COLORS → getColors(isDark) + inline color styles
+- app/(tabs)/search.tsx — COLORS → getColors(isDark) + inline color styles
+- app/(tabs)/learn.tsx — COLORS → getColors(isDark) + inline color styles
+- app/(tabs)/my-hadith.tsx — COLORS → getColors(isDark) + inline color styles
+- app/bookmarks/index.tsx — full rewrite: hardcoded hex → theme-aware color system
+
+**Verification Command**:
+```
+Toggle dark mode in settings — all 6 screens should render correctly with dark backgrounds and light text
+```
+
+**Result**: Fixed
+
+**Lesson**: 
+`COLORS = LIGHT_COLORS` is a trap. Any screen importing COLORS is broken in dark mode. Always use `getColors(isDark)` with `useTheme()` hook. After creating any new screen, verify it uses the dynamic color system.
+
+---
+
+### [FIX-023] — Production Console Statements Leaking to Device Logs
+**Date**: 2026-05-07
+**Session**: Claude Code — Release Hardening Sprint 02
+**Severity**: Warning
+
+**Error Message**:
+```
+19 console.warn/error statements across lib/, app/, and components/ directories shipping to production builds
+```
+
+**Root Cause**: 
+Console statements were added during development for debugging but never gated for production. React Native's `__DEV__` flag is the standard way to ensure these are dead-code eliminated in production builds, but no statements used it.
+
+**Fix Applied**:
+```
+Prefixed all 19 statements with __DEV__ && 
+Pattern: console.error('msg') → __DEV__ && console.error('msg')
+Kept: ErrorBoundary.tsx (standard React pattern), app/api/chat/route.ts (server-side), scripts/ (dev only)
+```
+
+**Files Changed**:
+- lib/purchases/revenuecat.ts — 6 statements gated (2 warn, 4 error)
+- lib/storage/theme-storage.ts — 3 statements gated
+- lib/storage/language-storage.ts — 2 statements gated
+- lib/theme/ThemeProvider.tsx — 1 statement gated
+- lib/api/my-hadith.ts — 2 statements gated
+- lib/offline/sync-manager.ts — 1 statement gated
+- lib/revenuecat/RevenueCatProvider.tsx — 2 statements gated
+- app/my-hadith/create-folder.tsx — 1 statement gated
+- app/my-hadith/folder/[id].tsx — 1 statement gated
+- components/my-hadith/SaveHadithModal.tsx — 1 statement gated
+- components/share/ShareSheet.tsx — 1 statement gated
+
+**Verification Command**:
+```
+grep -rn 'console\.\(log\|warn\|error\)' --include='*.ts' --include='*.tsx' lib/ app/ components/ | grep -v '__DEV__' | grep -v 'ErrorBoundary' | grep -v 'api/chat'
+```
+
+**Result**: Fixed
+
+**Lesson**: 
+Every console statement must be gated behind `__DEV__` except ErrorBoundary (standard React pattern) and server-side routes. Add this check to any pre-release audit.
+
+---
+
+### [FIX-022] — AI Quota Cosmetic Only (No Persistence, No Enforcement)
+**Date**: 2026-05-07
+**Session**: Claude Code — Release Hardening Sprint 02
+**Severity**: Critical
+
+**Error Message**:
+```
+AI Assistant free-tier quota displays 3/3 remaining but resets on every app restart. No actual limit enforcement — users can send unlimited messages.
+```
+
+**Root Cause**: 
+`freeUsed` was stored in `useState(0)` with no persistence layer. The counter reset on every mount. No check before API call. No premium bypass. The quota banner was purely cosmetic.
+
+**Fix Applied**:
+```
+1. Added AsyncStorage persistence with date-keyed JSON: { date: "2026-05-07", count: 3 }
+2. On mount: load persisted count, reset if date changed (daily reset)
+3. Before send: check isAtLimit flag, block if free user at limit
+4. On success only: increment and persist (failed calls don't consume quota)
+5. Premium bypass: usePremiumStatus().isPremium skips all quota logic
+6. UI: disable input + send button at limit, show upgrade message in quota banner
+```
+
+**Files Changed**:
+- app/(tabs)/assistant.tsx — full quota system rewrite: AsyncStorage persistence, premium bypass, send gate, limit-reached UI
+
+**Verification Command**:
+```
+1. Send 3 messages as free user — quota banner shows 0/3, input disabled
+2. Force-quit and reopen app — quota persists, still blocked
+3. Wait until next day (or change device date) — quota resets
+4. Premium user — banner shows "Unlimited", no limit enforced
+```
+
+**Result**: Fixed
+
+**Lesson**: 
+Any usage limit displayed to the user MUST be backed by actual enforcement. A cosmetic counter without persistence and a send gate is worse than no counter — it sets false expectations. Always persist quotas to AsyncStorage with a date key for daily resets.
+
+---
+
 ## PATTERN TRACKER
 
 | Pattern | Occurrences | Root Cause | Systemic Fix Needed |
@@ -930,6 +1059,9 @@ Supabase sign-out must use scope:global AND clear server-side cookies via a dedi
 | Hardcoded test keys in prod | 2 (FIX-004, 006) | Test API keys committed directly in source | Use EAS secrets + app.config.js extra interpolation. Never hardcode keys |
 | Template boilerplate shipped | 2 (FIX-005, 018) | Expo scaffolding files never cleaned up | Audit for template files (modal.tsx, ThemedText, react-logo) after scaffolding |
 | Silent PostgREST failures | 1 (FIX-016) | PostgREST does not error on non-existent filter columns | Test search/filter results manually. Column typos cause silent zero-result returns |
+| Static COLORS import (dark mode) | 6 screens (FIX-024) | COLORS = LIGHT_COLORS always light. Screens using COLORS instead of getColors(isDark) | Every screen MUST use getColors(isDark) with useTheme() hook. Never import COLORS directly |
+| Ungated console statements | 19 statements (FIX-023) | console.error/warn shipped to production without __DEV__ guard | All console statements must be prefixed with __DEV__ && except ErrorBoundary and server routes |
+| Cosmetic-only enforcement | 1 (FIX-022) | Usage limit displayed but not persisted or enforced | Any user-facing limit must be backed by AsyncStorage persistence + actual send gate |
 
 ---
 

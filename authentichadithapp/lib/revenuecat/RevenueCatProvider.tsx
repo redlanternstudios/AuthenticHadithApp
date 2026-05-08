@@ -52,7 +52,7 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
           setCurrentOffering(offerings.current)
         }
       } catch (error) {
-        console.error('RevenueCat initialization error:', error)
+        __DEV__ && console.error('RevenueCat initialization error:', error)
       } finally {
         setIsLoading(false)
       }
@@ -82,7 +82,7 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
       const info = await Purchases.getCustomerInfo()
       setCustomerInfo(info)
     } catch (error) {
-      console.error('Error refreshing customer info:', error)
+      __DEV__ && console.error('Error refreshing customer info:', error)
     }
   }, [])
 

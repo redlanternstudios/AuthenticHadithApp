@@ -11,7 +11,7 @@ export async function saveLanguagePreference(lang: LanguageCode): Promise<void> 
   try {
     await AsyncStorage.setItem(LANGUAGE_KEY, lang)
   } catch (error) {
-    console.error('Failed to save language preference:', error)
+    __DEV__ && console.error('Failed to save language preference:', error)
   }
 }
 
@@ -24,7 +24,7 @@ export async function loadLanguagePreference(): Promise<LanguageCode> {
     const lang = await AsyncStorage.getItem(LANGUAGE_KEY)
     return (lang === 'ar' ? 'ar' : 'en') as LanguageCode
   } catch (error) {
-    console.error('Failed to load language preference:', error)
+    __DEV__ && console.error('Failed to load language preference:', error)
     return 'en'
   }
 }

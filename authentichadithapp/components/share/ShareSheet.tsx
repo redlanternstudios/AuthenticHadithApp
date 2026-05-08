@@ -26,7 +26,7 @@ export async function shareHadith(hadith: Hadith) {
     }
   } catch (error) {
     Alert.alert('Error', 'Failed to share hadith')
-    console.error('Share error:', error)
+    __DEV__ && console.error('Share error:', error)
   }
 }
 

@@ -6,11 +6,14 @@ import { supabase } from '@/lib/supabase/client';
 import { Card } from '@/components/ui/Card';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { PremiumGate } from '@/components/premium/PremiumGate';
-import { COLORS, SPACING, FONT_SIZES } from '@/lib/styles/colors';
+import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors';
+import { useTheme } from '@/lib/theme/ThemeProvider';
 import { LearningPath } from '@/types/hadith';
 
 export default function LearnScreen() {
   const router = useRouter();
+  const { isDark } = useTheme();
+  const colors = getColors(isDark);
 
   const { data: paths, isLoading } = useQuery({
     queryKey: ['learning-paths'],
@@ -33,10 +36,10 @@ export default function LearnScreen() {
   const premiumPaths = (paths?.filter(p => p.is_premium) || []) as LearningPath[];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>🎓 Learning Paths</Text>
-        <Text style={styles.subtitle}>
+        <Text style={[styles.title, { color: colors.bronzeText }]}>{'\u{1F393}'} Learning Paths</Text>
+        <Text style={[styles.subtitle, { color: colors.mutedText }]}>
           Structured curriculum from beginner to scholar
         </Text>
       </View>
@@ -48,12 +51,12 @@ export default function LearnScreen() {
           <Pressable onPress={() => router.push(`/learn/${item.id}`)}>
             <Card variant="elevated" style={styles.pathCard}>
               <View style={styles.pathHeader}>
-                <Text style={styles.pathName}>{item.title}</Text>
-                <Text style={styles.difficultyBadge}>{item.level}</Text>
+                <Text style={[styles.pathName, { color: colors.bronzeText }]}>{item.title}</Text>
+                <Text style={[styles.difficultyBadge, { color: colors.emeraldMid, backgroundColor: colors.emeraldHighlight + '20' }]}>{item.level}</Text>
               </View>
-              <Text style={styles.pathDescription}>{item.description}</Text>
-              <Text style={styles.pathDuration}>
-                📅 {item.estimated_hours} hours
+              <Text style={[styles.pathDescription, { color: colors.mutedText }]}>{item.description}</Text>
+              <Text style={[styles.pathDuration, { color: colors.mutedText }]}>
+                {'\u{1F4C5}'} {item.estimated_hours} hours
               </Text>
             </Card>
           </Pressable>
@@ -68,12 +71,12 @@ export default function LearnScreen() {
                 <Pressable key={item.id} onPress={() => router.push(`/learn/${item.id}`)}>
                   <Card variant="elevated" style={styles.pathCard}>
                     <View style={styles.pathHeader}>
-                      <Text style={styles.pathName}>{item.title} 🔒</Text>
-                      <Text style={styles.difficultyBadge}>{item.level}</Text>
+                      <Text style={[styles.pathName, { color: colors.bronzeText }]}>{item.title} {'\u{1F512}'}</Text>
+                      <Text style={[styles.difficultyBadge, { color: colors.emeraldMid, backgroundColor: colors.emeraldHighlight + '20' }]}>{item.level}</Text>
                     </View>
-                    <Text style={styles.pathDescription}>{item.description}</Text>
-                    <Text style={styles.pathDuration}>
-                      📅 {item.estimated_hours} hours
+                    <Text style={[styles.pathDescription, { color: colors.mutedText }]}>{item.description}</Text>
+                    <Text style={[styles.pathDuration, { color: colors.mutedText }]}>
+                      {'\u{1F4C5}'} {item.estimated_hours} hours
                     </Text>
                   </Card>
                 </Pressable>
@@ -90,7 +93,6 @@ export default function LearnScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   header: {
     padding: SPACING.md,
@@ -99,12 +101,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONT_SIZES.xxxl,
     fontWeight: '700',
-    color: COLORS.bronzeText,
     marginBottom: SPACING.sm,
   },
   subtitle: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.mutedText,
     marginBottom: SPACING.md,
   },
   content: {
@@ -122,26 +122,22 @@ const styles = StyleSheet.create({
   pathName: {
     fontSize: FONT_SIZES.lg,
     fontWeight: '600',
-    color: COLORS.bronzeText,
     flex: 1,
   },
   difficultyBadge: {
     fontSize: FONT_SIZES.xs,
-    color: COLORS.emeraldMid,
-    backgroundColor: COLORS.emeraldHighlight + '20',
     paddingHorizontal: SPACING.sm,
     paddingVertical: SPACING.xs,
     borderRadius: 12,
     textTransform: 'uppercase',
     fontWeight: '600',
+    overflow: 'hidden',
   },
   pathDescription: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.mutedText,
     marginBottom: SPACING.sm,
   },
   pathDuration: {
     fontSize: FONT_SIZES.sm,
-    color: COLORS.mutedText,
   },
 });

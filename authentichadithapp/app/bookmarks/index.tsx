@@ -3,26 +3,30 @@ import { FlatList, View, Text, TouchableOpacity, ActivityIndicator, StyleSheet }
 import { Stack, useRouter } from 'expo-router'
 import { useBookmarks } from '@/hooks/use-bookmarks'
 import { useAuth } from '@/hooks/use-auth'
+import { useTheme } from '@/lib/theme/ThemeProvider'
+import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
 import { Ionicons } from '@expo/vector-icons'
 
 export default function BookmarksScreen() {
   const router = useRouter()
   const { user } = useAuth()
+  const { isDark } = useTheme()
+  const colors = getColors(isDark)
   const { data: bookmarks, isLoading } = useBookmarks(user?.id)
 
   if (!user) {
     return (
-      <View style={styles.centerContainer}>
-        <Ionicons name="lock-closed" size={48} color="#ccc" />
-        <Text style={styles.emptyText}>Please sign in to view bookmarks</Text>
+      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+        <Ionicons name="lock-closed" size={48} color={colors.mutedText} />
+        <Text style={[styles.emptyText, { color: colors.bronzeText }]}>Please sign in to view bookmarks</Text>
       </View>
     )
   }
 
   if (isLoading) {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" />
+      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.emeraldMid} />
       </View>
     )
   }
@@ -31,10 +35,10 @@ export default function BookmarksScreen() {
     return (
       <>
         <Stack.Screen options={{ title: 'Bookmarks' }} />
-        <View style={styles.centerContainer}>
-          <Ionicons name="bookmark-outline" size={48} color="#ccc" />
-          <Text style={styles.emptyText}>No bookmarks yet</Text>
-          <Text style={styles.emptySubtext}>Start bookmarking hadiths to see them here</Text>
+        <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+          <Ionicons name="bookmark-outline" size={48} color={colors.mutedText} />
+          <Text style={[styles.emptyText, { color: colors.bronzeText }]}>No bookmarks yet</Text>
+          <Text style={[styles.emptySubtext, { color: colors.mutedText }]}>Start bookmarking hadiths to see them here</Text>
         </View>
       </>
     )
@@ -44,20 +48,21 @@ export default function BookmarksScreen() {
     <>
       <Stack.Screen options={{ title: `Bookmarks (${bookmarks.length})` }} />
       <FlatList
+        style={{ backgroundColor: colors.background }}
         data={bookmarks}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (
           <TouchableOpacity
-            style={styles.card}
+            style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}
             onPress={() => router.push(`/hadith/${item.hadith_id}`)}
           >
             <View style={styles.cardHeader}>
-              <Text style={styles.collection}>{item.hadith?.collection?.name || 'Unknown'}</Text>
-              <Ionicons name="bookmark" size={20} color="#1B5E43" />
+              <Text style={[styles.collection, { color: colors.emeraldMid }]}>{item.hadith?.collection?.name || 'Unknown'}</Text>
+              <Ionicons name="bookmark" size={20} color={colors.emeraldMid} />
             </View>
-            <Text style={styles.hadithNumber}>Hadith #{item.hadith?.hadith_number}</Text>
-            <Text style={styles.excerpt} numberOfLines={3}>
+            <Text style={[styles.hadithNumber, { color: colors.mutedText }]}>Hadith #{item.hadith?.hadith_number}</Text>
+            <Text style={[styles.excerpt, { color: colors.bronzeText }]} numberOfLines={3}>
               {item.hadith?.english_text}
             </Text>
           </TouchableOpacity>
@@ -72,31 +77,26 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 24,
+    padding: SPACING.lg,
   },
   emptyText: {
-    fontSize: 18,
+    fontSize: FONT_SIZES.lg,
     fontWeight: '600',
-    color: '#333',
-    marginTop: 16,
+    marginTop: SPACING.md,
   },
   emptySubtext: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 8,
+    fontSize: FONT_SIZES.base,
+    marginTop: SPACING.sm,
     textAlign: 'center',
   },
   list: {
-    padding: 16,
+    padding: SPACING.md,
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.md,
+    marginBottom: SPACING.sm,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -107,21 +107,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: SPACING.sm,
   },
   collection: {
-    fontSize: 14,
+    fontSize: FONT_SIZES.base,
     fontWeight: '600',
-    color: '#1B5E43',
   },
   hadithNumber: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 8,
+    fontSize: FONT_SIZES.xs,
+    marginBottom: SPACING.sm,
   },
   excerpt: {
-    fontSize: 14,
+    fontSize: FONT_SIZES.base,
     lineHeight: 20,
-    color: '#333',
   },
 })

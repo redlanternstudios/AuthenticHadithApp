@@ -48,7 +48,7 @@ export default function FolderDetailScreen() {
         url: `https://authentichadith.app/shared/${shareToken}`
       })
     } catch (error) {
-      console.error('Failed to share folder:', error)
+      __DEV__ && console.error('Failed to share folder:', error)
       Alert.alert('Error', 'Failed to share folder. Please try again.')
     } finally {
       setIsGeneratingToken(false)

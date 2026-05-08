@@ -20,7 +20,7 @@ export async function syncPopularHadiths() {
 
     return { success: true, count: hadiths?.length || 0 }
   } catch (error) {
-    console.error('Sync error:', error)
+    __DEV__ && console.error('Sync error:', error)
     return { success: false, error }
   }
 }

@@ -26,7 +26,7 @@ try {
   PurchasesPackageType = mod.PACKAGE_TYPE
 } catch {
   // SDK not installed — all functions below will return safe defaults
-  console.warn('[RevenueCat] react-native-purchases not installed. IAP disabled.')
+  __DEV__ && console.warn('[RevenueCat] react-native-purchases not installed. IAP disabled.')
 }
 
 // ─── Product identifiers (must match App Store Connect + RevenueCat) ───
@@ -59,7 +59,7 @@ export async function configureRevenueCat(supabaseUserId?: string): Promise<void
   })
 
   if (!apiKey) {
-    console.warn('[RevenueCat] No API key found for platform:', Platform.OS)
+    __DEV__ && console.warn('[RevenueCat] No API key found for platform:', Platform.OS)
     return
   }
 
@@ -92,7 +92,7 @@ export async function getOfferings() {
     const offerings = await Purchases.getOfferings()
     return offerings.current
   } catch (err) {
-    console.error('[RevenueCat] Failed to get offerings:', err)
+    __DEV__ && console.error('[RevenueCat] Failed to get offerings:', err)
     return null
   }
 }
@@ -106,7 +106,7 @@ export async function purchasePackage(pkg: any): Promise<boolean> {
     return customerInfo.entitlements.active[ENTITLEMENT_ID] !== undefined
   } catch (err: any) {
     if (err.userCancelled) return false
-    console.error('[RevenueCat] Purchase error:', err)
+    __DEV__ && console.error('[RevenueCat] Purchase error:', err)
     throw err
   }
 }
@@ -136,7 +136,7 @@ export async function getSubscriptionStatus(): Promise<SubscriptionStatus> {
       willRenew: !entitlement.willRenew ? false : entitlement.willRenew,
     }
   } catch (err) {
-    console.error('[RevenueCat] Failed to get status:', err)
+    __DEV__ && console.error('[RevenueCat] Failed to get status:', err)
     return defaultStatus
   }
 }
@@ -166,7 +166,7 @@ export async function restorePurchases(): Promise<SubscriptionStatus> {
       willRenew: !entitlement.willRenew ? false : entitlement.willRenew,
     }
   } catch (err) {
-    console.error('[RevenueCat] Restore error:', err)
+    __DEV__ && console.error('[RevenueCat] Restore error:', err)
     return defaultStatus
   }
 }

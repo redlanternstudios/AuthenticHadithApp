@@ -377,6 +377,74 @@ Check for and remove:
 
 ---
 
+## Rule 017: Dark Mode Must Use getColors(isDark), Never Static COLORS
+
+The `COLORS` export equals `LIGHT_COLORS` always (line 98 of colors.ts). Any screen importing `COLORS` directly is permanently broken in dark mode.
+
+This caused FIX-024: 6 screens were unreadable in dark mode because they used static `COLORS` instead of the theme-aware `getColors(isDark)` function.
+
+Required pattern for every screen:
+```typescript
+import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors';
+import { useTheme } from '@/lib/theme/ThemeProvider';
+
+// In component:
+const { isDark } = useTheme();
+const colors = getColors(isDark);
+
+// In JSX — inline color styles, NOT in StyleSheet:
+<View style={[styles.container, { backgroundColor: colors.background }]}>
+```
+
+Prohibited:
+- `import { COLORS } from '@/lib/styles/colors'` in any screen component
+- Color values in `StyleSheet.create()` — they cannot react to theme changes
+- Hardcoded hex values (#fff, #333, etc.) — use the color system
+
+After creating any new screen, verify it uses `useTheme()` + `getColors(isDark)`.
+
+---
+
+## Rule 018: Console Statements Must Be Gated Behind __DEV__
+
+React Native's `__DEV__` flag is false in production builds. Console statements without this guard leak to device logs and waste cycles.
+
+This caused FIX-023: 19 console.warn/error statements shipped to production.
+
+Required pattern:
+```typescript
+__DEV__ && console.error('Debug info:', error)
+```
+
+Exceptions (keep ungated):
+- `ErrorBoundary` componentDidCatch (standard React pattern)
+- Server-side API routes (app/api/) — these run on the server, not the device
+- Dev-only scripts (scripts/) — never bundled into production
+
+Before any App Store build, run:
+```
+grep -rn 'console\.' --include='*.ts' --include='*.tsx' lib/ app/ components/ | grep -v '__DEV__' | grep -v ErrorBoundary | grep -v 'api/'
+```
+
+---
+
+## Rule 019: User-Facing Limits Must Be Enforced, Not Cosmetic
+
+If the UI shows a usage limit (quota, rate limit, trial counter), the enforcement must be real. A cosmetic counter with no backend or storage is worse than no counter.
+
+This caused FIX-022: AI quota showed 3/3 remaining but `useState(0)` reset on every app restart. Users could send unlimited messages.
+
+Required for any usage limit:
+1. Persist count to AsyncStorage (or Supabase) with a date key for resets
+2. Load persisted count on mount — do not start from zero
+3. Check limit BEFORE the action (not after)
+4. Failed actions must NOT consume quota
+5. Premium users must bypass the limit
+6. Disable the action UI (button, input) when limit is reached
+7. Show clear upgrade path when limit is hit
+
+---
+
 # Required File System
 
 Every serious app build must include:
