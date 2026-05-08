@@ -91,6 +91,49 @@ Before any EAS build:
 
 ## FIXES
 
+### [VERIFY-033] — Runtime Smoke Test 01 (post-FIX-032)
+**Date**: 2026-05-08
+**Session**: Claude Code (Senior iOS Runtime QA Automation Engineer)
+**Type**: Verification — no code changes
+
+**What was verified**:
+- ✅ Cold launch produces a clean home screen render with all FIX-031 fixes intact (no GROQ throw, no i18n warning, no RevenueCat singleton error, RevenueCat configure logs success)
+- ✅ Metro bundles in 1.4–5.8s with zero errors
+- ✅ TypeScript compiles cleanly (one pre-existing unrelated `expo-sqlite` warning)
+- ✅ All FIX-032 wiring is correct end-to-end via code inspection: prophet/companion/lesson screens use `useCompletionStatus`, achievements screen reads only from `useBadges`/`useProgressSummary` (no Supabase queries that can fail)
+- ✅ AsyncStorage backing dir confirmed at the iOS simulator container path. Currently empty (no completions yet — clean baseline).
+- ✅ Display name on home screen is "Authentic Hadith" (FIX-026 verified visually via simulator home screen icon label)
+
+**What required manual KP action**:
+Tap-driven flows could not be reliably automated — `xcrun simctl` lacks a tap subcommand, AppleScript synthetic clicks were partially blocked by accessibility permission scope and competed with KP's other foreground apps. The following require KP's hands:
+1. Tap Badges tile → confirm screen renders with 9 badges (mostly locked first launch), no crash
+2. Tap a Prophet/Companion story → tap Mark as Complete → button immediately shows "✅ Completed"
+3. Navigate away + back → still Completed
+4. Force-quit + relaunch → still Completed (AsyncStorage persistence)
+5. Open Badges after a completion → confirm corresponding badge unlocked
+6. Tap a lesson → tap Mark as Complete → "✅ Lesson Completed" → auto-back
+
+**Findings worth promoting**:
+
+1. **`react-native-reanimated` warm-relaunch SIGABRT (HIGH severity, dev-only)**.
+   100% reproducible: terminate the app via `simctl terminate` and immediately re-launch while same Metro session is running → SIGABRT in `-[ReanimatedModule installTurboModule] +__assert_rtn`. Two iOS DiagnosticReports captured (`AuthenticHadith-2026-05-08-160713.ips`, `…-162138.ips`). **Cold launches work cleanly** — the issue is JS context reuse on warm relaunch within a dev-client+Metro session. Production EAS builds embed the JS bundle and do not exhibit this path; cold-launch is the same path that works in dev. KP must verify on a real device with an EAS preview IPA before final ship.
+
+2. **Sunnah completion UI not implemented**. `app/sunnah.tsx` is a read-only practice browser. Service supports the `sunnah_practice` type but no consumer screen wires it. Acceptable v1 gap; "First Sunnah" badge cannot unlock until UI ships.
+
+3. **RevenueCat offerings dev-only error confirmed** as known FIX-031 external blocker (Apple Dev Portal IAP not enabled). Not a regression.
+
+**Remaining risks**: documented in `RUNTIME_SMOKE_TEST_01.md` (created this session, committed alongside this entry).
+
+**Recommendation**: Build EAS preview IPA now and test on a real device. The dev-client warm-relaunch crash is not a build blocker — it likely doesn't reproduce on a clean cold launch from a TestFlight install. Real-device verification is the gate.
+
+```bash
+LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 npx eas-cli build --platform ios --profile preview --non-interactive
+```
+
+**Pattern Category**: Runtime QA / verification milestone
+
+---
+
 ### [FIX-032] — Stabilize Badges and Unified Progress Completion System
 **Date**: 2026-05-08
 **Session**: Claude Code (Senior React Native Product Systems Engineer)
