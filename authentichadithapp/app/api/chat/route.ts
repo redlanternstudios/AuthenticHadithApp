@@ -2,13 +2,16 @@ import { generateText } from "ai"
 import { createGroq } from "@ai-sdk/groq"
 import { checkInputSafety, ISLAMIC_ETHICS_ADDENDUM } from "../../../lib/islamic-safety-filter"
 
-if (!process.env.GROQ_API_KEY) {
-  throw new Error('GROQ_API_KEY environment variable is not configured. Please add it to your .env file.')
-}
-
-const groq = createGroq({
-  apiKey: process.env.GROQ_API_KEY,
-})
+// IMPORTANT: do NOT throw at module-load time.
+//
+// Expo Router bundles every file under `app/` into the JS bundle that ships
+// to the mobile client, including server route files like this one. Throwing
+// when GROQ_API_KEY is missing crashes the entire app at startup on any
+// device that does not have the server-only secret in its environment
+// (i.e. every device — EXPO_PUBLIC_* vars are the only ones in client JS).
+//
+// Move all env-dependent work inside the request handler so it only runs
+// when this route is actually invoked on the server.
 
 const SYSTEM_PROMPT =
   `You are a knowledgeable Islamic scholar assistant specializing in authentic hadith.
@@ -28,6 +31,20 @@ Response format:
 
 export async function POST(request: Request) {
   try {
+    // Server-side env check — runs only when route is invoked, never at module load.
+    const apiKey = process.env.GROQ_API_KEY
+    if (!apiKey) {
+      return Response.json(
+        {
+          error: 'AI assistant unavailable',
+          details: 'The AI assistant is temporarily unavailable. Please try again later.',
+        },
+        { status: 503 }
+      )
+    }
+
+    const groq = createGroq({ apiKey })
+
     const body = await request.json()
     const { messages } = body
 

@@ -91,6 +91,123 @@ Before any EAS build:
 
 ## FIXES
 
+### [FIX-031] — Harden Runtime Startup Services (RevenueCat, AI Env Validation, i18n)
+**Date**: 2026-05-08
+**Session**: Claude Code (Senior React Native Runtime Engineer)
+**Severity**: Critical (3 redbox-level startup errors — all blocked the home screen)
+
+**Problems**:
+Post-FIX-030 launch smoke test surfaced three startup runtime errors that prevented the home screen from rendering:
+
+1. `app/api/chat/route.ts:6` threw at module load when `process.env.GROQ_API_KEY` was undefined. Expo Router bundles every file under `app/` into the client JS bundle, including server-side route files. Server-only secrets are not in the client bundle, so the throw fired on every device launch.
+2. `RevenueCatProvider.tsx:55` surfaced "There is no singleton instance" because `Purchases.configure()` was never called. The provider's comment claimed configure happened in `_layout.tsx` but no such call existed. Customer info / offerings calls then hit the unconfigured singleton.
+3. `lib/i18n/i18n.ts` used `compatibilityJSON: 'v4'` which requires `Intl.PluralRules`. Hermes ships without full Intl support. i18next emitted an ERROR-level log to React Native LogBox warning the user.
+
+**Root Causes**:
+1. **Server route bundled into client**: Module-load throws are appropriate for server-only code only when guaranteed not to be loaded in the client. Expo Router's behavior breaks that guarantee. Fix: move env validation inside the request handler so it only runs when the route is invoked on the server.
+2. **Two parallel configure paths, neither wired up**: `lib/purchases/revenuecat.ts` had a `configureRevenueCat()` function but nothing called it. `RevenueCatProvider.tsx` directly imported `Purchases` and assumed configure happened upstream. Fix: route the provider through `configureRevenueCat()` so both modules share one `isConfigured` truth, and have the helper return a boolean rather than `void` so the provider can detect degraded mode.
+3. **i18next v4 plural format requires Intl**: `compatibilityJSON: 'v3'` uses the older format that does not need `Intl.PluralRules`. Existing translation files work unchanged because the project does not currently use plural keys with v4-only ICU syntax.
+
+**Fixes Applied**:
+
+```typescript
+// app/api/chat/route.ts — moved env check inside POST handler
+export async function POST(request: Request) {
+  try {
+    const apiKey = process.env.GROQ_API_KEY
+    if (!apiKey) {
+      return Response.json(
+        { error: 'AI assistant unavailable',
+          details: 'The AI assistant is temporarily unavailable. Please try again later.' },
+        { status: 503 }
+      )
+    }
+    const groq = createGroq({ apiKey })
+    // ... rest of handler ...
+  }
+}
+
+// lib/purchases/revenuecat.ts — configureRevenueCat now returns boolean,
+// isRevenueCatConfigured() exposed for the provider.
+export function isRevenueCatConfigured(): boolean { return isConfigured }
+export async function configureRevenueCat(supabaseUserId?: string): Promise<boolean> {
+  if (!Purchases) return false
+  if (isConfigured) return true
+  const apiKey = Platform.select({...})
+  if (!apiKey) {
+    __DEV__ && console.warn('[RevenueCat] No API key — degraded mode (no IAP).')
+    return false
+  }
+  try { Purchases.configure({ apiKey }) } catch { return false }
+  isConfigured = true
+  return true
+}
+// All exported data functions (getOfferings, getSubscriptionStatus, restorePurchases,
+// purchasePackage) now also short-circuit on `!isConfigured`.
+
+// lib/revenuecat/RevenueCatProvider.tsx — provider now:
+// - calls configureRevenueCat() before any default-instance method
+// - tracks isConfigured + purchasesAvailable + error state
+// - wraps getCustomerInfo and getOfferings in their own try/catch so a data
+//   fetch failure (expected on simulator without StoreKit Config) does not
+//   surface as a misleading "Initialization error"
+// - exposes context: isConfigured, purchasesAvailable, error
+// - restorePurchases now returns Promise<CustomerInfo | null> in degraded mode
+
+// lib/i18n/i18n.ts
+i18n.use(initReactI18next).init({
+  // ...
+  compatibilityJSON: 'v3', // was 'v4' — v3 does not require Intl.PluralRules (Hermes-safe)
+})
+```
+
+**Files Changed**:
+- `app/api/chat/route.ts` — moved GROQ_API_KEY check + Groq client init inside POST handler; returns 503 with friendly message if key missing
+- `lib/i18n/i18n.ts` — `compatibilityJSON: 'v4'` → `'v3'`
+- `lib/purchases/revenuecat.ts` — `configureRevenueCat()` returns boolean; `isRevenueCatConfigured()` exported; data functions short-circuit on `!isConfigured`
+- `lib/revenuecat/RevenueCatProvider.tsx` — degraded-mode handling, configure routed through helper, isolated catch blocks for getCustomerInfo / getOfferings, expanded context with `isConfigured` / `purchasesAvailable` / `error`
+- `BUILD_FIX_LOG.md` — this entry
+- `SYSTEM_RULES.md` — Rules 023, 024, 025 added (see below)
+- `APP_LAUNCH_PLAYBOOK.md` — runtime-startup preflight added
+- `ERROR_REPORT.md` — reset to 🟢
+
+**Verification**:
+
+Re-ran smoke test:
+```bash
+LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 npx expo start --dev-client --clear
+xcrun simctl launch F5384F69-2BE1-40DC-806B-B4C45F03736A com.byred.authentichadith
+xcrun simctl openurl F5384F69-2BE1-40DC-806B-B4C45F03736A "exp+authentichadithapp://expo-development-client/?url=http://localhost:8081"
+```
+
+Result:
+- Bundle 49.7s (cleared cache)
+- ✅ No GROQ_API_KEY redbox
+- ✅ No i18next pluralResolver redbox
+- ✅ No "RevenueCat singleton not configured" redbox
+- ✅ Home screen renders: greeting, title, hadith count (36,246), Explore grid (Today/Quiz/Stories/Sunnah/Progress/Badges), Hadith of the Moment with Arabic + Sahih Muslim 1978 attribution, Refresh button
+- RevenueCat SDK confirms native init: `SDK Version - 5.67.1`, `Bundle ID - com.byred.authentichadith`, `Purchases is configured with StoreKit version 2`, `Delegate set`
+- Remaining dev-mode toast: native SDK debug log about offerings fetch — expected on simulator without StoreKit Config and before Apple Developer Portal IAP capability is enabled. Resolves automatically once KP completes the manual external setup.
+
+```bash
+npx tsc --noEmit
+# → only pre-existing unrelated error: lib/offline/sqlite-db.ts (expo-sqlite not installed; dormant feature)
+```
+
+**Result**: Fixed at app layer. App launches to home screen cleanly. Ready for full 13-step UI smoke test once KP grants macOS Automation permission for auto-foreground.
+
+**Lesson**:
+Three patterns surfaced as worth permanent rules (see SYSTEM_RULES Rules 023-025):
+- Server-only code paths must not throw at module load — Expo Router does NOT guarantee server-only files stay out of the client bundle
+- SDK singletons (RevenueCat, Stripe, Sentry, etc.) must never be called before their explicit `configure()` succeeds; provider patterns should track `isConfigured` and gate every default-instance method behind it
+- Optional services must degrade gracefully with no startup redbox when env keys are missing in dev — return a degraded-mode state instead of throwing
+
+The mobile assistant calls the deployed Vercel server's `/api/mobile-chat` (verified via `lib/api/groq.ts`), NOT the local `app/api/chat/route.ts`. The local route is dead code in the mobile client — it just had to stop throwing at module load.
+
+**Pattern Category**: Runtime startup hardening / Degraded-mode providers / Server-route bundling
+
+---
+
 ### [FIX-030] — Patch Slug-Derived Stale Workspace Reference for Local Expo iOS Run
 **Date**: 2026-05-08
 **Session**: Claude Code (Senior iOS Release Engineer)

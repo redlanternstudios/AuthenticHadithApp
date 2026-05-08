@@ -50,26 +50,58 @@ export type SubscriptionStatus = {
 // ─── Initialize ───
 let isConfigured = false
 
-export async function configureRevenueCat(supabaseUserId?: string): Promise<void> {
-  if (!Purchases || isConfigured) return
+/** Read by the React provider so both share one source of truth on configure state. */
+export function isRevenueCatConfigured(): boolean {
+  return isConfigured
+}
 
-  const apiKey = Platform.select({
-    ios: Constants.expoConfig?.extra?.revenueCatApiKeyIos,
-    android: Constants.expoConfig?.extra?.revenueCatApiKeyAndroid,
-  })
-
-  if (!apiKey) {
-    __DEV__ && console.warn('[RevenueCat] No API key found for platform:', Platform.OS)
-    return
+export async function configureRevenueCat(supabaseUserId?: string): Promise<boolean> {
+  if (!Purchases) return false
+  if (isConfigured) {
+    if (supabaseUserId) {
+      try {
+        await Purchases.logIn(supabaseUserId)
+      } catch (err) {
+        __DEV__ && console.error('[RevenueCat] logIn failed:', err)
+      }
+    }
+    return true
   }
 
-  Purchases.configure({ apiKey })
+  const apiKey = (Platform.select({
+    ios:
+      Constants.expoConfig?.extra?.revenueCatApiKeyIos ??
+      Constants.expoConfig?.extra?.revenueCatApiKey,
+    android: Constants.expoConfig?.extra?.revenueCatApiKeyAndroid,
+  }) as string | undefined) ?? null
+
+  if (!apiKey) {
+    __DEV__ &&
+      console.warn(
+        '[RevenueCat] No API key found for platform:',
+        Platform.OS,
+        '— running in degraded mode (no IAP).'
+      )
+    return false
+  }
+
+  try {
+    Purchases.configure({ apiKey })
+  } catch (err) {
+    __DEV__ && console.error('[RevenueCat] configure() threw:', err)
+    return false
+  }
 
   if (supabaseUserId) {
-    await Purchases.logIn(supabaseUserId)
+    try {
+      await Purchases.logIn(supabaseUserId)
+    } catch (err) {
+      __DEV__ && console.error('[RevenueCat] logIn failed:', err)
+    }
   }
 
   isConfigured = true
+  return true
 }
 
 // ─── Set user identity (call on login) ───
@@ -86,7 +118,7 @@ export async function resetUser(): Promise<void> {
 
 // ─── Get available packages ───
 export async function getOfferings() {
-  if (!Purchases) return null
+  if (!Purchases || !isConfigured) return null
 
   try {
     const offerings = await Purchases.getOfferings()
@@ -99,7 +131,7 @@ export async function getOfferings() {
 
 // ─── Purchase a package ───
 export async function purchasePackage(pkg: any): Promise<boolean> {
-  if (!Purchases) return false
+  if (!Purchases || !isConfigured) return false
 
   try {
     const { customerInfo } = await Purchases.purchasePackage(pkg)
@@ -120,7 +152,7 @@ export async function getSubscriptionStatus(): Promise<SubscriptionStatus> {
     willRenew: false,
   }
 
-  if (!Purchases) return defaultStatus
+  if (!Purchases || !isConfigured) return defaultStatus
 
   try {
     const customerInfo = await Purchases.getCustomerInfo()
@@ -150,7 +182,7 @@ export async function restorePurchases(): Promise<SubscriptionStatus> {
     willRenew: false,
   }
 
-  if (!Purchases) return defaultStatus
+  if (!Purchases || !isConfigured) return defaultStatus
 
   try {
     const customerInfo = await Purchases.restorePurchases()

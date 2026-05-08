@@ -573,6 +573,96 @@ Reinstalling Ruby, reinstalling CocoaPods, or running `expo prebuild --clean` ca
 
 ---
 
+## Rule 023: No Module-Load Throws for Missing Env Vars
+
+A module-load `throw` (a top-level statement that throws when an env var is missing) crashes every consumer of that module the moment it is imported. In an Expo Router app, every file under `app/` is bundled into the client JS regardless of whether the file is intended for client or server execution. Server-only secrets (`GROQ_API_KEY`, `STRIPE_SECRET_KEY`, etc.) are never present in the client bundle, so the throw fires on every device launch.
+
+This caused FIX-031 Error 1: `app/api/chat/route.ts:6` threw at module load, crashing the React Native bundle before any screen rendered.
+
+### Required pattern
+
+Move env validation INSIDE the request handler / function runtime so it only runs when the route or function is actually invoked.
+
+```typescript
+// ❌ BAD — throws at module import time
+if (!process.env.GROQ_API_KEY) {
+  throw new Error('GROQ_API_KEY is not configured.')
+}
+const groq = createGroq({ apiKey: process.env.GROQ_API_KEY })
+
+// ✅ GOOD — env check runs only when handler is invoked on the server
+export async function POST(request: Request) {
+  const apiKey = process.env.GROQ_API_KEY
+  if (!apiKey) {
+    return Response.json(
+      { error: 'AI assistant unavailable',
+        details: 'The AI assistant is temporarily unavailable. Please try again later.' },
+      { status: 503 }
+    )
+  }
+  const groq = createGroq({ apiKey })
+  // ... rest of handler
+}
+```
+
+### Audit checklist
+
+For every file in `app/api/**`:
+- No top-level `throw` statements
+- No top-level construction of clients that require server-only secrets
+- All env reads happen inside exported handler functions
+
+For every file in `lib/**` that reads `process.env`:
+- The read is inside a function, not at module top level, OR
+- The read is for an `EXPO_PUBLIC_*` var guaranteed to be in the client bundle, OR
+- The fallback path is non-throwing
+
+---
+
+## Rule 024: SDK Singletons Must Never Be Called Before Configure Succeeds
+
+Native SDKs that expose default-instance / singleton accessors (RevenueCat `Purchases`, Stripe, Sentry, Firebase) throw if any default-instance method is called before the SDK's explicit `configure()` (or equivalent) has succeeded.
+
+This caused FIX-031 Error 2: `RevenueCatProvider` called `Purchases.getCustomerInfo()` before any code called `Purchases.configure()`. Result: "There is no singleton instance" runtime error.
+
+### Required pattern for any SDK singleton
+
+1. **One configure path.** If the project has both a React provider and a non-React helper for the same SDK, the provider MUST route through the helper so both share one `isConfigured` source of truth. Do not duplicate the configure call.
+2. **Track configured state explicitly.** Expose `isConfigured` on the provider context so consumers can branch.
+3. **Gate every default-instance call.** No SDK default-instance method may run before `isConfigured === true`.
+4. **Degrade gracefully.** If the API key is missing in dev, set degraded state — do NOT throw, do NOT redbox.
+5. **Isolate data-fetch failures from configure failures.** Wrap each post-configure network call in its own try/catch. Configure failures are real bugs; data fetch failures may be expected (simulator without StoreKit Config, no products configured yet).
+6. **Listener attach is also a default-instance call.** Attach inside the same code path that runs after a successful configure.
+
+---
+
+## Rule 025: Optional Services Degrade Gracefully When Env Keys Are Missing
+
+Apps must launch successfully in dev environments that lack non-essential service credentials. Subscriptions, AI, analytics, push, and any other optional service must NOT crash startup, redbox the screen, or block navigation when its API key is missing.
+
+This caused FIX-031 across all three errors: each service treated its env var as mandatory at module-load time.
+
+### Required behavior for any optional service provider
+
+| Condition | Required behavior |
+|---|---|
+| API key present, configure succeeds | Service runs normally |
+| API key missing | Provider sets degraded state. No throw. No redbox. `__DEV__ && console.warn` only. |
+| API key present but configure throws | Provider catches, sets `error` state. Logs `__DEV__ && console.error` once. No redbox. |
+| Post-configure data fetch fails | Provider catches per-call, leaves other state intact. `__DEV__ && console.warn`. No redbox. |
+| Consumer asks "is this service available?" | Provider answers truthfully via `isConfigured` flag. UI shows "unavailable" affordance. |
+
+### What MUST NOT happen on app startup in dev
+
+- Red error overlay (LogBox redbox)
+- Hard crash / app freeze
+- Repeated infinite retry loops
+- Console error noise that drowns out real errors
+
+A clean dev startup is the baseline. If it fails because of missing optional credentials, treat it as a Rule 025 violation.
+
+---
+
 # Required File System
 
 Every serious app build must include:

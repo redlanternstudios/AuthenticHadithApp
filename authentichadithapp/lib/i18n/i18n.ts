@@ -31,7 +31,9 @@ export function initI18n(initialLanguage: 'en' | 'ar' = 'en') {
       interpolation: {
         escapeValue: false,
       },
-      compatibilityJSON: 'v4',
+      // Hermes lacks Intl.PluralRules. v3 plural format does not require Intl,
+      // so this avoids a runtime warning without adding an Intl polyfill package.
+      compatibilityJSON: 'v3',
     })
 }
 

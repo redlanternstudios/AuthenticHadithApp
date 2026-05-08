@@ -206,6 +206,18 @@ The proper permanent fix is one of:
 
 If this patch needs to be reapplied 2+ times, escalate to a permanent SYSTEM_RULES rule per Rule 009.
 
+### Preflight: Runtime startup smoke (FIX-031 / Rules 023-025)
+
+Before considering the app ready for QA or an EAS build:
+
+1. App must launch with NO LogBox redbox in dev.
+2. Missing optional env vars (Groq, RevenueCat, etc.) must NOT crash startup — only `__DEV__ && console.warn`.
+3. RevenueCat: `[RevenueCat] SDK Version - X.Y.Z`, `Purchases is configured with StoreKit version 2`, `Delegate set` should appear in Metro logs. If "There is no singleton instance" appears, `Purchases.configure()` was not called — Rule 024 violation.
+4. Home screen renders within 60s of cold launch (greeting, hadith count, Explore grid, Hadith of the Moment).
+5. `npx tsc --noEmit` passes (one pre-existing dormant `expo-sqlite` import warning is acceptable).
+
+Any failure here is a runtime bug, not a build bug — fix in JS/TS, not in `ios/`.
+
 ### Preflight: macOS Automation permission for `expo run:ios`
 
 `npx expo run:ios` ends with an AppleScript step that brings Simulator.app to the foreground. macOS blocks this if the host terminal lacks Automation permission for "System Events", producing:
