@@ -187,6 +187,23 @@ locale | grep -E "LANG|LC_ALL"
 
 If `pod --version` prints `WARNING: CocoaPods requires your terminal to be using UTF-8 encoding`, stop and fix the locale before any build command.
 
+### Preflight: macOS Automation permission for `expo run:ios`
+
+`npx expo run:ios` ends with an AppleScript step that brings Simulator.app to the foreground. macOS blocks this if the host terminal lacks Automation permission for "System Events", producing:
+
+```
+Error: osascript -e tell app "System Events" to count processes ... exited with non-zero code: 1
+```
+
+The build, install, and Metro setup all complete successfully before this error. The app IS installed on the simulator. Only the auto-foreground step fails.
+
+One-time fix:
+1. **System Settings → Privacy & Security → Automation**
+2. Find the host terminal (Terminal, iTerm, or the Claude Code shell)
+3. Toggle ON access to "System Events"
+
+After the grant, future `expo run:ios` runs auto-foreground the simulator.
+
 ### Build Profiles (eas.json)
 | Profile | Purpose | Distribution | When to Use |
 |---------|---------|-------------|-------------|

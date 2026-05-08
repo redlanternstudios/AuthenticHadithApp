@@ -91,6 +91,56 @@ Before any EAS build:
 
 ## FIXES
 
+### [FIX-029] — First Successful Local iOS Build Verification (post FIX-028)
+**Date**: 2026-05-07
+**Session**: Claude Code (Senior iOS Release Engineer)
+**Severity**: Verification milestone
+
+**Result**: `npx expo run:ios` produced a clean Debug build, installed on iPhone 17 Pro simulator. Native loop is closed.
+
+**What worked**:
+- Workspace: `ios/AuthenticHadith.xcworkspace`
+- xcodebuild: 0 errors, 1 cosmetic warning (`SDWebImage iOS@9.0 deployment version mismatch` — harmless lint)
+- App bundle: `AuthenticHadith.app` produced and signed
+- Install: succeeded on simulator `F5384F69-2BE1-40DC-806B-B4C45F03736A` (iPhone 17 Pro, iOS 26.4)
+- Bundle ID confirmed at runtime: `com.byred.authentichadith`
+- RevenueCat 5.67.1 + RevenueCatUI linked via autolinking (FIX-027 model confirmed)
+- No `aps-environment` entitlement (FIX-026 effect preserved)
+
+**What did not auto-complete (manual KP step required)**:
+The post-install simulator foreground step failed:
+```
+Error: osascript -e tell app "System Events" to count processes whose name is "Simulator" exited with non-zero code: 1
+```
+This is a macOS Automation permission issue, not a build issue. The terminal running `npx expo run:ios` lacks permission to control "System Events" via AppleScript. The app is installed on the simulator and ready to run; only the auto-foregrounding step failed.
+
+**KP fix (one-time, ~30 seconds)**:
+1. System Settings → Privacy & Security → Automation
+2. Find Terminal (or iTerm / Claude Code / whatever shell host runs `expo run:ios`)
+3. Toggle ON access to "System Events"
+4. Re-run `npx expo run:ios` — simulator will foreground automatically
+
+**Workaround without permission grant**:
+1. Open Simulator.app manually
+2. In a separate terminal: `cd authentichadithapp && npx expo start --dev-client`
+3. Tap "Authentic Hadith" on the simulator home screen
+4. App will load JS from Metro
+
+**Files Changed**: documentation only (`BUILD_FIX_LOG.md`, `APP_LAUNCH_PLAYBOOK.md`). No code changes. No `ios/` commits (gitignored).
+
+**Verification**:
+```bash
+xcrun simctl list devices booted              # iPhone 17 Pro Booted
+ls /Users/kp/Library/Developer/Xcode/DerivedData/AuthenticHadith-*/Build/Products/Debug-iphonesimulator/AuthenticHadith.app
+# → exists with all icons + Info.plist
+```
+
+**Lesson**: The first `expo run:ios` against a fresh `ios/` from prebuild succeeded with the FIX-026/027/028 governance stack in place. The pattern that emerged: with display name correct, plugins clean, locale set, pods installed, and IAP capability deferred to Apple Developer portal, the local build is reliable. If a future session sees the osascript "System Events" error, the fix is in macOS Settings, not in Expo or Xcode.
+
+**Pattern Category**: Build verification / macOS permissions
+
+---
+
 ### [FIX-028] — CocoaPods UTF-8 Locale Failure After iOS Prebuild
 **Date**: 2026-05-07
 **Session**: Claude Code (Senior iOS Release Engineer)
