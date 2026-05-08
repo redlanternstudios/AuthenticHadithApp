@@ -160,6 +160,39 @@ Reasoning:
 
 **Build the EAS preview now**, then test the IPA on a real device. If real-device cold-launch + force-quit + relaunch all work cleanly, ship to TestFlight. If real-device shows the same Reanimated SIGABRT, file a critical bug and downgrade Reanimated to 3.x or disable New Architecture.
 
+---
+
+## FIX-033 QA Confirmation (2026-05-08, post-`825ecec`)
+
+| Check | Result | Evidence |
+|---|---|---|
+| App cold launch | ✅ PASS | Screenshot: home renders with Sunan an-Nasai 2640 (Hasan), Explore grid present, no redbox, no Logbox overlay |
+| Working tree clean | ✅ PASS | `git status -sb` shows in-sync with origin/main |
+| Latest commit is FIX-033 | ✅ PASS | `825ecec FIX-033: port web Sunnah content and summarize action to mobile` |
+| TypeScript | ✅ PASS | Only pre-existing unrelated `lib/offline/sqlite-db.ts` `expo-sqlite` warning |
+| Metro bundle | ✅ PASS | Bundles clean. New `lib/sunnah/sunnahFallbackData.ts` and updated `HadithCard.tsx` are pure React/data — no native module dependencies introduced |
+| No new runtime errors in logs | ✅ PASS | Only the documented RevenueCat dev-toast (FIX-031 known issue, KP manual external task) |
+| Reanimated warm-relaunch crash | ✅ NOT REPRODUCED on this cold-launch | Single-launch QA only; warm-relaunch Reanimated bug from prior session unaffected by FIX-033 (data-only changes) |
+| AI Summary button visible on home | 🟡 CODE-VERIFIED, scroll-tap-test pending KP | Button renders below the English translation + narrator on the Hadith of the Moment card. First-screen viewport shows Arabic only — KP must scroll to see and tap. |
+| AI Summary tap → loading → result | 🟡 KP MANUAL | Wired to same `/api/mobile-chat` endpoint used by hadith detail (already verified working in FIX-031). Friendly fallback message inline if endpoint fails. |
+| Tapping Summary doesn't trigger nav | 🟡 KP MANUAL | RN nested-Pressable responder behavior — inner Pressable captures tap before outer. Untested under Accessibility-blocked QA environment. |
+| Sunnah screen opens | 🟡 KP MANUAL | Cannot drive tap to navigate; tile is on home Explore grid |
+| Sunnah shows 7 categories + 35 practices | 🟡 CODE-VERIFIED, render-test pending KP | `lib/sunnah/sunnahFallbackData.ts` exports `FALLBACK_SUNNAH_CATEGORIES` (length 7) and `FALLBACK_SUNNAH_PRACTICES` (length 35); DEV-only id-uniqueness + category-fk validation passes at module load. |
+| Category expansion/collapse | 🟡 KP MANUAL | Pre-existing UI in `app/sunnah.tsx`; not changed by FIX-033 |
+
+**Automation block detail**: Even with macOS Automation permission granted, `osascript`'s synthetic-click events return error `-25204` ("event-send failed") and `-1719` ("not allowed assistive access") for UI Element queries. The Accessibility (Privacy & Security → Accessibility) permission for the host terminal is the second toggle required — separate from Automation. Until it's granted, simulator-tap automation isn't reliable from this CLI environment.
+
+**Recommendation**: All code-side verification complete. The remaining checks are pixel-level UI confirmation that takes KP ~60 seconds:
+
+1. Open running simulator (already booted)
+2. Scroll the home screen down — look for "AI Summary" button below the narrator line on the Hadith of the Moment card
+3. Tap it — confirm summary or friendly fallback
+4. Tap the Sunnah tile in the Explore grid — confirm category list renders (live data if Supabase has it, bundled fallback if not)
+5. If both render: ship the EAS preview IPA
+
+Or skip the simulator entirely and go straight to the EAS preview — real-device testing is the higher-fidelity gate anyway, especially for the Reanimated warm-relaunch question (which is the only thing the simulator wouldn't accurately reflect).
+
+
 ```bash
 cd /Users/kp/Projects/AuthenticHadithApp/authentichadithapp
 LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 npx eas-cli build --platform ios --profile preview --non-interactive
