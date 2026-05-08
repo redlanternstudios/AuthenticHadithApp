@@ -91,6 +91,59 @@ Before any EAS build:
 
 ## FIXES
 
+### [FIX-030] — Patch Slug-Derived Stale Workspace Reference for Local Expo iOS Run
+**Date**: 2026-05-08
+**Session**: Claude Code (Senior iOS Release Engineer)
+**Severity**: High (blocked every local `expo run:ios`; not blocking EAS)
+
+**Problem**:
+```
+xcodebuild: error: The workspace named "AuthenticHadithApp" does not contain a scheme named "AuthenticHadith".
+xcodebuild exited with error code 65.
+```
+
+**Root Cause**:
+`app.json` has `expo.name = "Authentic Hadith"` (drives `ios/AuthenticHadith.xcodeproj`) and `expo.slug = "authentichadithapp"` (drives `ios/AuthenticHadithApp.xcworkspace`). Expo SDK 54's internal prebuild step (which runs as part of `expo run:ios`) regenerated the slug-derived workspace with a stale `<FileRef location="group:AuthenticHadithApp.xcodeproj">` — pointing at a project that no longer exists. The slug-derived path was Expo CLI's preferred workspace selection, so xcodebuild was invoked against the broken one.
+
+This is structural: the `name` ≠ `slug` mismatch will keep producing the broken workspace on every future `expo run:ios` until either (a) `expo prebuild --clean` regenerates everything consistently, or (b) `expo.slug` is changed to align with `expo.name`. Both have side effects, so a local-only patch is the chosen workaround.
+
+**Fix Applied** (Option A from ERROR_REPORT.md):
+```bash
+sed -i '' 's|AuthenticHadithApp.xcodeproj|AuthenticHadith.xcodeproj|g' \
+  ios/AuthenticHadithApp.xcworkspace/contents.xcworkspacedata
+```
+
+The workspace file is in a gitignored directory (`ios/` is fully gitignored). The edit is local-only and does not affect commits, EAS builds, or any other environment.
+
+**Files Changed**:
+- `ios/AuthenticHadithApp.xcworkspace/contents.xcworkspacedata` — patched `AuthenticHadithApp.xcodeproj` → `AuthenticHadith.xcodeproj` (gitignored, not committed)
+- `BUILD_FIX_LOG.md` — this entry
+- `APP_LAUNCH_PLAYBOOK.md` — workaround documented in Section 5 preflight
+- `ERROR_REPORT.md` — status reset to 🟢
+
+**Verification**:
+```bash
+LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 npx expo run:ios
+# → Build Succeeded, 0 errors, 1 cosmetic SDWebImage warning
+# → AuthenticHadith.app installed on iPhone 17 Pro simulator
+# → Deep link sent: exp+authentichadithapp://expo-development-client/?url=...
+```
+
+DerivedData folder this run: `AuthenticHadithApp-hjbjrvddcnhsmeacvbzkxdxletkr` (slug-derived, confirming Expo selected the patched workspace).
+
+**Result**: Fixed for this build. The patch may need to be reapplied any time Expo's internal prebuild regenerates the file. If recurrence is observed, escalate per SYSTEM_RULES Rule 009 to a permanent rule + consider a real fix:
+- `expo prebuild --clean` (KP-approved only) — eliminates the stale workspace permanently
+- Slug realignment in `app.json` — risky, affects deep links and Expo dev URLs
+
+**Lesson**:
+Expo derives different ios/ paths from different `app.json` keys: `xcodeproj` from `expo.name`, `xcworkspace` from `expo.slug`. When those keys disagree, you get two parallel workspace files where one is correct and one is broken. Local `run:ios` may pick either depending on internal cache state. The shipping app (EAS production) is unaffected because EAS regenerates `ios/` from scratch each build.
+
+The simulator-foreground osascript error from FIX-029 recurred and remains unresolved — KP must grant macOS Automation → System Events permission to the host terminal in System Settings. Not a code issue.
+
+**Pattern Category**: Expo prebuild artifact / slug-name mismatch / local workspace state
+
+---
+
 ### [FIX-029] — First Successful Local iOS Build Verification (post FIX-028)
 **Date**: 2026-05-07
 **Session**: Claude Code (Senior iOS Release Engineer)

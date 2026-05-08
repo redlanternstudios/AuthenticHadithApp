@@ -187,6 +187,25 @@ locale | grep -E "LANG|LC_ALL"
 
 If `pod --version` prints `WARNING: CocoaPods requires your terminal to be using UTF-8 encoding`, stop and fix the locale before any build command.
 
+### Known issue: slug-derived stale workspace (FIX-030)
+
+`app.json` has `expo.name = "Authentic Hadith"` and `expo.slug = "authentichadithapp"`. Expo's internal prebuild step inside `expo run:ios` may regenerate `ios/AuthenticHadithApp.xcworkspace` with a `<FileRef>` pointing at the non-existent `AuthenticHadithApp.xcodeproj`. xcodebuild then fails with error code 65 ("workspace does not contain a scheme named AuthenticHadith").
+
+If `expo run:ios` fails with that error, apply the local-only patch (gitignored file):
+
+```bash
+sed -i '' 's|AuthenticHadithApp.xcodeproj|AuthenticHadith.xcodeproj|g' \
+  ios/AuthenticHadithApp.xcworkspace/contents.xcworkspacedata
+```
+
+Then re-run `npx expo run:ios`. EAS production builds are unaffected (fresh `ios/` per build).
+
+The proper permanent fix is one of:
+- `npx expo prebuild --clean` (KP-approved only — destructive, regenerates all of `ios/`)
+- Realign `expo.slug` to match `expo.name` (risky — changes Expo dev URL and deep linking; verify EAS metadata first)
+
+If this patch needs to be reapplied 2+ times, escalate to a permanent SYSTEM_RULES rule per Rule 009.
+
 ### Preflight: macOS Automation permission for `expo run:ios`
 
 `npx expo run:ios` ends with an AppleScript step that brings Simulator.app to the foreground. macOS blocks this if the host terminal lacks Automation permission for "System Events", producing:

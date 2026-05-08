@@ -7,7 +7,15 @@
 
 ## CURRENT ERROR
 
-**Status**: 🔴 ACTIVE
+**Status**: 🟢 No active errors
+
+> Resolved by FIX-030 (Option A patch). See BUILD_FIX_LOG.md for full resolution. Below is the historical record of the failure that led to FIX-030 — kept here for the next session to recognize the pattern if it recurs.
+
+---
+
+## RESOLVED (FIX-030, 2026-05-08)
+
+**Status**: 🔴 → 🟢
 
 ### Headline
 `xcodebuild` fails because Expo's slug-derived workspace `ios/AuthenticHadithApp.xcworkspace` references a non-existent `AuthenticHadithApp.xcodeproj`. The actual project is `AuthenticHadith.xcodeproj` (derived from `expo.name = "Authentic Hadith"`). The slug `authentichadithapp` is unchanged from before the rename, producing the mismatched `AuthenticHadithApp` workspace path.
