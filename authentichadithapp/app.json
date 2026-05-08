@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "AuthenticHadithApp",
+    "name": "Authentic Hadith",
     "slug": "authentichadithapp",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -18,9 +18,10 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.byred.authentichadith",
-      "buildNumber": "1",
+      "buildNumber": "4",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleDisplayName": "Authentic Hadith"
       }
     },
     "android": {
@@ -48,7 +49,8 @@
         }
       ],
       "expo-secure-store",
-      "expo-web-browser"
+      "expo-web-browser",
+      "react-native-purchases"
     ],
     "extra": {
       "apiUrl": "https://authentichadith.app",

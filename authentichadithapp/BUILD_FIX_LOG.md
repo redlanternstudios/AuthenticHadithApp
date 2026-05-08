@@ -91,6 +91,134 @@ Before any EAS build:
 
 ## FIXES
 
+### [FIX-026] — iOS Release Blockers: RevenueCat Plugin, Push Entitlement, Display Name
+**Date**: 2026-05-07
+**Session**: Claude Code (Senior Expo/iOS Release Engineer)
+**Severity**: Critical (3 release blockers)
+
+**Error Message**:
+```
+XCODE_NATIVE_RELEASE_AUDIT.md identified 3 critical blockers preventing TestFlight submission:
+- C-01: react-native-purchases missing from Expo plugins array — StoreKit entitlement risk
+- C-02: aps-environment entitlement present but no push notification code in app
+- C-03: CFBundleDisplayName shows "AuthenticHadithApp" instead of "Authentic Hadith"
+```
+
+**Root Cause**:
+- C-01: `react-native-purchases` was in package.json (^9.9.0) but its Expo config plugin was never registered. Without plugin registration, EAS prebuild does not add the In-App Purchase capability to the iOS target. RevenueCat would silently fail in production.
+- C-02: A previous prebuild generated `ios/AuthenticHadithApp/AuthenticHadithApp.entitlements` with `aps-environment = development`. No `expo-notifications` plugin is registered and no push code exists anywhere in `app/`, `lib/`, `hooks/`, `components/`, or `services/`. The notifications screen is a pure stub with disabled switches. The entitlement was orphaned from a prior aborted notification implementation.
+- C-03: `expo.name` was "AuthenticHadithApp" (the raw scaffolding name). No `CFBundleDisplayName` override was set. Users saw the developer name instead of the marketing name "Authentic Hadith" on their home screen.
+
+**Fix Applied**:
+```
+File: app.json
+
+1. expo.name: "AuthenticHadithApp" → "Authentic Hadith"
+2. expo.ios.buildNumber: "1" → "4" (sync to highest known native value, EAS autoIncrement will manage from here)
+3. expo.ios.infoPlist.CFBundleDisplayName: added "Authentic Hadith"
+4. expo.plugins: appended "react-native-purchases"
+
+Push entitlement (C-02): No code change required.
+- Verified zero notification code via grep across the entire JS layer
+- No expo-notifications plugin registered (and not added)
+- The orphan aps-environment entitlement only persists in the currently-generated ios/ folder
+- Running `npx expo prebuild --clean` will regenerate ios/ from app.json plugins only — none of which add aps-environment — so the entitlement will be eliminated automatically
+```
+
+**Files Changed**:
+- `app.json` — display name, build number, CFBundleDisplayName, RevenueCat plugin
+- `BUILD_FIX_LOG.md` — this entry
+- `SYSTEM_RULES.md` — new Rule 021 (Native packages must register their Expo plugin)
+- `XCODE_NATIVE_RELEASE_AUDIT.md` — resolved/remaining status updates
+- `APP_LAUNCH_PLAYBOOK.md` — pre-prebuild config checklist added
+
+**Verification Command**:
+```bash
+# Verify app.json is well-formed
+node -e "JSON.parse(require('fs').readFileSync('app.json'))"
+
+# Verify the four edits landed
+grep -n "Authentic Hadith\|react-native-purchases\|buildNumber" app.json
+
+# After KP approves prebuild:
+npx expo prebuild --clean
+grep -i "aps-environment" ios/AuthenticHadithApp/AuthenticHadithApp.entitlements
+# Expected: no match (push entitlement gone)
+
+grep "CFBundleDisplayName" ios/AuthenticHadithApp/Info.plist
+# Expected: <string>Authentic Hadith</string>
+
+grep "InAppPurchase\|com.apple.developer.in-app-payments" ios/AuthenticHadithApp/AuthenticHadithApp.entitlements
+# Expected: in-app purchase capability present (added by react-native-purchases plugin)
+```
+
+**Result**: Fixed at config layer. Native verification deferred until KP approves `npx expo prebuild --clean`.
+
+**Lesson**:
+A package being in `package.json` is necessary but not sufficient for native iOS capabilities. Any package that ships an Expo config plugin (RevenueCat, Notifications, Camera, etc.) must be registered in `expo.plugins` or its native effects are silently dropped during prebuild. Always cross-check `package.json` native packages against `app.json` plugin registrations during release audits. The orphan-entitlement pattern (entitlement persists from a prior prebuild even after the source plugin was removed) is fixed by `expo prebuild --clean`, not by manually editing the generated entitlements file.
+
+**Pattern Category**: Native plugin registration / Release audit
+
+---
+
+### [FIX-025] — WORKFLOW_ROUTER.md Governance Hardening
+**Date**: 2026-05-07
+**Session**: Claude Code (Senior Mobile Engineering Governance Architect)
+**Severity**: Process / Governance
+
+**Error Message**:
+```
+Sessions repeatedly bouncing between VS Code and Xcode for issues that lived entirely in the JS/Expo layer. Original WORKFLOW_ROUTER.md was incomplete (cut off mid-file), referenced non-existent folders (services/, utils/), recommended `npx expo run:ios` instead of the actual EAS Build pipeline, and was not listed in the mandatory startup reading list.
+```
+
+**Root Cause**:
+The router lacked enterprise-grade routing precision. Folder structure was inaccurate (missing `external/`, `supabase/`, `types/`; falsely listing `services/`, `utils/`). iOS build guidance ignored EAS Build, which is the actual production pipeline. The documentation protocol in the router did not match SYSTEM_RULES.md Rule 012 (5 steps vs 6). CLAUDE.md startup protocol and SYSTEM_RULES.md Rule 013 did not require reading WORKFLOW_ROUTER.md, so future sessions could skip it entirely.
+
+**Fix Applied**:
+```
+1. Rewrote WORKFLOW_ROUTER.md as a 14-section enterprise routing protocol:
+   - Purpose, Golden Rule, Default Working Directory
+   - Tool Selection Matrix (40+ classified scenarios)
+   - Problem Classification Protocol (4 categories with required output template)
+   - VS Code App Layer / Expo Hybrid Layer / Xcode Native Layer sections
+   - Do Not Edit warning for generated ios/ files (with exception clause)
+   - First Command Decision Tree
+   - Verification Rules per layer
+   - Documentation Protocol aligned with SYSTEM_RULES Rule 012
+   - Escalation Rules
+   - Final Operating Rule
+2. Corrected folder list to actual repo (added external/, supabase/, types/; removed services/, utils/).
+3. Replaced `npx expo run:ios` as default with EAS Build profiles (preview / production) matching APP_LAUNCH_PLAYBOOK.md Section 5.
+4. Added explicit high-risk gating around `npx expo prebuild --clean`.
+5. Updated CLAUDE.md: added Step 5 (Read WORKFLOW_ROUTER.md) and inserted it into File Priority Order at position 4.
+6. Updated SYSTEM_RULES.md: added WORKFLOW_ROUTER.md to Rule 013 mandatory reads, added new Rule 020 (Classify Before Acting), added WORKFLOW_ROUTER.md to Required File System list.
+```
+
+**Files Changed**:
+- WORKFLOW_ROUTER.md — created/rewrote as 14-section enterprise routing protocol
+- CLAUDE.md — added Step 5 to startup protocol, inserted into File Priority Order
+- SYSTEM_RULES.md — Rule 013 expanded, new Rule 020 added, Required File System updated
+- BUILD_FIX_LOG.md — this entry
+
+**Verification Command**:
+```
+grep -n "WORKFLOW_ROUTER" CLAUDE.md SYSTEM_RULES.md
+# Should show references in both startup protocol and Rule 013
+ls WORKFLOW_ROUTER.md
+# Should exist
+grep -n "Rule 020" SYSTEM_RULES.md
+# Should appear after Rule 019
+```
+
+**Result**: Fixed
+
+**Lesson**:
+A routing protocol is only as good as the system that enforces it. Writing the router is half the work — wiring it into the mandatory startup reads (CLAUDE.md, SYSTEM_RULES.md Rule 013) and into a permanent rule (Rule 020) is what makes it survive future sessions. Any future "engineering operating system" doc must be added to all three enforcement points, or it will be silently skipped.
+
+**Pattern Category**: Governance / Process Hardening
+
+---
+
 ### [FIX-021] — Home Screen Random Offset Crash
 **Date**: 2026-05-07
 **Session**: Claude Code

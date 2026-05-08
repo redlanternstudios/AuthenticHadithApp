@@ -134,6 +134,30 @@ Controls:
 
 ---
 
+## 4b. PRE-PREBUILD CONFIG CHECKLIST
+
+Before running `npx expo prebuild --clean` (always KP-approved), verify in `app.json`:
+
+- [ ] Every native package in `package.json` is registered in `expo.plugins` (SYSTEM_RULES Rule 021)
+  - `react-native-purchases` → must be in plugins
+  - `expo-secure-store` → must be in plugins
+  - Add others as the dependency list grows
+- [ ] `expo.name` matches the marketing name on the App Store listing
+- [ ] `expo.ios.bundleIdentifier` is `com.byred.authentichadith`
+- [ ] `expo.ios.buildNumber` is current (or rely on EAS `autoIncrement` for production)
+- [ ] `expo.ios.infoPlist.CFBundleDisplayName` matches user-facing name ("Authentic Hadith")
+- [ ] `expo.ios.infoPlist.ITSAppUsesNonExemptEncryption` is set (false unless encryption used)
+- [ ] No orphan capabilities will result from removed plugins (cross-check existing `ios/<App>/<App>.entitlements`)
+
+After prebuild completes, verify:
+
+- [ ] `ios/<App>/<App>.entitlements` contains expected capabilities and nothing more
+- [ ] `ios/<App>/Info.plist` `CFBundleDisplayName` matches the configured value
+- [ ] No `aps-environment` unless push is intentionally shipping
+- [ ] In-App Purchase capability present if RevenueCat is in plugins
+
+---
+
 ## 5. iOS BUILD PROCESS
 
 ### Build Profiles (eas.json)

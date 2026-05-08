@@ -19,10 +19,16 @@ Before writing ANY code or running ANY command, execute this sequence:
 - Follow the destructive command rules — never run nuclear resets without KP approval.
 
 ### Step 4: Read SYSTEM_RULES.md
-- Contains the 10 permanent engineering rules derived from recurring bug patterns.
+- Contains the permanent engineering rules derived from recurring bug patterns.
 - These rules are non-negotiable. Every code change must comply with them.
 - If a new recurring pattern emerges, add it as the next numbered rule.
 - Rule 009 is the escalation rule: any bug that appears twice becomes a permanent rule.
+
+### Step 5: Read WORKFLOW_ROUTER.md
+- Tells you whether the issue lives in VS Code, Expo config, or Xcode.
+- Classify every problem as VS_CODE_APP_LAYER, EXPO_HYBRID_LAYER, XCODE_NATIVE_LAYER, or UNKNOWN_NEEDS_TRIAGE before touching files.
+- Default working tool is VS Code. Xcode is only for provably native iOS issues.
+- Never run `npx expo prebuild --clean` or edit `ios/` files without KP approval.
 
 ### After Fixing Any Bug (MANDATORY DOCUMENTATION PROTOCOL)
 1. Update BUILD_FIX_LOG.md with full entry: Fix ID, date, root cause, files changed, exact fix applied, verification steps, lesson learned, pattern category
@@ -46,11 +52,12 @@ The system must improve after every fix. No exceptions.
 1. ERROR_REPORT.md → current problem
 2. BUILD_FIX_LOG.md → historical solutions
 3. SYSTEM_RULES.md → permanent engineering rules
-4. APP_LAUNCH_PLAYBOOK.md → process reference
-5. package.json → dependency truth
-6. app.json → static config
-7. app.config.js → dynamic config
-8. eas.json → build profiles
+4. WORKFLOW_ROUTER.md → tool routing (VS Code vs Expo vs Xcode)
+5. APP_LAUNCH_PLAYBOOK.md → process reference
+6. package.json → dependency truth
+7. app.json → static config
+8. app.config.js → dynamic config
+9. eas.json → build profiles
 
 ## Expo Config Rules
 - app.json = static metadata (name, slug, scheme, icons, splash, bundle ID, build number, plugins)
