@@ -1,7 +1,6 @@
 import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import 'react-native-reanimated';
 
 import { ReactQueryProvider } from '@/lib/providers/react-query-provider';
@@ -15,15 +14,6 @@ export const unstable_settings = {
   anchor: '(tabs)',
 };
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 2,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    },
-  },
-});
-
 function AppContent() {
   const { isDark } = useTheme();
 
@@ -34,6 +24,11 @@ function AppContent() {
         <Stack.Screen name="auth" options={{ headerShown: false }} />
         <Stack.Screen name="hadith" options={{ headerShown: false }} />
         <Stack.Screen name="collection" options={{ headerShown: false }} />
+        <Stack.Screen name="collections" options={{ headerShown: false }} />
+        <Stack.Screen name="book" options={{ headerShown: false }} />
+        <Stack.Screen name="chapter" options={{ headerShown: false }} />
+        <Stack.Screen name="topics" options={{ headerShown: false }} />
+        <Stack.Screen name="bookmarks" options={{ headerShown: false }} />
         <Stack.Screen name="learn" options={{ headerShown: false }} />
         <Stack.Screen name="redeem" options={{ headerShown: false }} />
         <Stack.Screen name="my-hadith" options={{ headerShown: false }} />
@@ -45,7 +40,6 @@ function AppContent() {
         <Stack.Screen name="stories" options={{ headerShown: false }} />
         <Stack.Screen name="sunnah" options={{ headerShown: false }} />
         <Stack.Screen name="reflections" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style={isDark ? 'light' : 'dark'} />
@@ -56,19 +50,17 @@ function AppContent() {
 export default function RootLayout() {
   return (
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
+      <ReactQueryProvider>
         <ThemeProvider>
           <LanguageProvider>
             <AuthProvider>
               <RevenueCatProvider>
-                <ReactQueryProvider>
-                  <AppContent />
-                </ReactQueryProvider>
+                <AppContent />
               </RevenueCatProvider>
             </AuthProvider>
           </LanguageProvider>
         </ThemeProvider>
-      </QueryClientProvider>
+      </ReactQueryProvider>
     </ErrorBoundary>
   );
 }

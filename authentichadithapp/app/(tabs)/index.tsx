@@ -47,14 +47,18 @@ export default function HomeScreen() {
   const { data: hadith, isLoading, refetch } = useQuery({
     queryKey: ['random-hadith', refreshKey],
     queryFn: async () => {
-      const offset = Math.floor(Math.random() * 1000);
+      const { count } = await supabase
+        .from('hadiths')
+        .select('*', { count: 'exact', head: true });
+      const total = count || 100;
+      const offset = Math.floor(Math.random() * total);
       const { data, error } = await supabase
         .from('hadiths')
         .select('*')
         .limit(1)
         .order('id', { ascending: false })
         .range(offset, offset)
-        .single();
+        .maybeSingle();
       if (error) throw error;
       return data as Hadith;
     },

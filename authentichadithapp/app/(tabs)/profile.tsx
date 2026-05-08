@@ -185,6 +185,16 @@ export default function ProfileScreen() {
       {/* Account actions */}
       <Card style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.mutedText }]}>ACCOUNT</Text>
+        <SettingsRow
+          icon="bookmark-outline"
+          label="Saved Hadiths"
+          onPress={() => router.push('/bookmarks')}
+        />
+        <SettingsRow
+          icon="card-outline"
+          label="Subscription"
+          onPress={() => router.push('/settings/subscription')}
+        />
         {!isPremium && (
           <SettingsRow
             icon="refresh-outline"
@@ -226,6 +236,12 @@ export default function ProfileScreen() {
           icon="information-circle-outline"
           label="About"
           onPress={() => router.push('/settings/about')}
+        />
+        <SettingsRow
+          icon="trash-outline"
+          label="Delete Account"
+          tint={colors.error}
+          onPress={() => router.push('/settings/delete-account')}
         />
       </Card>
 
