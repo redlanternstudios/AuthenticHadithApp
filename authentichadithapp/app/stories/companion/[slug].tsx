@@ -16,14 +16,20 @@ export default function CompanionStoryScreen() {
   const { user } = useAuth()
   const completion = useCompletionStatus('story', slug ?? null)
 
+  // Use maybeSingle() — a deep-link with a stale or invalid slug must NOT
+  // throw PGRST116 and crash the screen (Rule 028).
   const { data: companion, isLoading } = useQuery({
     queryKey: ['companion', slug],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('sahaba')
         .select('*')
         .eq('slug', slug)
-        .single()
+        .maybeSingle()
+      if (error) {
+        __DEV__ && console.warn('[CompanionStory] sahaba query failed (non-fatal):', error.message)
+        return null
+      }
       return data
     },
     enabled: !!slug,
@@ -32,14 +38,19 @@ export default function CompanionStoryScreen() {
   const { data: storyParts } = useQuery({
     queryKey: ['companion-parts', companion?.id],
     queryFn: async () => {
-      const { data } = await supabase
+      if (!companion?.id) return []
+      const { data, error } = await supabase
         .from('story_parts')
         .select('*')
-        .eq('sahabi_id', companion!.id)
+        .eq('sahabi_id', companion.id)
         .order('part_number')
+      if (error) {
+        __DEV__ && console.warn('[CompanionStory] story_parts query failed (non-fatal):', error.message)
+        return []
+      }
       return data || []
     },
-    enabled: !!companion,
+    enabled: !!companion?.id,
   })
 
   const handleMarkComplete = async () => {

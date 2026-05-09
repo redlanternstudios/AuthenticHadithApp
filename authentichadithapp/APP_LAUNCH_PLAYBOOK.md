@@ -250,6 +250,43 @@ Run when shipping any feature ported from the website or any content-driven scre
 
 A failure on items 1-5 is a Rule 030 violation (no local fallback) or Rule 029 violation (parity not actually verified). Item 7 is a DB seeding question that lives outside this codebase.
 
+### V1 Schema Gate (FIX-035 / Rule 032)
+
+Run before any V1 / TestFlight submission to confirm production Supabase schema matches what the app expects.
+
+1. **Probe production tables.** Use the anon key from `lib/supabase/config.ts`:
+
+   ```bash
+   SUPABASE_URL="https://nqklipakrfuwebkdnhwg.supabase.co"
+   ANON_KEY="<anon-from-lib-supabase-config>"
+   for tbl in collections books chapters hadiths prophets sahaba prophet_stories \
+              story_parts sunnah_categories sunnah_practices learning_paths lessons \
+              path_lessons promo_codes hadith_folders saved_hadiths \
+              quiz_questions study_notes user_progress_events; do
+     code=$(curl -s -o /dev/null -w "%{http_code}" \
+       "${SUPABASE_URL}/rest/v1/${tbl}?select=*&limit=1" -H "apikey: ${ANON_KEY}")
+     printf "%-30s %s\n" "$tbl" "$code"
+   done
+   ```
+
+   Every table must return HTTP 200. A 404 means the migration was not applied — apply the missing migration before continuing.
+
+2. **Verify content counts.** Bukhari ≥ 7,000 hadiths, Sunnah practices ≥ 300, Prophets ≥ 20. Any zero count means production seeding is incomplete (content task, not schema task).
+
+3. **Verify alias map is current.** Read `V1_SCHEMA_ALIGNMENT_AUDIT.md` — the alias map there is authoritative. No new tables should be created when the audit shows an existing one serving the purpose.
+
+4. **Verify no `.single()` on params-driven lookups.** Rule 028: every detail screen that resolves a slug or id from URL params must use `.maybeSingle()` and render a clear "not found" empty state. Grep:
+
+   ```bash
+   grep -rn "\.single()" app/ | grep -v "test\.\|.spec\." | grep "useLocalSearchParams\|params\."
+   ```
+
+   Any hit is a potential PGRST116 crash on a stale deep-link.
+
+5. **Verify minimum seed content.** A V1 launch with empty `learning_paths`, empty `prophet_stories`, or empty `sunnah_practices` is a regression. The audit doc lists current counts — re-probe to confirm nothing has been deleted.
+
+A failure on items 1-2 is a schema/content gap; do not ship until resolved or intentionally documented as deferred. Item 4 is a Rule 028 violation. Item 5 is a content regression.
+
 ### Preflight: macOS Automation permission for `expo run:ios`
 
 `npx expo run:ios` ends with an AppleScript step that brings Simulator.app to the foreground. macOS blocks this if the host terminal lacks Automation permission for "System Events", producing:

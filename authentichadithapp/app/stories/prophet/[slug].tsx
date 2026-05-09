@@ -18,14 +18,20 @@ export default function ProphetStoryScreen() {
   // best-effort inside the progress service when the user is logged in.
   const completion = useCompletionStatus('story', slug ?? null)
 
+  // Use maybeSingle() — a deep-link with a stale or invalid slug must NOT
+  // throw PGRST116 and crash the screen (Rule 028).
   const { data: prophet, isLoading } = useQuery({
     queryKey: ['prophet', slug],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('prophets')
         .select('*')
         .eq('slug', slug)
-        .single()
+        .maybeSingle()
+      if (error) {
+        __DEV__ && console.warn('[ProphetStory] prophets query failed (non-fatal):', error.message)
+        return null
+      }
       return data
     },
     enabled: !!slug,
@@ -34,14 +40,19 @@ export default function ProphetStoryScreen() {
   const { data: storyParts } = useQuery({
     queryKey: ['prophet-parts', prophet?.id],
     queryFn: async () => {
-      const { data } = await supabase
+      if (!prophet?.id) return []
+      const { data, error } = await supabase
         .from('prophet_stories')
         .select('*')
-        .eq('prophet_id', prophet!.id)
+        .eq('prophet_id', prophet.id)
         .order('part_number')
+      if (error) {
+        __DEV__ && console.warn('[ProphetStory] prophet_stories query failed (non-fatal):', error.message)
+        return []
+      }
       return data || []
     },
-    enabled: !!prophet,
+    enabled: !!prophet?.id,
   })
 
   const handleMarkComplete = async () => {
