@@ -91,6 +91,67 @@ Before any EAS build:
 
 ## FIXES
 
+### [FIX-036] — Reanimated 4 Warm-Relaunch Hang (Option A: Downgrade to 3.18)
+**Date**: 2026-05-08
+**Session**: Claude Code (Senior Release Engineer)
+**Severity**: Critical — every TestFlight/App Store submission would have been rejected on second-launch hang
+
+**Problem**:
+Production EAS preview build `7f408c96` (commit `9a93dbf`) installed and first-launched fine but **silently hung on every subsequent launch** — dark splash never dismissed, JS bundle never finished re-initializing. Force-quit → relaunch consistently reproduced the hang on simulator `F5384F69-2BE1-40DC-806B-B4C45F03736A` (iPhone 17 Pro, iOS 26.4). Same root-cause class as VERIFY-033's `[ReanimatedModule installTurboModule] +__assert_rtn` SIGABRT in dev-client mode — production builds strip asserts, so the same code path deadlocked instead of crashing.
+
+**Root Causes**:
+1. **Reanimated 4.1.1 + New Architecture + Hermes** had a known TurboModule warm-relaunch issue: module-init / TurboModule installation on a JS context that's been seen before by the same OS process leaves state that prevents fresh re-init. The new arch keeps the OS process alive across `simctl terminate` cycles, so the bug manifested 100% in the simulator.
+2. **`react-native-worklets@0.5.1`** was installed as a Reanimated 4 peer dependency. After the downgrade to Reanimated 3, the external worklets package conflicted with Reanimated 3's internal worklets implementation, producing **20 duplicate symbols at link time** (`worklets::WorkletRuntime`, `worklets::WorkletsModuleProxy`, `_OBJC_CLASS_$_WorkletsModule`, etc.) and aborting the next EAS build (`3d6ba8dd`) with `XCODE_BUILD_ERROR: linker command failed with exit code 1`.
+
+**Fix Applied**:
+
+Two-commit sequence:
+
+**Commit `b0c694e` (FIX-036 main)** — `package.json`: `react-native-reanimated: ~4.1.1 → ~3.18.0`. Added `expo.install.exclude: ["react-native-reanimated"]` to silence the expected SDK 54 version-mismatch warning. Removed `components/hello-wave.tsx` and `components/parallax-scroll-view.tsx` (Expo template files using Reanimated 4-only APIs `animationName` and `useScrollOffset`; Rule 016 cleanup).
+
+**Commit `7d5d4e1` (FIX-036 follow-up)** — `npm uninstall react-native-worklets`. Verified zero source-file imports of the package across `app/`, `lib/`, `hooks/`, `components/` before removal. Reanimated 3.18.2 does not list `react-native-worklets` as a peer dependency (only `@babel/core`, `react`, `react-native`).
+
+**Files Changed**:
+- `package.json` — reanimated version + expo.install.exclude block; removed `react-native-worklets` entry
+- `package-lock.json` — regenerated after both edits
+- `components/hello-wave.tsx` — deleted (Reanimated 4 API)
+- `components/parallax-scroll-view.tsx` — deleted (Reanimated 4 API)
+- `BUILD_FIX_LOG.md` — this entry
+- `ERROR_REPORT.md` — reset to 🟢
+- `EAS_PREVIEW_QA_02.md` — full verification log
+
+**Verification**:
+
+EAS preview build `3d6ba8dd` errored at the linker step (8 min, `XCODE_BUILD_ERROR`) — the `react-native-worklets` conflict diagnostic. After the follow-up commit `7d5d4e1`:
+
+- `package-lock.json`: VALID JSON (Rule 031)
+- `tsc --noEmit`: 0 errors
+- `expo-doctor`: 17/17 checks pass (was 16/17 with the version-mismatch warning before the downgrade)
+
+EAS preview build `809cceba-69f6-4f2d-892f-7ac0120be1af` (commit `7d5d4e1`) finished successfully in 6m37s and was installed onto simulator `F5384F69-2BE1-40DC-806B-B4C45F03736A` after a clean `simctl shutdown` + `simctl boot` cycle. Three launch cycles ran without crash:
+
+| Test | Result |
+|---|---|
+| Cold launch | ✅ Process alive (PID 66686 in test bench), Home tab visible, no splash hang |
+| Warm relaunch #1 | ✅ Process alive (PID 66631 KP-side / 66776 test bench), Home tab visible, no SIGABRT |
+| Warm relaunch #2 | ✅ Process alive (PID 66879 KP-side / 66814 test bench), Home tab visible, no SIGABRT |
+
+Zero new `AuthenticHadith-*.ips` crash reports were generated during the verification window. Old crashes in `~/Library/Logs/DiagnosticReports/` (`AuthenticHadith-2026-05-08-160713.ips`, `2026-05-08-162138.ips`) are pre-FIX-036 runs of the broken Reanimated 4 build and unrelated to this verification.
+
+The earlier `FBSOpenApplicationServiceErrorDomain code=5` SpringBoard error encountered during the first attempt was traced to a stale simulator boot state — `simctl boot ... 2>/dev/null` had silently swallowed a boot-failure error, then `simctl install booted` had nothing to install into. Resolved by an explicit `simctl shutdown` + `simctl boot` cycle without error suppression. The SpringBoard crash reports timestamped `2026-05-08-22:11:05` and `2026-05-08-22:16:48` correspond to this pre-reset state, not to the app.
+
+**Lesson Learned**:
+
+Two compounding lessons:
+
+1. **Major-version downgrades of native modules can leave abandoned peer dependencies.** Reanimated 4 introduced `react-native-worklets` as a peer; downgrading to Reanimated 3 doesn't automatically remove that peer because npm has no awareness of "this peer was specific to that major." Going forward, any major-version downgrade of a React Native module needs an explicit "what peers did the new version add that the old version doesn't need?" check before the next build.
+
+2. **`xcrun simctl ... 2>/dev/null || true` is hostile to debugging.** Suppressing simulator boot/install errors masked a boot failure as an app launch failure, costing diagnostic time. Going forward, simctl commands in QA scripts should NOT suppress stderr — surface every failure.
+
+**Pattern Category**: Native Module Lifecycle / Major Version Downgrade / Reanimated 4 → 3 / Worklets Peer Cleanup
+
+---
+
 ### [FIX-035] — V1 Mobile Schema Alignment with Production Supabase
 **Date**: 2026-05-08
 **Session**: Claude Code (Senior Supabase Schema Architect / V1 Release Stabilization Lead)

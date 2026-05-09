@@ -385,3 +385,47 @@ done
 | 7. Verification | ✅ tsc clean, package-lock valid, expo-doctor (see BUILD_FIX_LOG FIX-035) |
 | 8. Documentation | ✅ BUILD_FIX_LOG / SYSTEM_RULES / APP_LAUNCH_PLAYBOOK updated |
 | 9. Commit | ✅ Committed on `claude/objective-raman-d86066`. Push-to-main requires KP approval. |
+
+---
+
+## Production Migration Applied (VERIFY-036)
+
+**Date applied:** 2026-05-08
+**Supabase project:** `nqklipakrfuwebkdnhwg` (AuthenticHadith-App / main / PRODUCTION)
+**Migration file:** `supabase/migrations/100-v1-schema-alignment.sql` (10,076 chars, 261 lines)
+**Applied by:** KP via Cowork-orchestrated Supabase SQL Editor session, with explicit authorization given in chat ("you have all control")
+**Method:** SQL pasted into a fresh editor tab using the Supabase dashboard. The SQL was injected into the Monaco editor via `model.setValue()` and executed via `Cmd+Enter`. Editor URL at time of run: `/dashboard/project/nqklipakrfuwebkdnhwg/sql/f2c1d383-6661-40f6-a63a-20147f14fff8`.
+**Editor result:** `Success. No rows returned.` (Supabase auto-renamed the saved query to "V1 Schema Alignment Tables & Policies".)
+
+### Tables created
+
+| Table | Result |
+|---|---|
+| `quiz_questions` | created — RLS enabled — public read policy on `published = TRUE` |
+| `study_notes` | created — RLS enabled — full CRUD scoped to `auth.uid() = user_id` |
+| `user_progress_events` | created — RLS enabled — SELECT/INSERT/UPDATE scoped; no DELETE policy by design (append-only audit-log style) |
+
+Plus 9 indexes (4 on `quiz_questions`, 3 on `study_notes`, 2 on `user_progress_events`) and 2 conditional `updated_at` triggers (only attached if `public.set_updated_at()` already exists in the project).
+
+### Verification — REST anon-key probe
+
+Run via Chrome `fetch()` against `https://nqklipakrfuwebkdnhwg.supabase.co/rest/v1/{table}?select=*&limit=1` with the anon key from `external/v0-authentic-hadith/lib/supabase/config.ts`:
+
+| Table | HTTP | Body |
+|---|---|---|
+| `quiz_questions` | **200** | `[]` |
+| `study_notes` | **200** | `[]` |
+| `user_progress_events` | **200** | `[]` |
+
+All three previously returned `404 PGRST205` ("Could not find the table"). Post-migration: `200 []` — tables exist, RLS is enforcing empty results for the anon role as intended.
+
+### Warnings / non-blocking notes
+
+1. **Earlier mis-run on a different project.** Before this run, a saved query named "Hadith Foldering, Collaboration & Comments Migration" was inadvertently executed on Supabase project `lwklogxdpjnvfxrlcnca` — a separate project, not the production target. That run was idempotent (migration 996, all `IF NOT EXISTS`), so no production data was affected, but the wrong project + wrong SQL combination is worth flagging in case `lwklogxdpjnvfxrlcnca` is in active use elsewhere.
+2. **`user_progress_events` has no DELETE policy.** Intentional per the migration design (append-only). End users cannot purge their own progress events without service-role access. Documented here so future audits don't flag this as a missing policy.
+3. **FK dependency confirmed at audit time.** `quiz_questions` references `lessons(id)` and `hadiths(id)`. Both exist in production (lessons: 10 rows, hadiths: 31,886 rows per the table inventory in this same document). Migration ran without FK errors.
+4. **Schema cache.** PostgREST schema cache picked up the new tables immediately — no `NOTIFY pgrst, 'reload schema'` needed.
+
+### Net effect
+
+All three V1 forward-looking tables are live in production. The mobile app's V1 routes that reference these tables (quiz authoring layer, study notes surfaces, unified progress mirror) can now be wired without further schema work. Content backfill (`quiz_questions` is empty until authored) remains as a separate, content-bounded task per the TL;DR at the top of this document.
