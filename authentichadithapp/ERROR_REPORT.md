@@ -7,9 +7,55 @@
 
 ## CURRENT ERROR
 
-**Status**: 🟡 PROBABLE FIX APPLIED — re-run EAS preview build to confirm
+**Status**: 🔴 ACTIVE — EAS preview iOS build failing (2nd attempt) — diagnosis blocked on opaque CLI output
 
-> Removed orphan `lib/offline/` directory (sqlite-db.ts + sync-manager.ts) that imported the un-installed `expo-sqlite` package. Was the strongest hypothesis for the build failure. TypeScript now clean (0 errors), expo-doctor 17/17 passes. Awaiting re-run with `--verbose-logs` to either confirm the fix or surface the next layer.
+### Headline (UPDATED)
+
+Build #2 (`3fa1f5e1-7237-4a33-8e66-e43e6a7aae8a`, commit `ac6c0ea`) errored with the SAME generic "Unknown error in Install dependencies build phase" as Build #1 (`aa4e7b45-...`, commit `6fef914`). Removing the orphan `lib/offline/` directory (which had the `expo-sqlite` import that wasn't in package.json) did NOT change the outcome.
+
+`--verbose-logs --build-logger-level debug` flags do NOT surface additional detail in CLI output — they only affect what EAS records server-side for the web log viewer.
+
+**STOPPED retrying.** Two builds consumed without diagnostic ground truth. Continuing without the actual error log would be guessing.
+
+### Required from KP — the only path forward
+
+Open the build URL in a browser and paste the actual error from the **Install dependencies** phase:
+
+→ https://expo.dev/accounts/redlantern/projects/authentichadithapp/builds/3fa1f5e1-7237-4a33-8e66-e43e6a7aae8a
+
+1. Click the red "Install dependencies" phase to expand
+2. Scroll to the bottom of that phase's log
+3. Copy the last 30-50 lines (the failure tail)
+4. Paste in next message
+
+With that text we can fix the root cause in one pass. Without it we're burning EAS build credits guessing.
+
+### What's been ruled out
+- Lockfile drift (local `npm install --dry-run` says "up to date")
+- TS errors (`tsc --noEmit` clean after orphan removal)
+- expo-doctor (17/17 passed both before and after orphan removal)
+- Auth (eas-cli whoami → redlantern, working)
+- Orphan `expo-sqlite` import (REMOVED in commit `ac6c0ea`, build still fails)
+
+### What's still possible
+- `react-native-purchases` postinstall script failing on EAS macOS workers
+- A specific package version conflict EAS resolves differently
+- An Expo plugin failing to load on the EAS worker
+- Memory/disk constraint on the EAS worker
+- A bug in EAS itself (rare but happens)
+
+### Builds attempted
+| # | Build ID | Commit | Outcome | Duration |
+|---|---|---|---|---|
+| 1 | aa4e7b45-475c-4546-9d2f-8e52bbe3f00f | 6fef914 | ❌ Install dependencies failure | 67s |
+| 2 | 3fa1f5e1-7237-4a33-8e66-e43e6a7aae8a | ac6c0ea | ❌ Install dependencies failure | similar |
+
+---
+
+## ORIGINAL FAILURE (preserved for next session context)
+
+**Build:** aa4e7b45-475c-4546-9d2f-8e52bbe3f00f
+**Status was**: 🔴 ACTIVE — EAS preview iOS build failing in "Install dependencies" phase
 
 ---
 
