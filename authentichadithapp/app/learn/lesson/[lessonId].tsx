@@ -22,15 +22,21 @@ export default function LessonDetailScreen() {
   const { data: lesson, isLoading } = useQuery({
     queryKey: ['lesson', lessonId],
     queryFn: async () => {
+      // maybeSingle() — a stale lessonId in a deep-link must NOT throw
+      // PGRST116 (Rule 028). We surface a clear empty state instead.
       const { data, error } = await supabase
         .from('lessons')
         .select('*')
         .eq('id', lessonId)
-        .single();
+        .maybeSingle();
 
-      if (error) throw error;
-      return data as Lesson;
+      if (error) {
+        __DEV__ && console.warn('[Lesson] lookup failed (non-fatal):', error.message);
+        return null;
+      }
+      return data as Lesson | null;
     },
+    enabled: !!lessonId,
   });
 
   if (isLoading) {
@@ -38,7 +44,21 @@ export default function LessonDetailScreen() {
   }
 
   if (!lesson) {
-    return null;
+    // Intentional empty state — replaces silent `return null` (Rule 005).
+    return (
+      <View style={styles.notFoundContainer}>
+        <Text style={styles.notFoundEmoji}>🔍</Text>
+        <Text style={styles.notFoundTitle}>Lesson not found</Text>
+        <Text style={styles.notFoundText}>
+          This lesson is no longer available. It may have been moved or removed.
+        </Text>
+        <Button
+          title="Back to Lessons"
+          onPress={() => router.back()}
+          variant="primary"
+        />
+      </View>
+    );
   }
 
   return (
@@ -144,5 +164,26 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.md,
     color: COLORS.emeraldMid,
     fontWeight: '600',
+  },
+  notFoundContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: SPACING.xl,
+    gap: SPACING.md,
+    backgroundColor: COLORS.background,
+  },
+  notFoundEmoji: { fontSize: 48 },
+  notFoundTitle: {
+    fontSize: FONT_SIZES.xl,
+    fontWeight: '700',
+    color: COLORS.bronzeText,
+  },
+  notFoundText: {
+    fontSize: FONT_SIZES.base,
+    color: COLORS.mutedText,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: SPACING.md,
   },
 });

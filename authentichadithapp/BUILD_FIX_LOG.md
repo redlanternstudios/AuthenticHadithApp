@@ -91,6 +91,61 @@ Before any EAS build:
 
 ## FIXES
 
+### [FIX-035] — V1 Mobile Schema Alignment with Production Supabase
+**Date**: 2026-05-08
+**Session**: Claude Code (Senior Supabase Schema Architect / V1 Release Stabilization Lead)
+**Severity**: Warning — pre-emptive alignment to prevent V1 launch blockers
+
+**Symptoms**:
+- Earlier audit (`WEB_TO_MOBILE_PARITY_AUDIT.md`) reported "missing tables" for companion stories, my-hadith folders, redeem codes, daily hadiths, etc.
+- Concern that visible V1 features (stories, folders, quiz, notes, sunnah, badges, learning) might be backed by missing production tables and crash on first user interaction.
+- `app/stories/companion/[slug].tsx`, `app/stories/prophet/[slug].tsx`, `app/learn/lesson/[lessonId].tsx` used `.single()` on params-driven lookups — Rule 028 violation, would throw `PGRST116` on a stale deep-link slug/id.
+
+**Root Causes**:
+1. **Schema-name drift between brief and production.** The brief and earlier audit referenced `companions`, `companion_stories`, `my_hadith_folders`, `folder_hadiths`, `redeem_codes` — none of which exist in production *under those names*. Production has the same conceptual entities under different names (`sahaba`, `story_parts`, `hadith_folders` + `saved_hadiths.folder_id`, `promo_codes`). Mobile app code was already aligned to the real names; the gap was documentation, not implementation.
+2. **Three V1 forward-looking tables genuinely missing:** `quiz_questions`, `study_notes`, `user_progress_events`. None are required for current screens to function (quiz generates dynamically, reflections use `saved_hadiths.notes`, progress is local-first), but creating them now unblocks future content authoring and richer UX without a schema migration close to launch.
+3. **`.single()` overuse on content-by-slug queries** — three V1 detail screens would throw on a stale or invalid deep-link instead of showing a clean "not found" empty state.
+
+**Fix Applied**:
+
+1. Probed production Supabase via PostgREST anon key. Built a complete table inventory and alias map. Documented in `V1_SCHEMA_ALIGNMENT_AUDIT.md`.
+2. Created `authentichadithapp/supabase/migrations/100-v1-schema-alignment.sql` adding three tables:
+   - `quiz_questions` — authored quiz content (forward-compatible; current screen still works dynamically against `hadiths`)
+   - `study_notes` — entity-flexible user notes (`hadith` | `lesson` | `story` | `sunnah_practice` | etc.)
+   - `user_progress_events` — unified Supabase mirror for completion events (UNIQUE on user_id+entity_type+entity_id+action for idempotent upserts)
+   All three use `CREATE TABLE IF NOT EXISTS`, `CREATE POLICY` wrapped in `DO $$ BEGIN ... EXCEPTION duplicate_object`, and full RLS — fully idempotent and re-runnable.
+3. Hardened three detail screens against bad slug/id: `.single()` → `.maybeSingle()`, added `__DEV__` warn logs for non-fatal query errors, and replaced `app/learn/lesson/[lessonId].tsx`'s silent `return null` with a clear "Lesson not found" empty state.
+
+**Files Changed**:
+- `supabase/migrations/100-v1-schema-alignment.sql` (NEW) — three forward-looking V1 tables
+- `V1_SCHEMA_ALIGNMENT_AUDIT.md` (NEW) — route-by-route schema audit + alias map
+- `app/stories/companion/[slug].tsx` — `.single()` → `.maybeSingle()`, non-fatal error handling
+- `app/stories/prophet/[slug].tsx` — `.single()` → `.maybeSingle()`, non-fatal error handling
+- `app/learn/lesson/[lessonId].tsx` — `.single()` → `.maybeSingle()`, replace silent `return null` with intentional empty state UI
+- `BUILD_FIX_LOG.md` — this entry
+- `SYSTEM_RULES.md` — new Rule 032 about table-name aliases
+- `APP_LAUNCH_PLAYBOOK.md` — V1 schema gate checklist
+
+**Verification**:
+- `python3 -c "import json; json.load(open('package-lock.json'))"` → VALID
+- `tsc --noEmit` → only 2 pre-existing errors in Expo template files (`components/hello-wave.tsx`, `components/parallax-scroll-view.tsx`); zero errors in any file changed by this fix
+- `expo-doctor` → 16/17 checks pass; sole failure is the pre-existing reanimated 3.18.2 vs 4.1.1 mismatch tied to ERROR_REPORT.md's active warm-relaunch bug, unrelated to schema work
+- SQL migration syntax verified by manual review against the patterns used in existing migrations 996/997/998/999. All statements are idempotent.
+- Production schema verified via PostgREST: 8 collections, 410 books, 31886 hadiths, 25 prophets, 13 sahaba, 36 story_parts, 365 sunnah_practices, 10 lessons, 0 hadith_folders (RLS), all reachable from anon key.
+
+**Production Application Instructions**:
+1. KP opens Supabase dashboard for project `nqklipakrfuwebkdnhwg`
+2. SQL Editor → New query → paste contents of `authentichadithapp/supabase/migrations/100-v1-schema-alignment.sql`
+3. Run. The migration is wrapped in idempotent guards; re-running is safe.
+4. Verify with anon-key probe: `quiz_questions`, `study_notes`, `user_progress_events` all return HTTP 200.
+
+**Lesson Learned**:
+The "missing tables" framing in the brief was symptom-level, not root-level. The actual gap was naming-convention drift between the brief (which used semantically-named placeholders) and production (which had the same entities under different names). Always probe the live schema and build an alias map before assuming missing data is missing tables. Adding new tables when an existing one already serves the purpose creates duplicate sources of truth — exactly the kind of debt that turns into the next FIX-002.
+
+**Pattern Category**: Schema Alignment / Route-to-Table Audit / Rule 028 (no `.single()` on params-driven lookups)
+
+---
+
 ### [FIX-034] — Regenerate Corrupted `package-lock.json` Blocking EAS Build
 **Date**: 2026-05-08
 **Session**: Claude Code (Senior EAS Release Engineer)

@@ -853,6 +853,51 @@ This caused FIX-032 Issue A: the old `achievements.tsx` queried `supabase.from('
 
 ---
 
+## Rule 032: Probe Live Schema and Build an Alias Map Before Inventing Tables
+
+When a task framing says "table X is missing," verify by probing the live Supabase schema before creating a new table. Production may already have the same entity under a different name. Inventing a duplicate creates two sources of truth — the exact pattern that produced FIX-002.
+
+This rule was extracted during FIX-035 (V1 Schema Alignment Sprint). The brief asked for `companions`, `companion_stories`, `my_hadith_folders`, `folder_hadiths`, `redeem_codes`, `bookmarks`, `daily_hadiths` — none of which exist under those names. All but two are aliased to existing production tables: `sahaba`, `story_parts`, `hadith_folders` + `saved_hadiths.folder_id`, `promo_codes`, `saved_hadiths`. Daily hadith is computed at request time, no table needed.
+
+### Required before any "create missing table" PR
+
+1. **Probe the live schema** with the anon key from `lib/supabase/config.ts`:
+   ```bash
+   curl -s -o /dev/null -w "%{http_code}" \
+     "${SUPABASE_URL}/rest/v1/<table>?select=*&limit=1" \
+     -H "apikey: ${ANON_KEY}"
+   # 200 = exists (RLS may hide rows). 404 = does not exist.
+   ```
+2. **Grep the codebase** for all variants of the entity name. Mobile may already query the right table under a different name than the brief uses:
+   ```bash
+   grep -rln "supabase.from('<entity>" app/ lib/ hooks/
+   ```
+3. **Read the audit doc** (`V1_SCHEMA_ALIGNMENT_AUDIT.md` or successor). The alias map there is the source of truth for "which name is real."
+4. Only then create the migration. Use `CREATE TABLE IF NOT EXISTS` and idempotent policy guards (`DO $$ BEGIN ... EXCEPTION WHEN duplicate_object`).
+
+### Forbidden
+
+- Creating a new table when the audit alias map shows an existing table serving the same purpose
+- Renaming an existing production table to match a brief's naming preference (breaks the live web app + every existing query)
+- Trusting earlier audit docs over a fresh schema probe — production drifts; documents go stale
+
+### Known Production Aliases (as of FIX-035, 2026-05-08)
+
+| Conceptual name | Real production table |
+|---|---|
+| companions | `sahaba` |
+| companion_stories | `story_parts` filtered by `sahabi_id` |
+| my_hadith_folders | `hadith_folders` |
+| folder_hadiths | `saved_hadiths.folder_id` (column, not separate table) |
+| redeem_codes | `promo_codes` (with `redeem_promo_code` RPC) |
+| bookmarks | `saved_hadiths` |
+| daily_hadiths | computed at request time from `hadiths` (no table) |
+| reading_history | `hadith_views` |
+
+Update this list when a new alias is identified.
+
+---
+
 # Required File System
 
 Every serious app build must include:
