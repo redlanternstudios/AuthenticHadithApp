@@ -663,6 +663,56 @@ A clean dev startup is the baseline. If it fails because of missing optional cre
 
 ---
 
+## Rule 031: Validate `package-lock.json` JSON Before Diagnosing EAS Install Failures
+
+When EAS Build's "Install dependencies" phase fails with the opaque CLI message *"Unknown error. See logs of the Install dependencies build phase for more information"*, the first diagnostic step is ALWAYS:
+
+```bash
+python3 -c "import json; json.load(open('package-lock.json'))"
+```
+
+If that errors, the lockfile JSON is corrupted and EAS's `npm ci` can't parse it. Fix by regenerating:
+
+```bash
+rm package-lock.json
+LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 npm install --ignore-scripts
+```
+
+This caused FIX-034: two EAS builds were burned guessing at JS source / orphan-import issues before KP pasted the actual EAS web log, which immediately surfaced the lockfile parse error.
+
+### Why local tooling misses this
+
+| Tool | Behavior on corrupted lockfile |
+|---|---|
+| `npm install` | Lenient — falls back to cached `node_modules` and may not error |
+| `npm install --dry-run` | Lenient — reports "up to date" if cache is consistent |
+| `npx tsc --noEmit` | Doesn't read the lockfile |
+| `npx expo-doctor` | Doesn't validate lockfile JSON syntax |
+| Metro bundler | Doesn't read the lockfile |
+| `npm ci` (what EAS uses) | **Strict** — aborts immediately on JSON parse failure |
+
+A lockfile that "works locally" can still be invalid JSON. EAS catches this; everything else hides it.
+
+### Required diagnostic order for EAS install-dependencies failures
+
+1. `python3 -c "import json; json.load(open('package-lock.json'))"` — JSON validity
+2. `python3 -c "import json; json.load(open('package.json'))"` — same for package.json
+3. `npx eas-cli build:view <build-id>` — get the EAS web URL
+4. Open the web URL, expand "Install dependencies" phase, copy the failure tail
+5. Match the failure to a known cause:
+   - Lockfile parse error → regenerate
+   - Missing peer dependency → install or downgrade
+   - Postinstall script failure → check the package's install hooks
+   - Out-of-disk / out-of-memory on EAS worker → retry, or escalate to Expo support
+
+### Forbidden
+
+- Re-running the EAS build with no diagnostic between attempts (wastes credits, no learning)
+- Guessing at JS-source causes when the failure is in the install phase (different layer)
+- Trusting `npm install --dry-run` "up to date" output as proof of lockfile health
+
+---
+
 ## Rule 029: Web-to-Mobile Feature Ports Require an Audit Before Implementation
 
 Any task framed as "port the website feature to mobile" or "replicate the web version in mobile" MUST start with a documented parity audit (`WEB_TO_MOBILE_PARITY_AUDIT.md` style) before any code is written.

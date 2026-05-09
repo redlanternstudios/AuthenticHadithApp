@@ -1,104 +1,115 @@
 # EAS_PREVIEW_BUILD_01.md — Authentic Hadith iOS App
-## First EAS Preview Build Attempt
+## EAS Preview Build History
+
+## ✅ Build #3 — SUCCESS (current)
 
 | | |
 |---|---|
-| **Build URL** | https://expo.dev/accounts/redlantern/projects/authentichadithapp/builds/aa4e7b45-475c-4546-9d2f-8e52bbe3f00f |
-| **Build ID** | `aa4e7b45-475c-4546-9d2f-8e52bbe3f00f` |
-| **Build Status** | ❌ **errored** |
-| **Profile used** | `preview` |
-| **Distribution** | `internal` (simulator-only — `eas.json.build.preview.ios.simulator = true`) |
-| **Commit SHA** | `6fef914990ab3ace6672b1a41f5a3920e131128d` |
+| **Build URL** | https://expo.dev/accounts/redlantern/projects/authentichadithapp/builds/7f408c96-a815-4de4-820d-2b3a317b7b54 |
+| **Build ID** | `7f408c96-a815-4de4-820d-2b3a317b7b54` |
+| **Build Status** | ✅ **finished** |
+| **Profile** | `preview` (simulator-only IPA per `eas.json`) |
+| **Distribution** | `internal` |
+| **Commit** | `9a93dbf0fc2cdf9bead3466bc6f3ae478e717141` (lockfile regenerated) |
 | **Version** | `1.0.0` |
-| **Build number** | `10` (auto-incremented from `app.json`'s `4` because EAS uses remote versioning per `eas.json.cli.appVersionSource`) |
+| **Build number** | `10` (EAS remote-versioning) |
 | **Bundle ID** | `com.byred.authentichadith` |
 | **SDK Version** | `54.0.0` |
-| **Started at** | 2026-05-08 16:58:24 PT |
-| **Finished at** | 2026-05-08 16:59:31 PT |
-| **Duration** | 67 seconds (early failure) |
-| **Started by** | redlantern |
-| **Application Archive URL** | null (no artifact produced) |
-| **Installable for real-device QA** | ❌ no — even if it had succeeded, the `preview` profile produces a simulator-only IPA |
+| **Fingerprint** | `5da28e88e4a085c3ccb85ed401b376d1cf4d8838` |
+| **Started at** | 2026-05-08 17:29:46 PT |
+| **Finished at** | 2026-05-08 17:40:19 PT |
+| **Duration** | 10 min 33 s |
+| **Application Archive URL** | https://expo.dev/artifacts/eas/gHoFdJunVtDYkm7KYv8bpf.tar.gz |
+| **Installable for real-device QA** | ❌ **No — this is a SIMULATOR-only IPA.** Drag-drop the `.tar.gz` onto a booted iOS simulator to test. For real-device testing, a separate `internal-device` profile is needed (see *Next steps* below). |
 
----
+## What got past the install dependencies phase
 
-## What EAS Surfaced
+After regenerating `package-lock.json` (commit `9a93dbf`), `npm ci` parsed cleanly on EAS workers and the build proceeded through:
+- Install dependencies ✅
+- Prebuild ✅
+- Native iOS compile (xcodebuild) ✅
+- Code signing (development cert) ✅
+- Archive ✅
+- Total: 10:33
 
-```
-🍏 iOS build failed:
-  Unknown error. See logs of the Install dependencies build phase for more information.
-```
+## How to install on the simulator
 
-The 67-second total runtime indicates failure in the **Install dependencies** phase (the first major phase after upload). EAS does not expose detailed logs via the CLI; the logs are only viewable at the build URL.
-
-## Pre-flight Status (verified before launch)
-
-| Check | Result |
-|---|---|
-| `git status` clean (in sync with origin/main) | ✅ |
-| `npx eas-cli whoami` | `redlantern / roryleesemeah@gmail.com` ✅ |
-| Local `npm install --ignore-scripts --dry-run` | ✅ "up to date" — lockfile and package.json consistent |
-| Local Node | v20.19.4 (Expo SDK 54-compatible) |
-| Local `npx expo-doctor` | ✅ 17/17 checks passed |
-
-So the local environment is healthy. The failure is EAS-side.
-
-## Likely Causes (ranked)
-
-1. **`lib/offline/sqlite-db.ts` imports a package not in `package.json`.**
-   Line 1: `import * as SQLite from 'expo-sqlite'` — but `expo-sqlite` is NOT in dependencies. This is the same pre-existing TypeScript warning we've been ignoring across FIX-028 → FIX-033. On EAS, the bundle/autolinking step may fail to resolve this import.
-   - Fix: either install `expo-sqlite` (`npx expo install expo-sqlite`, KP-approved) or remove/comment the file (it's clearly a dormant feature stub)
-2. **`react-native-purchases` postinstall script** failing on EAS macOS workers.
-   - Fix: check the build URL log for "react-native-purchases" or "postinstall" lines
-3. **Expo plugin resolution failure.** A plugin in `app.json.expo.plugins` failing to load on the EAS worker. Currently registered: `expo-router`, `expo-splash-screen`, `expo-secure-store`, `expo-web-browser`. None recently changed.
-4. **Locale issue on EAS workers** (similar to FIX-028 CocoaPods UTF-8). Less likely — EAS should have correct locale by default.
-
-## Definitive Diagnosis Requires the EAS Web Log
-
-The CLI does not expose `build:logs`. Two paths to the actual error:
-
-**Path 1 — KP opens the build URL in a browser:**
-1. Open https://expo.dev/accounts/redlantern/projects/authentichadithapp/builds/aa4e7b45-475c-4546-9d2f-8e52bbe3f00f
-2. Click the "Install dependencies" phase
-3. Scroll to the bottom of the log
-4. Copy the last ~30-50 lines and paste them here
-
-**Path 2 — re-run with verbose logs**:
 ```bash
-cd /Users/kp/Projects/AuthenticHadithApp/authentichadithapp
-LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 npx eas-cli build \
-  --platform ios --profile preview --non-interactive \
-  --verbose-logs --build-logger-level debug
+# Boot the simulator if not already booted
+xcrun simctl boot F5384F69-2BE1-40DC-806B-B4C45F03736A 2>/dev/null
+open -a Simulator
+
+# Download the artifact
+curl -L -o /tmp/authentichadith-preview.tar.gz \
+  https://expo.dev/artifacts/eas/gHoFdJunVtDYkm7KYv8bpf.tar.gz
+
+# Extract and install
+tar -xzf /tmp/authentichadith-preview.tar.gz -C /tmp/
+xcrun simctl install booted /tmp/AuthenticHadith.app
+
+# Launch
+xcrun simctl launch booted com.byred.authentichadith
 ```
-Then KP can paste the failure tail when it errors.
 
-## Real-Device QA Checklist (for when build succeeds)
+This installs the EAS-built bundle directly — no Metro, no dev client, no warm-relaunch dev artifacts. This is the best approximation of production behavior achievable on a simulator.
 
-When the next build produces a usable IPA (preview SIM IPA OR a new device-installable profile):
+## Real-Device QA Checklist (when KP later builds an internal-device profile)
 
-For simulator IPAs (`preview` profile):
-1. Drag-drop the `.app.tar.gz` onto the booted iOS simulator
-2. Cold launch → home screen renders, no redbox
-3. Force-quit (cmd+shift+H twice, swipe up) and relaunch — confirm Reanimated warm-relaunch finding (still pending verification)
-4. Tap Badges tile → screen renders
-5. Tap a Prophet/Companion story → tap Mark Complete → "✅ Completed" persists across navigation and restart
-6. Tap a lesson → Mark Complete
-7. Open Sunnah → confirm 7 categories + 35 practices (or live Supabase data)
-8. Home → scroll to AI Summary button → tap → loading → summary or friendly fallback
+For a real-device IPA, add this to `eas.json` (separate from this build):
 
-For device IPAs (would require a new `internal-device` profile in `eas.json` — see prior turn):
-- All of the above, plus the actual cold-launch + force-quit + relaunch behavior in production conditions, which is what answers the Reanimated warm-relaunch question definitively
+```json
+"internal-device": {
+  "distribution": "internal",
+  "ios": {
+    "simulator": false
+  }
+}
+```
 
-## Blockers Before TestFlight
+Then `npx eas-cli build --platform ios --profile internal-device --non-interactive` produces a real-device IPA.
+
+Real-device test priorities:
+1. Cold launch — confirm home screen renders, no crash
+2. **Force-quit + relaunch** — answers the open Reanimated warm-relaunch SIGABRT question (VERIFY-033)
+3. Tap Badges → confirm renders
+4. Complete a story → confirm persistence across navigation + app restart
+5. Tap a lesson → Mark Complete
+6. Open Sunnah → verify 7 categories + 35 practices (or live Supabase data)
+7. Home → AI Summary on Hadith of the Moment card
+
+## Blockers Before TestFlight (unchanged from prior status)
 
 | Blocker | Owner | Status |
 |---|---|---|
-| **EAS preview build is failing** | Engineering — needs log inspection | 🔴 ACTIVE (this doc) |
-| `expo-sqlite` orphan import | Engineering — install or remove | Likely cause of build failure |
-| Apple Developer Portal IAP capability not enabled | KP — manual external | Open |
-| App Store Connect product IDs unverified | KP — manual external | Open |
-| RevenueCat dashboard product mapping unverified | KP — manual external | Open |
-| Supabase demo review account not created | KP — manual external | Open |
-| Privacy policy URL not deployed | KP — manual external | Open |
-| Reanimated warm-relaunch SIGABRT (dev-only finding from VERIFY-033) | Real-device verification once IPA is available | Open |
-| Preview profile is simulator-only — won't help real-device test | KP — decide whether to add `internal-device` profile to eas.json | Open |
+| Apple Developer Portal IAP capability | KP — manual external | Open |
+| App Store Connect product IDs | KP — manual external | Open |
+| RevenueCat dashboard mapping | KP — manual external | Open |
+| Supabase demo review account | KP — manual external | Open |
+| Privacy policy URL deployment | KP — manual external | Open |
+| Reanimated warm-relaunch real-device test | KP — install + force-quit | Open |
+| Internal-device EAS profile for real-device QA | KP — eas.json edit + new build | Open |
+
+---
+
+## ❌ Build #2 — FAILED (historical)
+
+| | |
+|---|---|
+| Build ID | `3fa1f5e1-7237-4a33-8e66-e43e6a7aae8a` |
+| Commit | `ac6c0ea` (orphan `lib/offline/` removed) |
+| Status | errored — Install dependencies phase |
+| Cause | Same lockfile corruption as Build #1 — orphan removal didn't touch package-lock.json |
+| Duration | ~67s |
+
+---
+
+## ❌ Build #1 — FAILED (historical)
+
+| | |
+|---|---|
+| Build ID | `aa4e7b45-475c-4546-9d2f-8e52bbe3f00f` |
+| Commit | `6fef914` |
+| Status | errored — Install dependencies phase |
+| Cause | `package-lock.json` corrupted JSON (duplicate `react-native` peerDep keys, missing braces near zod entry). KP-pasted EAS log revealed the precise error: *"Expected ',' or '}' after property value in JSON at position 112804 while parsing near '...=0.65 <1.0\n        \"react-native\": \"^0...'"* |
+| Fix | Build #3 (commit `9a93dbf`) — regenerated `package-lock.json` from scratch via `rm package-lock.json && npm install --ignore-scripts`. New lockfile valid JSON, 871 lines smaller. |
+| Duration | ~67s |

@@ -91,6 +91,77 @@ Before any EAS build:
 
 ## FIXES
 
+### [FIX-034] — Regenerate Corrupted `package-lock.json` Blocking EAS Build
+**Date**: 2026-05-08
+**Session**: Claude Code (Senior EAS Release Engineer)
+**Severity**: Critical — every EAS build aborted in "Install dependencies"
+
+**Problem**:
+Two consecutive EAS preview iOS builds (`aa4e7b45-...`, `3fa1f5e1-...`) failed in the **Install dependencies** phase. EAS CLI surfaced only the generic "Unknown error" message; `--verbose-logs` and `--build-logger-level debug` flags affected only EAS server-side logging, not CLI output. Each build cost 60-90s before erroring.
+
+**Root Cause** (revealed by KP-pasted EAS web log):
+```
+npm verbose shrinkwrap failed to load package-lock.json
+Expected ',' or '}' after property value in JSON at position 112804
+while parsing near "...=0.65 <1.0\"\n        \"react-native\": \"^0...."
+```
+
+`package-lock.json` was malformed JSON. Local inspection found two corruption sites:
+1. **char 112804** — duplicate `"react-native"` peerDep keys with no comma between them, in `node_modules/@react-native-async-storage/async-storage`
+2. **char 532824** — missing `}` and `,` between `peerDependenciesMeta` and `"node_modules/zod"` entry
+
+Both were merge artifacts — npm rewrote the lockfile multiple times without proper deduplication or formatting. The local team didn't catch it because:
+- `npm install --dry-run` reports "up to date" against cached `node_modules` even when the lockfile JSON is invalid
+- `expo-doctor` doesn't validate lockfile syntax
+- TypeScript and Metro don't read package-lock.json
+- `npm ci` (what EAS uses) is strict and aborts immediately on parse failure
+
+**Fix Applied**:
+
+```bash
+cd /Users/kp/Projects/AuthenticHadithApp/authentichadithapp
+rm package-lock.json
+LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 npm install --ignore-scripts
+```
+
+Result:
+- Lockfile shrank from 14,311 lines → 13,440 lines (corruption was bloating with duplicate entries)
+- `python3 -c "import json; json.load(...)"` → ✅ valid JSON
+- `npm ci` replay in `/tmp/test-ci/` sandbox installed 639 packages cleanly (exactly what EAS does)
+
+**Files Changed**:
+- `package-lock.json` — regenerated from scratch (914 insertions, 1786 deletions in diff stat)
+- `EAS_PREVIEW_BUILD_01.md` — full build history (Build #1, #2 failed; Build #3 succeeded)
+- `ERROR_REPORT.md` — documented diagnostic order, reset to 🟢 after Build #3 succeeded
+- `BUILD_FIX_LOG.md` — this entry
+- `SYSTEM_RULES.md` — Rule 031 added
+
+**Verification**:
+- ✅ Local TS clean
+- ✅ Local `expo-doctor` 17/17
+- ✅ Local `npm ci` sandbox replay installed 639 packages
+- ✅ **EAS Build #3 (`7f408c96-a815-4de4-820d-2b3a317b7b54`) succeeded** in 10:33 — produced installable simulator IPA at `https://expo.dev/artifacts/eas/gHoFdJunVtDYkm7KYv8bpf.tar.gz`
+
+**Result**: Fixed. Three commits documented this loop:
+- `ac6c0ea` — removed orphan `lib/offline/` (correct cleanup, but unrelated to this build failure)
+- `bda7fdc` — honest stop-point after wrong hypothesis was disproved
+- `9a93dbf` — actual fix (lockfile regen)
+
+**Lesson**:
+When EAS "Install dependencies" fails with opaque CLI output, **validate `package-lock.json` JSON first**:
+```bash
+python3 -c "import json; json.load(open('package-lock.json'))"
+```
+If invalid, `rm package-lock.json && npm install --ignore-scripts` fixes it. Don't speculate about JS source issues until the lockfile JSON is verified parseable.
+
+The cost of two extra builds (~5 min each, real EAS credits) was avoidable if the CLI had surfaced the parse error. Bug in EAS CLI UX, but ours to work around.
+
+The orphan `lib/offline/` directory removal in commit `ac6c0ea` was good cleanup (those files were genuinely dormant + unused) but did NOT cause or fix this build failure. Keep it removed.
+
+**Pattern Category**: EAS Build / lockfile integrity / opaque-CLI workaround
+
+---
+
 ### [FIX-033] — Web-to-Mobile Parity: Sunnah Fallback Data + Home Summarize Button
 **Date**: 2026-05-08
 **Session**: Claude Code (Senior Full-Stack Mobile/Web Parity Engineer)
