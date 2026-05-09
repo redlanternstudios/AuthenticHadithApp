@@ -91,6 +91,39 @@ Before any EAS build:
 
 ## FIXES
 
+### [FIX-037] — V1 Content + AI Summary Audit (chapter truncation, home subtitle, AI fallback)
+**Date**: 2026-05-09
+**Trigger**: Real-device QA on the internal-device build (RoPhone) surfaced two complaints: "the other hadiths never downloaded" and "AI Summary is not configured correctly." Full audit in `V1_CONTENT_AI_AUDIT.md`.
+
+**Root causes (three distinct, classified separately)**:
+
+1. **`MOBILE_QUERY_LIMIT_BUG`** — `app/chapter/[id].tsx` had a hardcoded `.limit(100)` on the chapter-hadith query. Hadiths in production have no `chapter_id` column; the screen filters by `(collection_slug, book_number)` which scopes to the parent book. Any book with more than 100 hadiths silently dropped the rest. Largest book in production is Muwatta Malik §15 with 574 hadiths — well above 100.
+2. **Cosmetic count drift** — `app/(tabs)/index.tsx` subtitle hardcoded `36,246 hadiths`, which matches neither the canonical declared total (~61,448) nor the actual production row count (31,886). Probed live via PostgREST `Prefer: count=exact` against `nqklipakrfuwebkdnhwg.supabase.co`.
+3. **`UI_FALLBACK_ONLY`** (secondary) — `app/hadith/[id].tsx` used `Alert.alert(…)` when AI Summary failed. `HadithCard` (FIX-033) had already adopted a friendly inline `summaryError` block. Inconsistent UX; popup interrupts hadith reading.
+
+The AI Summary feature itself is broken at the **Vercel backend layer** (`/api/mobile-chat` returns HTTP 404 on the deployed `www.authentichadith.app` host with a stable cached etag — sister routes `/api/test-groq`, `/api/chat`, `/api/daily-hadith` all respond). That blocker is documented in `ERROR_REPORT.md` 🔴 ACTIVE and requires KP / Vercel action; **no mobile code can fix it**.
+
+**Files changed**:
+- `app/chapter/[id].tsx` — `.limit(100)` → `.limit(1000)` (PostgREST default cap, well above any single book). `.single()` → `.maybeSingle()` on chapter / book / collection lookups with non-null guards (Rule 028 hardening). Inline comment documenting the schema reality (no `chapter_id` column).
+- `app/(tabs)/index.tsx` — subtitle `36,246` → `31,886` (matches live production count).
+- `app/hadith/[id].tsx` — replaced `Alert.alert('Error', …)` AI Summary failure popup with the same inline `summaryError` block pattern used in `HadithCard.tsx` (FIX-033). Added defensive check that `response` is a non-empty string before calling `setSummary`.
+
+**Verification**:
+- `node -e "JSON.parse(require('fs').readFileSync('package-lock.json','utf8'))"` → `package-lock valid`
+- `npx tsc --noEmit` → exit 0, clean
+- `npx expo-doctor` → 17/17 checks passed
+- Live PostgREST probes confirmed all 8 collection counts and the 31,886 total
+- Live curl probes confirmed `/api/mobile-chat` 404 (BACKEND_ROUTE_ERROR) and that the friendly mobile fallback path is the only thing the user sees
+
+**Lesson**:
+1. Hardcoded `.limit()` caps on Supabase queries are landmines when the underlying table grows past the cap silently. PostgREST defaults to 1000 — anything tighter must have a UX reason and a `range()`-based pagination path. Single `.limit(100)` with no follow-up pagination is always wrong for content-heavy tables.
+2. Hardcoded counts in subtitles drift the moment Supabase content changes. Either derive at runtime from `sum(collections.total_hadiths)` or accept a stale-by-design hardcode and update with each content audit.
+3. When a feature depends on an out-of-repo backend (Vercel here), the mobile lane's job is bounded: validate the URL, validate the payload shape, validate the friendly fallback. Restoring the route itself is not a mobile-code problem and should not be pursued from this lane.
+
+**Pattern category**: SUPABASE_QUERY_LIMITS / UI_COPY_DRIFT / EXTERNAL_BACKEND_ROUTE_LOSS
+
+---
+
 ### [FIX-036] — Reanimated 4 Warm-Relaunch Hang (Option A: Downgrade to 3.18)
 **Date**: 2026-05-08
 **Session**: Claude Code (Senior Release Engineer)
