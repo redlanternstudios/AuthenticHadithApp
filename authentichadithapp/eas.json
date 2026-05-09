@@ -14,6 +14,12 @@
         "simulator": true
       }
     },
+    "internal-device": {
+      "distribution": "internal",
+      "ios": {
+        "simulator": false
+      }
+    },
     "production": {
       "autoIncrement": true
     }
