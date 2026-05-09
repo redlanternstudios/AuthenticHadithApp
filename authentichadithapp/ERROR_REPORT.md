@@ -7,7 +7,49 @@
 
 ## CURRENT ERROR
 
-**Status**: 🔴 ACTIVE — EAS preview iOS build failing (2nd attempt) — diagnosis blocked on opaque CLI output
+**Status**: 🟡 ROOT CAUSE FOUND, FIX APPLIED — 3rd EAS build queued
+
+### Root cause (confirmed from KP-pasted EAS log)
+
+`package-lock.json` was corrupted JSON. The EAS log showed:
+```
+npm verbose shrinkwrap failed to load package-lock.json
+Expected ',' or '}' after property value in JSON at position 112804
+while parsing near "...=0.65 <1.0\"\n        \"react-native\": \"^0...."
+```
+
+Local inspection confirmed at least TWO corruption sites:
+1. **char 112804** — duplicate `"react-native"` peer dep in `node_modules/@react-native-async-storage/async-storage` with no comma between them
+2. **char 532824** — missing `}` and `,` between `peerDependenciesMeta` block and `"node_modules/zod"` entry
+
+`npm install --dry-run` had been silently lenient about this corruption locally (because it could fall back to cached node_modules). `npm ci` (which EAS uses) is strict and fails immediately.
+
+### Fix applied
+
+Regenerated the lockfile from scratch:
+```bash
+rm package-lock.json
+npm install --ignore-scripts
+```
+
+Result:
+- 14,311 lines → 13,440 lines (corruption was bloating it with duplicate entries)
+- `python3 -c "import json; json.load(...)"` → ✅ valid JSON
+- TypeScript clean (0 errors)
+- expo-doctor 17/17 passed
+- **`npm ci` replay in a sandbox dir installed 639 packages cleanly** — exactly what EAS will run
+
+### Original failures (preserved)
+
+| # | Build ID | Commit | Outcome | Cause |
+|---|---|---|---|---|
+| 1 | aa4e7b45-475c-4546-9d2f-8e52bbe3f00f | 6fef914 | ❌ Install dependencies | Corrupted lockfile |
+| 2 | 3fa1f5e1-7237-4a33-8e66-e43e6a7aae8a | ac6c0ea | ❌ Install dependencies | Same corrupted lockfile (orphan-removal didn't touch it) |
+| 3 | (pending) | (post-fix) | (pending) | Should succeed |
+
+### Why we missed it earlier
+
+The orphan-`expo-sqlite` hypothesis seemed compelling because of the long-standing TS warning. It was the wrong hypothesis. The actual cause was lockfile JSON corruption that `npm install --dry-run` silently tolerated. Lesson: when EAS install dependencies fails, **the corruption is almost always in `package-lock.json` or `package.json`**, not in JS source. Validate JSON first.
 
 ### Headline (UPDATED)
 
