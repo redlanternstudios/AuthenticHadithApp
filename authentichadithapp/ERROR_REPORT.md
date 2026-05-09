@@ -7,7 +7,16 @@
 
 ## CURRENT ERROR
 
-**Status**: 🔴 ACTIVE — EAS preview iOS build failing in "Install dependencies" phase
+**Status**: 🟡 PROBABLE FIX APPLIED — re-run EAS preview build to confirm
+
+> Removed orphan `lib/offline/` directory (sqlite-db.ts + sync-manager.ts) that imported the un-installed `expo-sqlite` package. Was the strongest hypothesis for the build failure. TypeScript now clean (0 errors), expo-doctor 17/17 passes. Awaiting re-run with `--verbose-logs` to either confirm the fix or surface the next layer.
+
+---
+
+## ORIGINAL FAILURE (preserved for next session context)
+
+**Build:** aa4e7b45-475c-4546-9d2f-8e52bbe3f00f
+**Status was**: 🔴 ACTIVE — EAS preview iOS build failing in "Install dependencies" phase
 
 ### Headline
 First EAS preview iOS build (`aa4e7b45-475c-4546-9d2f-8e52bbe3f00f`) errored after 67 seconds in the **Install dependencies** phase. EAS only surfaces a generic "Unknown error" via the CLI; detailed logs are only available at the build URL in a browser.
