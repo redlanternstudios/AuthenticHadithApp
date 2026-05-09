@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
-  Alert,
   Pressable,
 } from 'react-native'
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router'
@@ -39,8 +38,11 @@ export default function HadithDetailScreen() {
 
   const [showSaveModal, setShowSaveModal] = useState(false)
   const [summary, setSummary] = useState<string | null>(null)
+  const [summaryError, setSummaryError] = useState<string | null>(null)
   const [isSummarizing, setIsSummarizing] = useState(false)
   const [languageMode, setLanguageMode] = useState<LanguageMode>('both')
+
+  const SUMMARY_UNAVAILABLE = 'Summary is temporarily unavailable. Please try again later.'
 
   // Fetch collection display name
   const { data: collectionData } = useQuery({
@@ -92,6 +94,7 @@ export default function HadithDetailScreen() {
     if (!hadith) return
     setIsSummarizing(true)
     setSummary(null)
+    setSummaryError(null)
     try {
       const response = await sendChatMessage([
         {
@@ -101,9 +104,16 @@ export default function HadithDetailScreen() {
           timestamp: new Date().toISOString(),
         },
       ])
-      setSummary(response)
+      // Defensive: a missing or non-string response (e.g. backend route 404
+      // returning HTML) must surface the friendly fallback rather than rendering
+      // "undefined". Matches the inline-summary pattern used in HadithCard.
+      if (typeof response === 'string' && response.trim().length > 0) {
+        setSummary(response)
+      } else {
+        setSummaryError(SUMMARY_UNAVAILABLE)
+      }
     } catch {
-      Alert.alert('Error', 'Could not generate summary. Please try again.')
+      setSummaryError(SUMMARY_UNAVAILABLE)
     } finally {
       setIsSummarizing(false)
     }
@@ -400,6 +410,20 @@ export default function HadithDetailScreen() {
           >
             <Text style={[styles.sectionLabel, { color: colors.emeraldMid }]}>Summary</Text>
             <Text style={[styles.summaryText, { color: colors.bronzeText }]}>{summary}</Text>
+          </View>
+        ) : null}
+
+        {/* Friendly inline fallback when AI Summary is unavailable.
+            Replaces the prior Alert.alert popup so a backend outage does not
+            interrupt reading the hadith itself. */}
+        {summaryError ? (
+          <View
+            style={[
+              styles.summaryBox,
+              { backgroundColor: colors.mutedText + '10', borderColor: colors.border },
+            ]}
+          >
+            <Text style={[styles.summaryText, { color: colors.mutedText }]}>{summaryError}</Text>
           </View>
         ) : null}
 

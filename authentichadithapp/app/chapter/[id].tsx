@@ -29,9 +29,9 @@ export default function ChapterDetailScreen() {
         .from('chapters')
         .select('*')
         .eq('id', id)
-        .single()
+        .maybeSingle()
       if (error) throw error
-      return data as ChapterDetail
+      return data as ChapterDetail | null
     },
     enabled: !!id,
   })
@@ -44,21 +44,29 @@ export default function ChapterDetailScreen() {
         .from('books')
         .select('number, collection_id')
         .eq('id', chapter!.book_id)
-        .single()
+        .maybeSingle()
       if (bookErr) throw bookErr
+      if (!book) return null
 
       const { data: col, error: colErr } = await supabase
         .from('collections')
         .select('slug')
         .eq('id', book.collection_id)
-        .single()
+        .maybeSingle()
       if (colErr) throw colErr
+      if (!col) return null
 
       return { bookNumber: book.number, collectionSlug: col.slug }
     },
     enabled: !!chapter?.book_id,
   })
 
+  // Hadiths in production are linked to books via (collection_slug, book_number) only —
+  // there is no chapter_id column on the hadiths table. Until that column is added,
+  // this screen displays every hadith in the parent book. The 1000-row cap matches
+  // PostgREST's default limit and is well above any single book's hadith count
+  // (largest seen: ~260 in Bukhari book 10). The previous .limit(100) cap was
+  // truncating content for larger books.
   const { data: hadiths, isLoading: hadithsLoading } = useQuery({
     queryKey: ['chapter-hadiths', parentBook?.collectionSlug, parentBook?.bookNumber],
     queryFn: async () => {
@@ -68,7 +76,7 @@ export default function ChapterDetailScreen() {
         .eq('collection_slug', parentBook!.collectionSlug)
         .eq('book_number', parentBook!.bookNumber)
         .order('hadith_number', { ascending: true })
-        .limit(100)
+        .limit(1000)
       if (error) throw error
       return (data as Hadith[]) || []
     },

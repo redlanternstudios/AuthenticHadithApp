@@ -132,7 +132,7 @@ export default function HomeScreen() {
         </Text>
         <Text style={[styles.title, { color: colors.bronzeText }]}>Authentic Hadith</Text>
         <Text style={[styles.subtitle, { color: colors.mutedText }]}>
-          36,246 hadiths from 8 major collections
+          31,886 hadiths from 8 major collections
         </Text>
       </View>
 
