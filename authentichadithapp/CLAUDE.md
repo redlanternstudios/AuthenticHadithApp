@@ -4,15 +4,17 @@
 
 Before modifying code, Claude Code must read:
 
-1. `ERROR_REPORT.md`
-2. `BUILD_FIX_LOG.md`
-3. `SYSTEM_RULES.md`
-4. `APP_LAUNCH_PLAYBOOK.md`
-5. `AI_OPERATOR_HANDOFF_PROTOCOL.md`
-6. `CURRENT_MODEL_ASSIGNMENTS.md`
-7. `WORKFLOW_ROUTER.md`
+1. `PROJECT_CONTEXT.md`
+2. `ERROR_REPORT.md`
+3. `BUILD_FIX_LOG.md`
+4. `SYSTEM_RULES.md`
+5. `PROJECT_PLAYBOOK.md`
+6. `APP_LAUNCH_PLAYBOOK.md`
+7. `AI_OPERATOR_HANDOFF_PROTOCOL.md`
+8. `CURRENT_MODEL_ASSIGNMENTS.md`
+9. `WORKFLOW_ROUTER.md`
 
-Claude Code must not modify app code until these files have been reviewed.
+Claude Code must not modify app code until the full mandatory startup review is complete.
 
 If any required file is missing, Claude Code must notify KP before making major code changes and recommend creating or restoring the missing file.
 
@@ -20,14 +22,22 @@ If any required file is missing, Claude Code must notify KP before making major 
 
 ---
 
-### Step 1: Read `ERROR_REPORT.md`
+### Step 1: Read `PROJECT_CONTEXT.md`
+
+- Defines project identity, ownership, KP's role, product goal, current strategic objective, launch context, business relationship to Penn Enterprises, technical priorities, sensitive areas, AI operator context, and success standard.
+- Authentic Hadith is Rory's product unless KP explicitly states otherwise. Do not confuse ownership with Penn Enterprises LLC.
+- All later steps must be interpreted through the priorities and ownership rules in this file.
+
+---
+
+### Step 2: Read `ERROR_REPORT.md`
 
 - If status is 🔴 ACTIVE → this is the #1 priority. Fix it before anything else unless KP explicitly overrides.
 - If status is 🟢 No active errors → proceed to the user's request only after completing the rest of the mandatory startup review.
 
 ---
 
-### Step 2: Read `BUILD_FIX_LOG.md`
+### Step 3: Read `BUILD_FIX_LOG.md`
 
 - Search for keywords related to the current task or error.
 - If a matching fix exists → apply it, do not reinvent the solution.
@@ -35,7 +45,7 @@ If any required file is missing, Claude Code must notify KP before making major 
 
 ---
 
-### Step 3: Read `SYSTEM_RULES.md`
+### Step 4: Read `SYSTEM_RULES.md`
 
 - Contains the permanent engineering rules derived from recurring bug patterns.
 - These rules are non-negotiable. Every code change must comply with them.
@@ -44,9 +54,17 @@ If any required file is missing, Claude Code must notify KP before making major 
 
 ---
 
-### Step 4: Read `APP_LAUNCH_PLAYBOOK.md`
+### Step 5: Read `PROJECT_PLAYBOOK.md`
 
-- Contains the correct build process, config rules, and common fixes.
+- Universal operating playbook for this project: identity, tech stack summary, layer routing summary, safety/approval gates, debugging protocol, memory update rules, multi-LLM handoff summary, known risks.
+- Defers to `APP_LAUNCH_PLAYBOOK.md` for full iOS build/launch detail.
+- Defers to `WORKFLOW_ROUTER.md` for problem classification.
+
+---
+
+### Step 6: Read `APP_LAUNCH_PLAYBOOK.md`
+
+- Contains the correct build process, config rules, and common fixes for the iOS app.
 - Follow the dependency rules.
 - Never install packages without checking Expo SDK compatibility.
 - Follow the destructive command rules.
@@ -54,7 +72,7 @@ If any required file is missing, Claude Code must notify KP before making major 
 
 ---
 
-### Step 5: Read `AI_OPERATOR_HANDOFF_PROTOCOL.md`
+### Step 7: Read `AI_OPERATOR_HANDOFF_PROTOCOL.md`
 
 - Defines how Claude Code coordinates with KP's broader AI operator stack: ChatGPT, Gemini, v0, Make.com, Notion/Drive, By Red OS, and future approved tools.
 - Tells Claude Code when to proceed directly versus when to generate a handoff prompt for another operator.
@@ -62,7 +80,7 @@ If any required file is missing, Claude Code must notify KP before making major 
 
 ---
 
-### Step 6: Read `CURRENT_MODEL_ASSIGNMENTS.md`
+### Step 8: Read `CURRENT_MODEL_ASSIGNMENTS.md`
 
 - Lists the current approved model/tool assigned to each operator role.
 - Always check before recommending a model/tool handoff.
@@ -70,7 +88,7 @@ If any required file is missing, Claude Code must notify KP before making major 
 
 ---
 
-### Step 7: Read `WORKFLOW_ROUTER.md`
+### Step 9: Read `WORKFLOW_ROUTER.md`
 
 - Tells Claude Code whether the issue lives in VS Code, Expo config, or Xcode.
 - Classify every problem before touching files as:
@@ -163,18 +181,20 @@ Claude Code may recommend assignment changes, but must not update `CURRENT_MODEL
 
 ## File Priority Order
 
-1. `ERROR_REPORT.md` → current problem
-2. `BUILD_FIX_LOG.md` → historical solutions
-3. `SYSTEM_RULES.md` → permanent engineering rules
-4. `APP_LAUNCH_PLAYBOOK.md` → process reference
-5. `AI_OPERATOR_HANDOFF_PROTOCOL.md` → multi-LLM routing rules
-6. `CURRENT_MODEL_ASSIGNMENTS.md` → current operator/tool mapping
-7. `WORKFLOW_ROUTER.md` → tool routing: VS Code vs Expo vs Xcode
-8. `MODEL_AUDIT_LOG.md` → historical model assignment decisions, only when model/tool assignment review is relevant
-9. `package.json` → dependency truth
-10. `app.json` → static config
-11. `app.config.js` → dynamic config
-12. `eas.json` → build profiles
+1. `PROJECT_CONTEXT.md` → project identity, ownership, priorities
+2. `ERROR_REPORT.md` → current problem
+3. `BUILD_FIX_LOG.md` → historical solutions
+4. `SYSTEM_RULES.md` → permanent engineering rules
+5. `PROJECT_PLAYBOOK.md` → universal operating playbook
+6. `APP_LAUNCH_PLAYBOOK.md` → iOS build/launch process reference
+7. `AI_OPERATOR_HANDOFF_PROTOCOL.md` → multi-LLM routing rules
+8. `CURRENT_MODEL_ASSIGNMENTS.md` → current operator/tool mapping
+9. `WORKFLOW_ROUTER.md` → tool routing: VS Code vs Expo vs Xcode
+10. `MODEL_AUDIT_LOG.md` → historical model assignment decisions, only when model/tool assignment review is relevant
+11. `package.json` → dependency truth
+12. `app.json` → static config
+13. `app.config.js` → dynamic config
+14. `eas.json` → build profiles
 
 ---
 
