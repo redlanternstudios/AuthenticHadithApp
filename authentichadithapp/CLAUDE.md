@@ -1,80 +1,225 @@
-# Authentic Hadith iOS App — Claude Code Instructions
+# iOS App — Claude Code Instructions
 
-## Error Debugging Protocol — MANDATORY EVERY SESSION
+## Mandatory Session Startup
 
-Before writing ANY code or running ANY command, execute this sequence:
+Before modifying code, Claude Code must read:
 
-### Step 1: Read ERROR_REPORT.md
-- If status is 🔴 ACTIVE → this is your #1 priority. Fix it before anything else.
-- If status is 🟢 No active errors → proceed to the user's request.
+1. `ERROR_REPORT.md`
+2. `BUILD_FIX_LOG.md`
+3. `SYSTEM_RULES.md`
+4. `APP_LAUNCH_PLAYBOOK.md`
+5. `AI_OPERATOR_HANDOFF_PROTOCOL.md`
+6. `CURRENT_MODEL_ASSIGNMENTS.md`
+7. `WORKFLOW_ROUTER.md`
 
-### Step 2: Read BUILD_FIX_LOG.md
+Claude Code must not modify app code until these files have been reviewed.
+
+If any required file is missing, Claude Code must notify KP before making major code changes and recommend creating or restoring the missing file.
+
+`MODEL_AUDIT_LOG.md` is required only when reviewing, changing, or questioning model/tool assignments.
+
+---
+
+### Step 1: Read `ERROR_REPORT.md`
+
+- If status is 🔴 ACTIVE → this is the #1 priority. Fix it before anything else unless KP explicitly overrides.
+- If status is 🟢 No active errors → proceed to the user's request only after completing the rest of the mandatory startup review.
+
+---
+
+### Step 2: Read `BUILD_FIX_LOG.md`
+
 - Search for keywords related to the current task or error.
 - If a matching fix exists → apply it, do not reinvent the solution.
 - This file is the app's repair memory. Use it.
 
-### Step 3: Reference APP_LAUNCH_PLAYBOOK.md
-- Contains the correct build process, config rules, and common fixes.
-- Follow the dependency rules — never install packages without checking Expo SDK compatibility.
-- Follow the destructive command rules — never run nuclear resets without KP approval.
+---
 
-### Step 4: Read SYSTEM_RULES.md
+### Step 3: Read `SYSTEM_RULES.md`
+
 - Contains the permanent engineering rules derived from recurring bug patterns.
 - These rules are non-negotiable. Every code change must comply with them.
 - If a new recurring pattern emerges, add it as the next numbered rule.
 - Rule 009 is the escalation rule: any bug that appears twice becomes a permanent rule.
 
-### Step 5: Read WORKFLOW_ROUTER.md
-- Tells you whether the issue lives in VS Code, Expo config, or Xcode.
-- Classify every problem as VS_CODE_APP_LAYER, EXPO_HYBRID_LAYER, XCODE_NATIVE_LAYER, or UNKNOWN_NEEDS_TRIAGE before touching files.
-- Default working tool is VS Code. Xcode is only for provably native iOS issues.
+---
+
+### Step 4: Read `APP_LAUNCH_PLAYBOOK.md`
+
+- Contains the correct build process, config rules, and common fixes.
+- Follow the dependency rules.
+- Never install packages without checking Expo SDK compatibility.
+- Follow the destructive command rules.
+- Never run nuclear resets without KP approval.
+
+---
+
+### Step 5: Read `AI_OPERATOR_HANDOFF_PROTOCOL.md`
+
+- Defines how Claude Code coordinates with KP's broader AI operator stack: ChatGPT, Gemini, v0, Make.com, Notion/Drive, By Red OS, and future approved tools.
+- Tells Claude Code when to proceed directly versus when to generate a handoff prompt for another operator.
+- Required before any task that may touch business strategy, current research, UI prototyping, automation design, model/tool routing, or external knowledge.
+
+---
+
+### Step 6: Read `CURRENT_MODEL_ASSIGNMENTS.md`
+
+- Lists the current approved model/tool assigned to each operator role.
+- Always check before recommending a model/tool handoff.
+- Claude Code may recommend a model/tool assignment change, but must not update `CURRENT_MODEL_ASSIGNMENTS.md` unless KP explicitly approves the change in the current session.
+
+---
+
+### Step 7: Read `WORKFLOW_ROUTER.md`
+
+- Tells Claude Code whether the issue lives in VS Code, Expo config, or Xcode.
+- Classify every problem before touching files as:
+  - `VS_CODE_APP_LAYER`
+  - `EXPO_HYBRID_LAYER`
+  - `XCODE_NATIVE_LAYER`
+  - `UNKNOWN_NEEDS_TRIAGE`
+- Default working tool is VS Code.
+- Xcode is only for provably native iOS issues.
 - Never run `npx expo prebuild --clean` or edit `ios/` files without KP approval.
 
-### After Fixing Any Bug (MANDATORY DOCUMENTATION PROTOCOL)
-1. Update BUILD_FIX_LOG.md with full entry: Fix ID, date, root cause, files changed, exact fix applied, verification steps, lesson learned, pattern category
-2. Reset ERROR_REPORT.md status back to 🟢 No active errors
-3. Check whether this issue matches an existing recurring pattern in BUILD_FIX_LOG.md Pattern Tracker
-4. If the bug category has appeared 2 or more times: update SYSTEM_RULES.md with a new permanent rule or strengthen an existing one
-5. If deployment or architecture behavior changed: update APP_LAUNCH_PLAYBOOK.md
-6. If new operational guidance is discovered: update CLAUDE.md onboarding instructions if necessary
-7. Never complete a debugging task without updating project memory
+---
+
+## After Fixing Any Bug: Mandatory Documentation Protocol
+
+After fixing any bug, Claude Code must:
+
+1. Update `BUILD_FIX_LOG.md` with a full entry:
+   - Fix ID
+   - Date
+   - Root cause
+   - Files changed
+   - Exact fix applied
+   - Verification steps
+   - Lesson learned
+   - Pattern category
+
+2. Reset `ERROR_REPORT.md` status back to 🟢 No active errors if the bug is fully resolved.
+
+3. Check whether this issue matches an existing recurring pattern in the `BUILD_FIX_LOG.md` Pattern Tracker.
+
+4. If the bug category has appeared 2 or more times, update `SYSTEM_RULES.md` with a new permanent rule or strengthen an existing one.
+
+5. If deployment or architecture behavior changed, update `APP_LAUNCH_PLAYBOOK.md`.
+
+6. If new operational guidance is discovered, update `CLAUDE.md` onboarding instructions only if necessary.
+
+7. Never complete a debugging task without updating project memory.
 
 The system must improve after every fix. No exceptions.
 
-## App Stack (DO NOT UPGRADE WITHOUT APPROVAL)
-- Expo SDK 54 | React Native 0.81.5 | React 19.1.0 | TypeScript 5.9.2
-- Bundle ID: com.byred.authentichadith
-- Use npx expo install for all packages — never raw npm install for Expo-managed deps
-- Supabase 2.48.1 | React Query 5.62.11 | Zustand 5.0.2 | RevenueCat 9.9.0
-- i18next 23.16.8 | Vercel AI SDK 4.3.19 | @ai-sdk/groq 1.2.9
+---
+
+## Multi-LLM Operator Routing
+
+Claude Code operates as the Coding Operator inside KP's broader AI operator stack.
+
+Claude Code must follow:
+
+1. `AI_OPERATOR_HANDOFF_PROTOCOL.md` for routing tasks to ChatGPT, Gemini, v0, Make.com, or other approved tools.
+2. `CURRENT_MODEL_ASSIGNMENTS.md` for the latest approved model/tool assignments.
+3. `MODEL_AUDIT_LOG.md` only when reviewing past model/tool assignment decisions.
+
+Claude Code should proceed directly on repo-level coding, debugging, implementation, build repair, and engineering documentation.
+
+Claude Code should generate a handoff prompt when the task is better suited for:
+
+1. ChatGPT: strategy, synthesis, SOPs, business planning, prompts, audits.
+2. Gemini: current external research, market scans, tool comparisons, documentation lookup.
+3. v0: UI prototypes, frontend screens, dashboard concepts.
+4. Make.com: workflow automation, integrations, trigger-action systems.
+5. Notion / Google Drive / By Red OS: long-term memory, SOPs, source-of-truth records.
+
+Claude Code must not assume any model/tool is permanently best.
+
+Current assignments must be reviewed monthly or after major model/tool changes.
+
+Claude Code may recommend assignment changes, but must not update `CURRENT_MODEL_ASSIGNMENTS.md` without explicit KP approval in the current session.
+
+---
+
+## App Stack: Do Not Upgrade Without Approval
+
+- Expo SDK 54
+- React Native 0.81.5
+- React 19.1.0
+- TypeScript 5.9.2
+- Bundle ID: `com.byred.authentichadith`
+- Use `npx expo install` for all packages.
+- Never use raw `npm install` for Expo-managed dependencies.
+- Supabase 2.48.1
+- React Query 5.62.11
+- Zustand 5.0.2
+- RevenueCat 9.9.0
+- i18next 23.16.8
+- Vercel AI SDK 4.3.19
+- `@ai-sdk/groq` 1.2.9
+
+---
 
 ## File Priority Order
-1. ERROR_REPORT.md → current problem
-2. BUILD_FIX_LOG.md → historical solutions
-3. SYSTEM_RULES.md → permanent engineering rules
-4. WORKFLOW_ROUTER.md → tool routing (VS Code vs Expo vs Xcode)
-5. APP_LAUNCH_PLAYBOOK.md → process reference
-6. package.json → dependency truth
-7. app.json → static config
-8. app.config.js → dynamic config
-9. eas.json → build profiles
+
+1. `ERROR_REPORT.md` → current problem
+2. `BUILD_FIX_LOG.md` → historical solutions
+3. `SYSTEM_RULES.md` → permanent engineering rules
+4. `APP_LAUNCH_PLAYBOOK.md` → process reference
+5. `AI_OPERATOR_HANDOFF_PROTOCOL.md` → multi-LLM routing rules
+6. `CURRENT_MODEL_ASSIGNMENTS.md` → current operator/tool mapping
+7. `WORKFLOW_ROUTER.md` → tool routing: VS Code vs Expo vs Xcode
+8. `MODEL_AUDIT_LOG.md` → historical model assignment decisions, only when model/tool assignment review is relevant
+9. `package.json` → dependency truth
+10. `app.json` → static config
+11. `app.config.js` → dynamic config
+12. `eas.json` → build profiles
+
+---
 
 ## Expo Config Rules
-- app.json = static metadata (name, slug, scheme, icons, splash, bundle ID, build number, plugins)
-- app.config.js = dynamic config (environment-based values, EXPO_PUBLIC_ variables)
-- Never put secrets in app.json
+
+- `app.json` = static metadata:
+  - name
+  - slug
+  - scheme
+  - icons
+  - splash
+  - bundle ID
+  - build number
+  - plugins
+
+- `app.config.js` = dynamic config:
+  - environment-based values
+  - `EXPO_PUBLIC_` variables
+
+- Never put secrets in `app.json`.
+
+---
 
 ## Dependency Rules
-1. Check package.json first — know what is installed
-2. Check package-lock.json — know exact versions locked
-3. Check Expo SDK 54 compatibility BEFORE adding any package
-4. Prefer Expo-compatible/managed packages
-5. Use npx expo install package-name (not npm install)
-6. Do NOT randomly upgrade React, React Native, or Expo
-7. If a package conflict arises, check Expo SDK docs first
 
-## Destructive Commands (NEVER WITHOUT KP APPROVAL)
-- rm -rf node_modules package-lock.json → Ask KP first
-- rm -rf ios android → Ask KP first
-- npx expo prebuild --clean → Ask KP first
-- Any version upgrade of React/RN/Expo → Ask KP first
+1. Check `package.json` first.
+2. Know what is installed before adding anything.
+3. Check `package-lock.json`.
+4. Know exact versions locked before changing dependencies.
+5. Check Expo SDK 54 compatibility before adding any package.
+6. Prefer Expo-compatible / managed packages.
+7. Use `npx expo install package-name`, not `npm install`, for Expo-managed dependencies.
+8. Do not randomly upgrade React, React Native, or Expo.
+9. If a package conflict arises, check Expo SDK docs first.
+10. Never upgrade app stack dependencies without KP approval.
+
+---
+
+## Destructive Commands: Never Without KP Approval
+
+Never run these without KP approval:
+
+- `rm -rf node_modules package-lock.json`
+- `rm -rf ios android`
+- `npx expo prebuild --clean`
+- Any version upgrade of React, React Native, or Expo
+- Any command that deletes generated native folders
+- Any command that rewrites native project structure
