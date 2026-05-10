@@ -1,11 +1,13 @@
 # V1_CONTENT_AI_AUDIT.md
 
-**Audit date:** 2026-05-09
+**Audit date:** 2026-05-09 (re-verified 2026-05-10)
 **Scope:** real-device QA findings (1) "the other hadiths never downloaded" and (2) "AI Summary is not configured correctly"
 **Auditor:** Content + AI Backend Engineer (FIX-037 sprint)
 **Production Supabase:** `nqklipakrfuwebkdnhwg.supabase.co`
 **Production web/API host:** `https://authentichadith.app` (Vercel)
 **Method:** repo-wide source inspection + read-only PostgREST probes (anon key) + safe `curl` tests against the deployed Vercel domain.
+
+> **2026-05-10 update.** All counts and the AI route 404 were re-verified today against live production. Findings are unchanged. Linkage integrity additionally confirmed: zero NULL-slug hadiths, zero hadiths with non-canonical slugs, `collection_hadiths` join total (31,886) matches denormalized `hadiths.collection_slug` total. Companion document `CURRENT_VS_HANDOFF_AUDIT.md` reconciles every load-bearing claim from Rory Semeah's May 2026 handoff PDF against today's state — most "needs seeding" claims in that PDF are obsolete (V1 sprint already seeded them) and must NOT be re-run.
 
 ---
 
