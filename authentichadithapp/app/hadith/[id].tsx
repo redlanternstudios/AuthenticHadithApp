@@ -44,6 +44,15 @@ export default function HadithDetailScreen() {
 
   const SUMMARY_UNAVAILABLE = 'Summary is temporarily unavailable. Please try again later.'
 
+  // UX hardening (FIX-038): treat empty-string fields the same as missing.
+  // Many production rows are skeleton rows with text fields empty. Render
+  // honest fallbacks instead of blank section headers. UI guard only — actual
+  // content backfill is a separate ops task.
+  const hasEnglish =
+    typeof hadith?.english_text === 'string' && hadith.english_text.trim().length > 0
+  const hasArabic =
+    typeof hadith?.arabic_text === 'string' && hadith.arabic_text.trim().length > 0
+
   // Fetch collection display name
   const { data: collectionData } = useQuery({
     queryKey: ['hadith-collection', hadith?.collection_slug],
@@ -92,6 +101,11 @@ export default function HadithDetailScreen() {
 
   const handleSummarize = async () => {
     if (!hadith) return
+    // Guard (FIX-038): never send empty text to Groq. Surface friendly fallback instead.
+    if (!hasEnglish) {
+      setSummaryError(SUMMARY_UNAVAILABLE)
+      return
+    }
     setIsSummarizing(true)
     setSummary(null)
     setSummaryError(null)
@@ -304,12 +318,19 @@ export default function HadithDetailScreen() {
         ) : null}
 
         {/* Arabic text */}
-        {hadith.arabic_text && languageMode !== 'english' ? (
+        {languageMode !== 'english' ? (
           <View style={[styles.textSection, { borderBottomColor: colors.borderSubtle }]}>
             <Text style={[styles.sectionLabel, { color: colors.mutedText }]}>Arabic</Text>
-            <Text style={[styles.arabicText, { color: colors.bronzeText }]}>
-              {hadith.arabic_text}
-            </Text>
+            {hasArabic ? (
+              <Text style={[styles.arabicText, { color: colors.bronzeText }]}>
+                {hadith.arabic_text}
+              </Text>
+            ) : (
+              // FIX-038 fallback: honest placeholder instead of empty body
+              <Text style={[styles.englishText, { color: colors.mutedText, fontStyle: 'italic' }]}>
+                Arabic text is currently unavailable for this record.
+              </Text>
+            )}
           </View>
         ) : null}
 
@@ -317,9 +338,16 @@ export default function HadithDetailScreen() {
         {languageMode !== 'arabic' ? (
           <View style={[styles.textSection, { borderBottomColor: colors.borderSubtle }]}>
             <Text style={[styles.sectionLabel, { color: colors.mutedText }]}>Translation</Text>
-            <Text style={[styles.englishText, { color: colors.bronzeText }]}>
-              {hadith.english_text}
-            </Text>
+            {hasEnglish ? (
+              <Text style={[styles.englishText, { color: colors.bronzeText }]}>
+                {hadith.english_text}
+              </Text>
+            ) : (
+              // FIX-038 fallback
+              <Text style={[styles.englishText, { color: colors.mutedText, fontStyle: 'italic' }]}>
+                Translation is currently unavailable for this record.
+              </Text>
+            )}
           </View>
         ) : null}
 
@@ -376,26 +404,50 @@ export default function HadithDetailScreen() {
           ) : null}
         </View>
 
-        {/* AI summarise button */}
+        {/* AI summarise button. FIX-038: rendered disabled with muted styling
+            and "Summary unavailable" copy when english_text is empty, so the
+            user does not tap an active-looking button that only returns the
+            friendly fallback. handleSummarize keeps its own short-circuit as
+            defense-in-depth. */}
         <Pressable
           style={({ pressed }) => [
             styles.summarizeBtn,
-            {
-              backgroundColor: colors.goldMid + '18',
-              borderColor: colors.goldMid + '60',
-              opacity: pressed || isSummarizing ? 0.75 : 1,
-            },
+            hasEnglish
+              ? {
+                  backgroundColor: colors.goldMid + '18',
+                  borderColor: colors.goldMid + '60',
+                  opacity: pressed || isSummarizing ? 0.75 : 1,
+                }
+              : {
+                  backgroundColor: colors.mutedText + '10',
+                  borderColor: colors.mutedText + '40',
+                  opacity: 0.6,
+                },
           ]}
           onPress={handleSummarize}
-          disabled={isSummarizing}
+          disabled={isSummarizing || !hasEnglish}
+          accessibilityState={{ disabled: !hasEnglish }}
         >
           {isSummarizing ? (
             <ActivityIndicator size="small" color={colors.goldMid} />
           ) : (
-            <Ionicons name="sparkles-outline" size={17} color={colors.goldMid} />
+            <Ionicons
+              name="sparkles-outline"
+              size={17}
+              color={hasEnglish ? colors.goldMid : colors.mutedText}
+            />
           )}
-          <Text style={[styles.summarizeBtnText, { color: colors.goldMid }]}>
-            {isSummarizing ? 'Summarising…' : 'AI Summary'}
+          <Text
+            style={[
+              styles.summarizeBtnText,
+              { color: hasEnglish ? colors.goldMid : colors.mutedText },
+            ]}
+          >
+            {isSummarizing
+              ? 'Summarising…'
+              : hasEnglish
+              ? 'AI Summary'
+              : 'Summary unavailable'}
           </Text>
         </Pressable>
 

@@ -47,14 +47,23 @@ export default function HomeScreen() {
   const { data: hadith, isLoading, refetch } = useQuery({
     queryKey: ['random-hadith', refreshKey],
     queryFn: async () => {
+      // UX hardening (FIX-038): only pick hadiths that actually have English text.
+      // ~1.2% of production rows have empty english_text. Without this filter the
+      // Hadith of the Moment card can render the FIX-038 fallback placeholder on
+      // first launch, which is jarring. UI guard only; content backfill is a
+      // separate ops task.
       const { count } = await supabase
         .from('hadiths')
-        .select('*', { count: 'exact', head: true });
+        .select('*', { count: 'exact', head: true })
+        .not('english_text', 'is', null)
+        .neq('english_text', '');
       const total = count || 100;
       const offset = Math.floor(Math.random() * total);
       const { data, error } = await supabase
         .from('hadiths')
         .select('*')
+        .not('english_text', 'is', null)
+        .neq('english_text', '')
         .limit(1)
         .order('id', { ascending: false })
         .range(offset, offset)

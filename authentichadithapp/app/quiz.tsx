@@ -36,9 +36,14 @@ function generateQuestions(hadiths: Hadith[]): QuizQuestion[] {
   const collections = Object.keys(COLLECTION_DISPLAY)
 
   for (const hadith of hadiths.slice(0, 10)) {
+    // FIX-038 defense-in-depth: even though the query already filters out empty
+    // english_text / narrator, skip any row that still arrives blank rather than
+    // emitting an unanswerable question.
+    if (!hadith.english_text || !hadith.english_text.trim()) continue
+
     const type = Math.floor(Math.random() * 3)
 
-    if (type === 0 && hadith.narrator) {
+    if (type === 0 && hadith.narrator && hadith.narrator.trim().length > 0) {
       // Narrator question
       const wrongNarrators = ['Abu Hurairah', 'Aisha', 'Ibn Umar', 'Anas bin Malik', 'Jabir', 'Ibn Abbas']
         .filter((n) => n !== hadith.narrator)
@@ -95,12 +100,20 @@ export default function QuizScreen() {
   const { data: hadiths, isLoading } = useQuery({
     queryKey: ['quiz-hadiths'],
     queryFn: async () => {
+      // UX hardening (FIX-038): quiz pulls random hadiths to build questions.
+      // Skip rows with empty english_text or empty narrator — questions built
+      // off them are nonsensical ("Who narrated this hadith? <blank>"). UI guard
+      // only; content backfill is a separate ops task.
       const offsets = Array.from({ length: 10 }, () => Math.floor(Math.random() * 5000))
       const results: Hadith[] = []
       for (const offset of offsets) {
         const { data } = await supabase
           .from('hadiths')
           .select('*')
+          .not('english_text', 'is', null)
+          .neq('english_text', '')
+          .not('narrator', 'is', null)
+          .neq('narrator', '')
           .range(offset, offset)
           .single()
         if (data) results.push(data as Hadith)

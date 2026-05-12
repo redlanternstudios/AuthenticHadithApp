@@ -30,8 +30,15 @@ export function HadithCard({ hadith, onPress, compact = false, showSummarize = f
   const [isSummarizing, setIsSummarizing] = useState(false)
   const [summaryError, setSummaryError] = useState<string | null>(null)
 
-  const canSummarize =
-    showSummarize && !compact && typeof hadith.english_text === 'string' && hadith.english_text.length > 0
+  // UX hardening (FIX-038): treat empty-string english/arabic the same as missing.
+  // Many production hadith rows are skeleton rows (text fields empty). The app must
+  // not render blank cards or send empty prompts to Groq. This is a UI guard only;
+  // the actual content backfill is a separate ops task.
+  const hasEnglish = typeof hadith.english_text === 'string' && hadith.english_text.trim().length > 0
+  const hasArabic = typeof hadith.arabic_text === 'string' && hadith.arabic_text.trim().length > 0
+  const hasAnyText = hasEnglish || hasArabic
+
+  const canSummarize = showSummarize && !compact && hasEnglish
 
   const handleSummarize = async () => {
     if (!canSummarize) return
@@ -75,7 +82,7 @@ export function HadithCard({ hadith, onPress, compact = false, showSummarize = f
       <View style={[styles.divider, { backgroundColor: colors.borderSubtle }]} />
 
       {/* Arabic text — right-aligned, generous line height for legibility */}
-      {hadith.arabic_text ? (
+      {hasArabic ? (
         <Text
           style={[styles.arabicText, { color: colors.bronzeText }]}
           numberOfLines={compact ? 3 : undefined}
@@ -85,19 +92,29 @@ export function HadithCard({ hadith, onPress, compact = false, showSummarize = f
       ) : null}
 
       {/* English translation */}
-      <Text
-        style={[styles.englishText, { color: colors.bronzeText }]}
-        numberOfLines={compact ? 4 : undefined}
-      >
-        {hadith.english_text}
-      </Text>
+      {hasEnglish ? (
+        <Text
+          style={[styles.englishText, { color: colors.bronzeText }]}
+          numberOfLines={compact ? 4 : undefined}
+        >
+          {hadith.english_text}
+        </Text>
+      ) : null}
+
+      {/* Empty-row fallback (FIX-038) — render an honest placeholder rather than
+          a blank card when both Arabic and English are missing in the DB. */}
+      {!hasAnyText ? (
+        <Text style={[styles.englishText, { color: colors.mutedText, fontStyle: 'italic' }]}>
+          Hadith text is currently unavailable for this record.
+        </Text>
+      ) : null}
 
       {/* Narrator */}
-      {hadith.narrator && (
+      {hadith.narrator && hadith.narrator.trim().length > 0 ? (
         <Text style={[styles.narrator, { color: colors.mutedText }]}>
           Narrated by {hadith.narrator}
         </Text>
-      )}
+      ) : null}
 
       {/* Read more hint on compact cards */}
       {compact && onPress && (

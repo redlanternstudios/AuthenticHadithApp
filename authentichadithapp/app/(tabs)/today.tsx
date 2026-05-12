@@ -78,10 +78,15 @@ export default function TodayScreen() {
       }
       const seed = Math.abs(hash)
 
+      // UX hardening (FIX-038): only pick rows with non-empty english_text so
+      // the Daily Hadith card always renders real text, not the empty-row
+      // placeholder. UI guard only; content backfill is a separate ops task.
       const { count } = await supabase
         .from('hadiths')
         .select('id', { count: 'exact', head: true })
         .eq('grade', 'sahih')
+        .not('english_text', 'is', null)
+        .neq('english_text', '')
       if (!count) return null
 
       const offset = seed % count
@@ -89,6 +94,8 @@ export default function TodayScreen() {
         .from('hadiths')
         .select('*')
         .eq('grade', 'sahih')
+        .not('english_text', 'is', null)
+        .neq('english_text', '')
         .range(offset, offset)
         .single()
       return data as Hadith | null
