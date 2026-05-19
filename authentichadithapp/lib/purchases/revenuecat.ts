@@ -1,45 +1,19 @@
 /**
- * RevenueCat integration for Apple In-App Purchases.
+ * RevenueCat purchase helpers used by the subscription / paywall UI.
  *
- * SETUP REQUIRED:
- * 1. Install: npx expo install react-native-purchases
- * 2. Add plugin to app.json: ["react-native-purchases", { "ios": { "usesStoreKi
-t2": true } }]
- * 3. Create products in App Store Connect
- * 4. Configure products in RevenueCat dashboard
- * 5. Set REVENUECAT_API_KEY_IOS in app.json > extra
+ * SDK INITIALIZATION lives in lib/revenuecat/RevenueCatProvider.tsx — never
+ * call Purchases.configure() from this file. These helpers assume the SDK
+ * is already initialized at app boot.
  *
- * This file provides a clean abstraction over RevenueCat so the rest of
- * the app doesn't import the SDK directly.
+ * Constants (ENTITLEMENT_ID, PRODUCT_IDS) come from lib/revenuecat/config.ts
+ * so the entire app reads from the same source of truth.
  */
 
-import { Platform } from 'react-native'
-import Constants from 'expo-constants'
+import Purchases from 'react-native-purchases'
+import { ENTITLEMENT_ID, PRODUCT_IDS } from '@/lib/revenuecat/config'
 
-// Lazy import — will fail gracefully if SDK not installed yet
-let Purchases: typeof import('react-native-purchases').default | null = null
-let PurchasesPackageType: any = null
+export { ENTITLEMENT_ID, PRODUCT_IDS }
 
-try {
-  const mod = require('react-native-purchases')
-  Purchases = mod.default
-  PurchasesPackageType = mod.PACKAGE_TYPE
-} catch {
-  // SDK not installed — all functions below will return safe defaults
-  console.warn('[RevenueCat] react-native-purchases not installed. IAP disabled.')
-}
-
-// ─── Product identifiers (must match App Store Connect + RevenueCat) ───
-export const PRODUCT_IDS = {
-  MONTHLY_PREMIUM: 'ah_premium_monthly',
-  ANNUAL_PREMIUM: 'ah_premium_annual',
-  LIFETIME: 'ah_lifetime',
-} as const
-
-// ─── Entitlement identifier (configured in RevenueCat dashboard) ───
-export const ENTITLEMENT_ID = 'premium'
-
-// ─── Types ───
 export type SubscriptionStatus = {
   isActive: boolean
   tier: 'free' | 'premium' | 'lifetime'
@@ -47,47 +21,25 @@ export type SubscriptionStatus = {
   willRenew: boolean
 }
 
-// ─── Initialize ───
-let isConfigured = false
+const defaultStatus: SubscriptionStatus = {
+  isActive: false,
+  tier: 'free',
+  expiresAt: null,
+  willRenew: false,
+}
 
-export async function configureRevenueCat(supabaseUserId?: string): Promise<void> {
-  if (!Purchases || isConfigured) return
-
-  const apiKey = Platform.select({
-    ios: Constants.expoConfig?.extra?.revenueCatApiKeyIos,
-    android: Constants.expoConfig?.extra?.revenueCatApiKeyAndroid,
-  })
-
-  if (!apiKey) {
-    console.warn('[RevenueCat] No API key found for platform:', Platform.OS)
-    return
+function statusFromEntitlement(entitlement: any): SubscriptionStatus {
+  const isLifetime = entitlement.productIdentifier === PRODUCT_IDS.lifetime
+  return {
+    isActive: true,
+    tier: isLifetime ? 'lifetime' : 'premium',
+    expiresAt: entitlement.expirationDate,
+    willRenew: entitlement.willRenew === true,
   }
-
-  Purchases.configure({ apiKey })
-
-  if (supabaseUserId) {
-    await Purchases.logIn(supabaseUserId)
-  }
-
-  isConfigured = true
 }
 
-// ─── Set user identity (call on login) ───
-export async function identifyUser(supabaseUserId: string): Promise<void> {
-  if (!Purchases || !isConfigured) return
-  await Purchases.logIn(supabaseUserId)
-}
-
-// ─── Clear identity (call on logout) ───
-export async function resetUser(): Promise<void> {
-  if (!Purchases || !isConfigured) return
-  await Purchases.logOut()
-}
-
-// ─── Get available packages ───
+/** Fetch the current offering (set of available packages). */
 export async function getOfferings() {
-  if (!Purchases) return null
-
   try {
     const offerings = await Purchases.getOfferings()
     return offerings.current
@@ -97,10 +49,8 @@ export async function getOfferings() {
   }
 }
 
-// ─── Purchase a package ───
+/** Purchase a single package. Returns whether the premium entitlement is now active. */
 export async function purchasePackage(pkg: any): Promise<boolean> {
-  if (!Purchases) return false
-
   try {
     const { customerInfo } = await Purchases.purchasePackage(pkg)
     return customerInfo.entitlements.active[ENTITLEMENT_ID] !== undefined
@@ -111,79 +61,28 @@ export async function purchasePackage(pkg: any): Promise<boolean> {
   }
 }
 
-// ─── Check current entitlement ───
+/** Read current entitlement state from the SDK cache. */
 export async function getSubscriptionStatus(): Promise<SubscriptionStatus> {
-  const defaultStatus: SubscriptionStatus = {
-    isActive: false,
-    tier: 'free',
-    expiresAt: null,
-    willRenew: false,
-  }
-
-  if (!Purchases) return defaultStatus
-
   try {
     const customerInfo = await Purchases.getCustomerInfo()
     const entitlement = customerInfo.entitlements.active[ENTITLEMENT_ID]
-
     if (!entitlement) return defaultStatus
-
-    const isLifetime = entitlement.productIdentifier === PRODUCT_IDS.LIFETIME
-    return {
-      isActive: true,
-      tier: isLifetime ? 'lifetime' : 'premium',
-      expiresAt: entitlement.expirationDate,
-      willRenew: !entitlement.willRenew ? false : entitlement.willRenew,
-    }
+    return statusFromEntitlement(entitlement)
   } catch (err) {
     console.error('[RevenueCat] Failed to get status:', err)
     return defaultStatus
   }
 }
 
-// ─── Restore purchases (Apple requires this) ───
+/** Restore previous purchases (Apple requires a "Restore Purchases" button). */
 export async function restorePurchases(): Promise<SubscriptionStatus> {
-  const defaultStatus: SubscriptionStatus = {
-    isActive: false,
-    tier: 'free',
-    expiresAt: null,
-    willRenew: false,
-  }
-
-  if (!Purchases) return defaultStatus
-
   try {
     const customerInfo = await Purchases.restorePurchases()
     const entitlement = customerInfo.entitlements.active[ENTITLEMENT_ID]
-
     if (!entitlement) return defaultStatus
-
-    const isLifetime = entitlement.productIdentifier === PRODUCT_IDS.LIFETIME
-    return {
-      isActive: true,
-      tier: isLifetime ? 'lifetime' : 'premium',
-      expiresAt: entitlement.expirationDate,
-      willRenew: !entitlement.willRenew ? false : entitlement.willRenew,
-    }
+    return statusFromEntitlement(entitlement)
   } catch (err) {
     console.error('[RevenueCat] Restore error:', err)
     return defaultStatus
   }
-}
-
-// ─── Sync subscription status to Supabase profiles table ───
-export async function syncSubscriptionToSupabase(
-  supabase: any,
-  userId: string,
-): Promise<void> {
-  const status = await getSubscriptionStatus()
-
-  await supabase
-    .from('profiles')
-    .update({
-      subscription_tier: status.tier,
-      subscription_status: status.isActive ? 'active' : 'expired',
-      subscription_expires_at: status.expiresAt,
-    })
-    .eq('user_id', userId)
 }
