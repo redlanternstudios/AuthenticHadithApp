@@ -46,22 +46,27 @@ function resolveApiKey(): string {
 
 export const REVENUECAT_API_KEY: string = resolveApiKey()
 
+// Confirmed against RevenueCat dashboard (RedLantern Studios project) on 2026-05-19.
 export const ENTITLEMENT_ID = 'RedLantern Studios Pro'
 
+// Product identifiers must match exactly what is registered in:
+//   1. App Store Connect -> In-App Purchases
+//   2. RevenueCat dashboard -> Products (attached to the entitlement above
+//      AND placed in a published Offering)
 export const PRODUCT_IDS = {
   monthly: Platform.select({
-    ios: 'rc_monthly',
-    android: 'rc_monthly',
-    default: 'rc_monthly',
+    ios: 'monthly',
+    android: 'monthly',
+    default: 'monthly',
   }) as string,
   yearly: Platform.select({
-    ios: 'rc_yearly',
-    android: 'rc_yearly',
-    default: 'rc_yearly',
+    ios: 'yearly',
+    android: 'yearly',
+    default: 'yearly',
   }) as string,
   lifetime: Platform.select({
-    ios: 'rc_lifetime',
-    android: 'rc_lifetime',
-    default: 'rc_lifetime',
+    ios: 'lifetime',
+    android: 'lifetime',
+    default: 'lifetime',
   }) as string,
 }
