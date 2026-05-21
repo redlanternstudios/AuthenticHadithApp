@@ -91,6 +91,57 @@ Before any EAS build:
 
 ## FIXES
 
+### [FIX-040] — Internal-Device EAS Build Profile Unbound from Named Environment (Empty EXPO_PUBLIC_* on QA Build)
+**Date**: 2026-05-18
+**Session**: Claude Code (Cowork) — caught mid-flight while triggering `eas build --profile internal-device`
+**Severity**: Critical — would have shipped a guaranteed launch-crash to RoPhone QA
+
+**Problem**:
+The `internal-device` build profile in `eas.json` had no `environment` field. EAS Build only resolves a profile to a named EAS Environment when (a) the profile name matches one of `development | preview | production` exactly, or (b) the profile explicitly declares `"environment": "<name>"`. The `internal-device` profile satisfied neither, so EAS resolved it to no named environment — meaning every `EXPO_PUBLIC_*` value stored as an EAS Environment Variable was unavailable at build time.
+
+The next internal-device .ipa would have launched with:
+- `EXPO_PUBLIC_SUPABASE_URL` → undefined → Supabase client init fails → every authenticated query throws
+- `EXPO_PUBLIC_SUPABASE_ANON_KEY` → undefined → same
+- `EXPO_PUBLIC_REVENUECAT_API_KEY_IOS` → undefined → RevenueCat `configure()` throws on launch (FIX-019 territory)
+- `EXPO_PUBLIC_API_URL` → undefined → AI Summary fetch hits an invalid URL
+- `EXPO_PUBLIC_APP_ENV` → falls back to `'development'` → wrong branch through env-gated runtime code
+- `EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID` → undefined (not blocking on iOS)
+
+Net effect on RoPhone: dark splash, then immediate crash before Home tab renders. None of this would show up in `tsc --noEmit` or `expo-doctor` — the variables are resolved at EAS Build time, not at compile time in the local checkout.
+
+**Root Cause**:
+EAS Build profile naming does not implicitly map to a named EAS Environment. The mapping must be explicit when the profile name is custom. Pre-fix `eas.json` `internal-device` profile relied on an implicit default that does not exist.
+
+**Fix Applied**:
+Added `"environment": "production"` to the `internal-device` build profile in `authentichadithapp/eas.json`. This pins internal-device .ipas to the same EAS Environment Variables that TestFlight/App Store production builds consume, so RoPhone QA exercises the same runtime surface App Review will see.
+
+```json
+"internal-device": {
+  "distribution": "internal",
+  "environment": "production",
+  "ios": { "simulator": false }
+}
+```
+
+**Files Changed**:
+- `authentichadithapp/eas.json` — one line: `"environment": "production"` added to the `internal-device` build profile
+
+**Verification**:
+- `eas.json` shape preserved; `production` and `preview` profiles unchanged
+- Profile now resolves to the production EAS Environment, surfacing the same 6 `EXPO_PUBLIC_*` values listed in `app.config.js`
+- Re-trigger of `eas build --profile internal-device` from a clean queue will now build against the production env block (verify in the EAS build's "Environment variables" panel before installing the .ipa on RoPhone)
+
+**Result**: Fixed — config-only, no runtime regression risk to the production profile
+
+**Lessons**:
+1. **EAS build profile names are arbitrary labels; environment binding is not implicit.** Any profile other than `development | preview | production` MUST declare `"environment": "<name>"` explicitly, or every EAS Environment Variable resolves to empty at build time. There is no warning from EAS, no failed-build, no `expo-doctor` flag — the .ipa builds successfully and then crashes on launch.
+2. **Internal-device builds against `production` now talk to production Supabase and production RevenueCat.** QA cannot use real user accounts: use the Apple review demo account or dedicated QA Supabase users only, and treat any RevenueCat purchase from a QA build as a real production purchase that must be refunded. This trade-off is intentional — QA must mirror App Review — but it has to be communicated alongside every internal-device build handed to a tester. Codified in `PRE_TESTFLIGHT_READINESS_GATE.md` lesson #1.
+3. **EAS config drift is invisible to local tooling.** Add explicit pre-build inspection of every non-standard profile's `environment` field to the pre-TestFlight gate. Treat any `internal-*` / `qa-*` / `staging-*` profile without an explicit `environment` declaration as a launch-crash waiting to ship.
+
+**Pattern Category**: EAS_CONFIG_DRIFT / IMPLICIT_ENV_BINDING / SILENT_BUILD_TIME_FAILURE
+
+---
+
 ### [FIX-037] — V1 Content + AI Summary Audit (chapter truncation, home subtitle, AI fallback)
 **Date**: 2026-05-09
 **Trigger**: Real-device QA on the internal-device build (RoPhone) surfaced two complaints: "the other hadiths never downloaded" and "AI Summary is not configured correctly." Full audit in `V1_CONTENT_AI_AUDIT.md`.
@@ -2015,6 +2066,7 @@ Any usage limit displayed to the user MUST be backed by actual enforcement. A co
 | Static COLORS import (dark mode) | 6 screens (FIX-024) | COLORS = LIGHT_COLORS always light. Screens using COLORS instead of getColors(isDark) | Every screen MUST use getColors(isDark) with useTheme() hook. Never import COLORS directly |
 | Ungated console statements | 19 statements (FIX-023) | console.error/warn shipped to production without __DEV__ guard | All console statements must be prefixed with __DEV__ && except ErrorBoundary and server routes |
 | Cosmetic-only enforcement | 1 (FIX-022) | Usage limit displayed but not persisted or enforced | Any user-facing limit must be backed by AsyncStorage persistence + actual send gate |
+| EAS profile unbound to named env | 1 (FIX-040) | Custom EAS build profile name does not implicitly map to a named EAS Environment; `EXPO_PUBLIC_*` values silently empty at build time | Every non-standard EAS profile MUST declare `"environment": "<name>"` explicitly. Pre-build inspection is in `PRE_TESTFLIGHT_READINESS_GATE.md` |
 
 ---
 
