@@ -91,6 +91,604 @@ Before any EAS build:
 
 ## FIXES
 
+### [FIX-045] — AI Assistant Spinner Hangs Forever on TestFlight (Apex→www 307 + No Client Timeout)
+**Date**: 2026-05-23 PT
+**Session**: Claude Code (authentic-hadith-debugger skill)
+**Severity**: High — Assistant tab is a top-line product surface and a core App Store demo path. Users see "Thinking..." indefinitely with no error, no retry affordance, no recovery.
+
+**Trigger**: KP reported "The AI Assistant is currently not working correctly" on a TestFlight build on device. Symptom confirmed via AskUserQuestion: spinner shows after send, never returns, no red error banner ever appears.
+
+**Diagnostic probes (before touching code)**:
+```
+curl -s -o /dev/null -w "HTTP %{http_code} TIME %{time_total}s\n" -L -X POST \
+  "https://www.authentichadith.app/api/mobile-chat" \
+  -H "Content-Type: application/json" \
+  -d '{"messages":[{"role":"user","content":"What does Sahih Bukhari say about prayer?"}]}'
+# → HTTP 200 in 2.84s, response shape {response: string} matches lib/api/groq.ts expectation.
+
+curl -s -i -X POST "https://authentichadith.app/api/mobile-chat" -H "Content-Type: application/json" \
+  -d '{"messages":[{"role":"user","content":"ping"}]}'
+# → HTTP/2 307, location: https://www.authentichadith.app/api/mobile-chat
+```
+Backend is healthy. Apex still 307-redirects to www. (same condition FIX-038 noted, where the assumption was "RN fetch follows redirects transparently"). The Vercel path is fine in cURL.
+
+**Root Cause** (two compounding issues):
+
+1. **POST redirect stall on iOS NSURLSession.** `PRODUCTION_API_URL` in `lib/config/constants.ts:6` was the apex `https://authentichadith.app`, and the `app.config.js` fallback used the same apex value. Every Assistant send POSTed to the apex and relied on the 307 → www. handoff. cURL handles this cleanly; iOS NSURLSession (the transport under React Native fetch) has documented edge cases where a 307 with a JSON POST body either silently strips the body or stalls indefinitely on the redirect — particularly when the request gets routed across a Vercel cold start. The same code FIX-038 declared "no mobile change required" turned out to fail on a different network/cold-start condition.
+
+2. **Zero client-side timeout in `lib/api/groq.ts`.** The `fetch` call had no `AbortController`, no `signal`, no timeout. iOS NSURLSession defaults `timeoutIntervalForResource` to **7 days**. So when condition (1) stalled the underlying network task, the JS promise never resolved and never rejected. The Assistant screen's `isLoading=true` state stayed true forever. The catch block at `app/(tabs)/assistant.tsx:109` never fired, so the existing red error banner + Retry button never surfaced. From the user's POV: infinite "Thinking..." with no way out.
+
+**Fix Applied**:
+
+`lib/config/constants.ts`:
+- Changed `PRODUCTION_API_URL` from `'https://authentichadith.app'` to `'https://www.authentichadith.app'`. The apex hop is now skipped entirely. No more reliance on 307 redirect handling at the iOS transport layer.
+
+`app.config.js`:
+- Changed the `apiUrl` env fallback from apex to `'https://www.authentichadith.app'` to match the constants default. The resolution chain is `process.env.EXPO_PUBLIC_API_URL → config.extra?.apiUrl → 'https://www.authentichadith.app'`.
+
+`lib/api/groq.ts`:
+- Added `REQUEST_TIMEOUT_MS = 12_000` constant (Vercel cold + Groq inference comfortably under 5s; 12s is generous for a slow tower while guaranteeing the UI never spins forever).
+- Wrapped `fetch` with `AbortController`, passed `signal: controller.signal`, scheduled `controller.abort()` via `setTimeout`, cleared the timer in a `finally` block so the timer never fires after a normal response.
+- DEV-only log distinguishes timeout (`'[groq] request timed out'`) from generic network failure.
+- Added DEV log `'[groq] malformed response payload'` for the JSON-parse / shape-mismatch path that previously threw silently.
+
+**Files Changed**:
+- `lib/config/constants.ts` — apex → www. on `PRODUCTION_API_URL`. Comment added explaining the iOS NSURLSession redirect quirk.
+- `app.config.js` — apex → www. on the `apiUrl` fallback.
+- `lib/api/groq.ts` — AbortController + 12s timeout + DEV log on timeout path + DEV log on malformed payload path.
+- `BUILD_FIX_LOG.md` — this entry.
+
+**Files Intentionally NOT Changed (out of scope per task)**:
+- `app/(tabs)/assistant.tsx` — already has `__DEV__ && console.error('[assistant] sendChatMessage failed', err)` and the red banner + Retry button is correctly wired. The bug was that this catch never fired because no error was thrown; the timeout in `groq.ts` is what makes this path reachable. No UI change needed.
+- `lib/islamic-safety-filter.ts` — already intercepts ruling/fatwa patterns client-side before the network call. AC2 (fatwa redirect) verified working against current code, no edit needed.
+- **AC3 (Supabase session history load on reopen) — explicitly out of scope, flagged as scope drift.** The brief asserted "Per project docs, the Assistant has session-based conversation tracking." Repo-wide grep for `chat_messages` / `ai_chat_sessions` / `session_id` / `loadChatHistory` returned zero hits. No Supabase migration exists for chat tables. The Assistant has always been ephemeral per-session. Implementing AC3 is a net-new feature (Supabase table + RLS + write-after-send + read-on-mount + clear control), not a minimum-scope fix. KP confirmed dropping AC3 from this work via AskUserQuestion.
+
+**Out-of-Band Action Recommended (not code)**:
+```bash
+eas env:list --environment production | grep -i API_URL
+# If EXPO_PUBLIC_API_URL is set to the apex, the code default doesn't apply:
+eas env:update EXPO_PUBLIC_API_URL https://www.authentichadith.app --environment production
+# If unset, the new code fallback is sufficient — no env action needed.
+```
+
+**Verification Command**:
+```bash
+cd /Users/kp/Projects/AuthenticHadithApp/authentichadithapp
+npx tsc --noEmit   # → exit 0, zero errors (confirmed)
+```
+
+**Result**: Type-check clean. AC1 (Bukhari/prayer query returns grounded response <10s) verified end-to-end at the API layer (2.84s) and the client now hits www. directly so it bypasses the suspect redirect. AC2 (fatwa redirect) verified intact — the `RULING_REQUEST_PATTERNS` regex set in `lib/islamic-safety-filter.ts:117-124` short-circuits before the network call, returns the scholar-deferral string. AC3 dropped from scope by KP. Physical device verification on TestFlight build still pending — KP to confirm the spinner no longer hangs.
+
+**Lesson**: "Working in cURL ≠ working on iOS." When a redirect is in the path of a POST with a body, treat it as a transport risk on iOS specifically. The FIX-038 verification (cURL HTTP 200) was sufficient to confirm the backend was alive but insufficient to validate the iOS transport. Two rules to internalize:
+1. Mobile clients hitting Vercel should always target the canonical host directly (the host the redirect lands on), never an apex that redirects.
+2. Every outbound `fetch` in the mobile app needs an explicit `AbortController` + timeout. NSURLSession's 7-day default is a foot-gun. Without a timeout, any silent network stall becomes an infinite spinner — and the user has no recovery path because no error is ever thrown for the catch handler to surface.
+
+**Pattern Category**: Network transport / iOS-specific / missing-timeout. Combine with FIX-038 (apex 404 false alarm) — both reflect the broader pattern: the apex domain is a sharp edge for the mobile client. Flag for SYSTEM_RULES update if a third occurrence shows up (per Rule 009 in SYSTEM_RULES.md).
+
+---
+
+### [FIX-044] — Learning Paths "Not Loading Correctly" (Missing Progress Indicator + Silent Query Failure)
+**Date**: 2026-05-23 PT
+**Session**: Claude Code (authentic-hadith-debugger skill)
+**Severity**: High — Learn tab is a Phase 3 Premium feature; cards rendered without the progress signal the spec required, so users had no way to see what they'd completed.
+
+**Trigger**: KP reported "the learning paths are not loading correctly" via the More tab → Learn. Task acceptance criteria required (1) cards display title + description + **progress indicator** within 3s, (2) tapping a card loads lessons, (3) completed-lesson progress reflects on return.
+
+**Production data probe (before touching code)**:
+```
+learning_paths   → HTTP 200, 6 rows seeded (Foundations, Daily Practice, Hadith Sciences,
+                   Comparative, Thematic, Great Scholars). Columns match TS type:
+                   title/description/level/is_premium/sort_order/estimated_hours.
+lessons          → HTTP 200, 10 rows. Columns: id/title/description/content/order_index/estimated_minutes.
+path_lessons     → HTTP 200, 10 rows. FK path_lessons.lesson_id → lessons.id WORKS
+                   (verified by running the [pathId] embed select directly via curl).
+learning_progress→ HTTP 200, populated (status/quiz_score/quiz_passed schema, distinct
+                   from user_lesson_progress which is empty).
+```
+The data is healthy. RLS allows anon SELECT on `learning_paths`, `lessons`, `path_lessons` (migration 999 lines 128-158). The Supabase client at `lib/supabase/client.ts` is correctly initialized with `EXPO_PUBLIC_SUPABASE_*` envs and persists the session via `ExpoSecureStoreAdapter`. So none of the typical suspects (RLS, auth, empty table) applied.
+
+**Root Cause**: Two compounding issues in `app/(tabs)/learn.tsx`:
+
+1. **No progress indicator was being rendered at all.** The screen fetched `learning_paths` and laid out title / level / description / estimated_hours, but never queried `path_lessons` and never consulted the local `progressService` completion store, so per-path "X / Y lessons" + progress bar — required by AC #1 and AC #3 — were absent. From KP's POV the cards "weren't loading correctly" because they were missing the signal that proves the feature is alive.
+2. **Silent query failure.** The `useQuery` queryFn threw on Supabase error with no `__DEV__ && console.error` first. Per the FIX-041 follow-up lesson, every API-layer throw needs an upstream log line so future LogBox / Metro inspection surfaces the cause instead of vanishing into React Query's error state with no breadcrumb. Same gap in `app/learn/[pathId].tsx`.
+
+**Fix Applied**:
+
+`app/(tabs)/learn.tsx`:
+- Added second `useQuery(['learning-paths-lesson-map'])` against `path_lessons` selecting `learning_path_id, lesson_id`. Separate cache key so its failure does not blank the path list.
+- Added `useCompletedItems('lesson')` from `hooks/useProgress.ts` so the screen subscribes to the local progress store. When the lesson detail screen calls `markComplete` (already wired via `useCompletionStatus`), `subscribe()` fan-out re-renders the Learn screen → AC #3 satisfied with zero extra plumbing.
+- Computed `progressByPath: { [pathId]: { total, done } }` via `useMemo` over the two reactive data sources.
+- Added `renderProgress(pathId)` helper rendering a 6px-tall track (`colors.marbleBase`) with an emerald fill (`colors.emeraldMid`) sized by `done/total`, plus "X / Y lessons" caption in `tabular-nums` so the digits don't jitter. Renders inside both the free-tier `FlatList` `renderItem` and the premium `PremiumGate` map block.
+- Added `__DEV__ && console.error('[Learn] learning_paths fetch failed:', error)` before the throw in the primary queryFn, and a matching `[Learn] path_lessons fetch failed` on the secondary queryFn.
+
+`app/learn/[pathId].tsx`:
+- Added `__DEV__ && console.error('[Learn:pathId] lessons embed fetch failed:', { pathId, error })` before the throw in the lessons queryFn. The embed itself (verified working in production via curl) is unchanged.
+
+`app/learn/lesson/[lessonId].tsx`: Untouched. Already uses `useCompletionStatus` correctly; the Learn screen now consumes those writes via the same shared store.
+
+**Files Changed**:
+- `app/(tabs)/learn.tsx` — useMemo+useCompletedItems wiring, path_lessons query, renderProgress helper, progressRow/Track/Fill/Text styles, queryFn error logs.
+- `app/learn/[pathId].tsx` — added error log before queryFn throw.
+- `BUILD_FIX_LOG.md` — this entry.
+
+**Files Intentionally NOT Changed (out of scope per task)**:
+- `app/learn/lesson/[lessonId].tsx` — already wired to progressService; widening it would have been refactor, not fix.
+- `lib/progress/progressService.ts` — works as designed; the screen was just not consuming it.
+- `supabase/migrations/997-seed-learning-paths.sql` — uses stale column names (`name`/`difficulty`/`estimated_days`/`order_index`) that don't match the current `learning_paths` schema (`title`/`level`/`estimated_hours`/`sort_order`). The seed file would FAIL today if re-run, but it has already been superseded — production has 6 paths seeded via a different path. Flagged for KP to clean up separately; not a blocker for this fix.
+- `types/hadith.ts` — `LearningPath` type covers the columns the screen reads. Production returns extras (`slug`, `subtitle`, `icon_name`, `total_modules`, `total_lessons`, `color`, `title_ar`, `description_ar`) but widening the type was unrelated.
+- The `[pathId]` PostgREST embed — works in production despite Golden Rule #1 warning, because `path_lessons.lesson_id → lessons.id` IS a declared FK (migration 999 line 55) and is enforced in production. Verified by curl probe returning 4 lessons for Foundations path. No need to refactor to a two-query merge.
+
+**Verification Command**:
+```bash
+npx tsc --noEmit   # → exit 0, zero errors (confirmed)
+
+# Production data sanity (anon key):
+SUPA="https://nqklipakrfuwebkdnhwg.supabase.co"
+KEY="$EXPO_PUBLIC_SUPABASE_ANON_KEY"
+curl -s -H "apikey: $KEY" -H "Authorization: Bearer $KEY" -H "Prefer: count=exact" \
+  "$SUPA/rest/v1/learning_paths?select=id" -D - | grep content-range
+# expect: content-range: 0-5/6
+```
+
+Manual on simulator (3 acceptance criteria):
+1. Open app → More tab → Learn → cards render within 3s with title, description, level chip, "📅 N hours" line, AND a 6px emerald progress bar + "0 / N lessons" caption for each path (N matches `path_lessons` count per path).
+2. Tap "Foundations of Hadith" → `/learn/0d97d9e7-...` → 4 lesson cards render (What is Iman, Five Pillars, Importance of Salah, Wudu and Purification).
+3. Tap a lesson → "Mark as Complete" → back-button to Learn → progress bar on Foundations card updates to "1 / 4 lessons" with the corresponding fill width.
+
+**Result**: Fixed at the code layer. Typecheck clean. AC #1 + #3 now wire-true (progress indicator present, reactive to completions). AC #2 was already functional and now has the diagnostic log so any future regression is loud. **Simulator verification is pending — see "Verification gap" note in ERROR_REPORT.md.**
+
+**Lesson**:
+1. "Not loading correctly" is a symptom, not a diagnosis. Probe the production data FIRST — if the rows exist and the query returns 200, the bug is in render or spec-coverage, not data fetch. This one was missing-feature dressed as a load failure.
+2. AC #3 (state persistence across screens) is cheapest when both screens already consume the same reactive store. The lesson detail screen was already writing to `progressService`; the Learn screen just had to subscribe. Zero new APIs, zero new tables, zero schema risk.
+3. Reflex `__DEV__ && console.error` on every API-layer throw. The cost is one line and the payoff is the next session not flying blind, exactly as FIX-041 follow-up taught.
+4. Migration 997's seed file has drifted from the live `learning_paths` schema (uses old column names like `name`/`difficulty`/`order_index` instead of `title`/`level`/`sort_order`). It would fail on re-run. Future "schema alignment" pass should reconcile or retire that file — flagged here, not fixed in this scope.
+
+**Pattern Category**: SPEC_COVERAGE_GAP / SILENT_QUERY_ERROR_SWALLOWING (recurrence of FIX-041 follow-up lesson #2 — frequency 2, watch for 3rd).
+
+---
+
+### [FIX-043] — Search Result Cards Cut Off Mid-Text (numberOfLines Swap + Explicit Ellipsis)
+**Date**: 2026-05-23 PT
+**Session**: Claude Code (authentic-hadith-debugger skill)
+**Severity**: Minor — P2 cosmetic; does not block App Store submission.
+
+**Trigger**: KP reported "the sizing of the search hadith does not correctly do a good view, its showing as a cut off." Reproduced on Search tab (`app/(tabs)/search.tsx`) which renders results via `HadithList` → `HadithCard` with `compact={true}`.
+
+**Root Cause**:
+`components/hadith/HadithCard.tsx` in compact mode set `numberOfLines={3}` for Arabic and `numberOfLines={4}` for English. With Arabic `lineHeight: 38`, three lines is ~114px and frequently truncated mid-clause on the most common hadith lengths; the English block at four lines pushed the card tall enough on iPhone SE that the visual weight was unbalanced and the "Read more →" affordance read as buried. `ellipsizeMode` was also implicit — relying on the RN default, which a future style refactor could break.
+
+**Fix Applied**:
+```tsx
+// components/hadith/HadithCard.tsx — compact-mode list cards
+<Text
+  style={[styles.arabicText, { color: colors.bronzeText }]}
+  numberOfLines={compact ? 4 : undefined}   // was 3
+  ellipsizeMode="tail"
+>
+  {hadith.arabic_text}
+</Text>
+
+<Text
+  style={[styles.englishText, { color: colors.bronzeText }]}
+  numberOfLines={compact ? 3 : undefined}   // was 4
+  ellipsizeMode="tail"
+>
+  {hadith.english_text}
+</Text>
+```
+
+**Files Changed**:
+- `components/hadith/HadithCard.tsx` — Arabic compact lines 3→4, English compact lines 4→3, explicit `ellipsizeMode="tail"` on both. Detail screen path (`compact={false}`) unchanged: `numberOfLines={undefined}` still renders full text.
+
+**Verification Command**:
+```bash
+npx tsc --noEmit
+# → clean (no new errors)
+```
+
+**Manual verification** (required on physical device or simulator):
+1. Search tab → type "sabr" → confirm each result card shows: GradeBadge, source citation (e.g. "Sunan Ibn Majah #4014"), Arabic block (≤4 lines, ellipsized cleanly if longer), English translation (≤3 lines, ellipsized cleanly if longer), narrator line if present, and "Read more →" always visible at the bottom.
+2. Repeat on iPhone SE (smallest supported) and iPhone 17 — no mid-character or mid-word cutoffs; ellipsis appears at line end.
+3. Tap any result → `app/hadith/[id].tsx` renders full Arabic + English with no truncation (uses `HadithCard` without `compact`).
+
+**Scope note**: `HadithList` is also used by `app/chapter/[id].tsx`, `app/book/[id].tsx`, `app/topics/[slug].tsx`. All four screens share the same compact-card behavior by design, so this fix benefits them uniformly. No screen relies on the old 3-Arabic / 4-English ratio.
+
+**Result**: Fixed (code change verified by `tsc`; manual device verification pending physical run).
+
+**Lesson**:
+For RTL scripts with tall line heights (Arabic at `lineHeight: 38`), `numberOfLines` of 3 reads as cramped on small phones — Arabic needs at least one more line than the Latin block of equivalent semantic weight. When using `numberOfLines`, always set `ellipsizeMode` explicitly; the implicit default is correct today but is the kind of thing a future style refactor silently breaks. P2 cosmetic complaints from KP are almost always shaped like "looks cut off" and almost always live in a `numberOfLines` value that was guessed at build time without measuring on the smallest device.
+
+**Pattern Category**: UI truncation / RTL line-height / numberOfLines tuning
+
+---
+
+### [FIX-042] — Subscription Screen Shows Generic "Something went wrong" Instead of Real Cause
+**Date**: 2026-05-23
+**Session**: Claude Code (authentic-hadith-debugger skill)
+**Severity**: High — paywall is the revenue path; users had no actionable diagnostic when offerings failed to load or purchases rejected.
+
+**Trigger**: KP reported "The subscription page at route `redeem/my-code` is throwing 'Something went wrong. Please try again.' The RevenueCat integration is already installed." The cited route was a referral QR display screen, not the subscription paywall; KP confirmed the actual target was `app/settings/subscription.tsx`.
+
+**Error Message**:
+```
+Alert: "Purchase Failed" / "Something went wrong. Please try again."
+On-screen fallback: "No subscription plans available right now. Please try again later."
+```
+
+**Root Cause**:
+Two compounding issues in `app/settings/subscription.tsx`:
+
+1. **Dead `try/catch` in the init `useEffect`.** `getOfferings()` and `getSubscriptionStatus()` in `lib/purchases/revenuecat.ts` swallow all errors internally and return `null` / `defaultStatus` (intentional per FIX-031, since `RevenueCatProvider` depends on the silent-catch contract). That means the screen's `try/catch` was unreachable and `initError` never got set, even when RevenueCat was in degraded mode (no API key, Apple Dev Portal IAP capability not enabled, simulator without StoreKit Config, etc.). Users saw the misleading "No subscription plans available right now" message with no real diagnostic and no way to know whether the issue was their account, their network, or app config.
+
+2. **`handlePurchase` / `handleRestore` fall back to a useless string.** The error path was `Alert.alert('Purchase Failed', err.message || 'Something went wrong. Please try again.')`. RevenueCat purchase errors expose `readableErrorCode`, `code`, `userInfo.readableErrorCode`, and `underlyingErrorMessage` — but the code only read `.message`, which is empty for several real-world failure classes. Result: the generic "Something went wrong. Please try again." surfaced for the most actionable failures (e.g., `PURCHASE_NOT_ALLOWED_ERROR`, `STORE_PROBLEM_ERROR`).
+
+**Fix Applied**:
+
+```tsx
+// app/settings/subscription.tsx
+import { ..., isRevenueCatConfigured, ... } from '@/lib/purchases/revenuecat';
+
+// New helper — prefer RevenueCat's structured fields over a missing .message.
+function extractPurchaseError(err: any, fallback: string): string {
+  if (!err) return fallback;
+  if (err.userCancelled) return ''; // signal: do not alert
+  const readable = err.readableErrorCode || err.userInfo?.readableErrorCode;
+  const underlying = err.underlyingErrorMessage || err.userInfo?.NSUnderlyingError?.message;
+  const msg = typeof err.message === 'string' ? err.message.trim() : '';
+  if (msg) return underlying ? `${msg} (${underlying})` : msg;
+  if (readable) return `${readable.replace(/_/g, ' ').toLowerCase()}.`.replace(/^./, (c: string) => c.toUpperCase());
+  if (underlying) return underlying;
+  if (typeof err.code !== 'undefined') return `${fallback} (code ${err.code})`;
+  return fallback;
+}
+
+// Init useEffect — detect degraded mode and empty offerings explicitly.
+const [off, sub] = await Promise.all([getOfferings(), getSubscriptionStatus()]);
+if (!isRevenueCatConfigured()) {
+  setInitError(
+    Platform.OS === 'web'
+      ? 'In-app purchases are available on iOS and Android.'
+      : 'In-app purchases are unavailable right now. Please make sure you are signed in and online, then reopen this screen.'
+  );
+} else if (!off || !off.availablePackages || off.availablePackages.length === 0) {
+  setInitError(
+    'No subscription plans are currently available from the App Store. This usually means in-app purchases are still being provisioned. Please try again in a few minutes.'
+  );
+}
+setOfferings(off);
+setStatus(sub);
+
+// handlePurchase / handleRestore — use the extractor instead of `err.message || fallback`.
+const message = extractPurchaseError(err, 'Something went wrong. Please try again.');
+if (message) Alert.alert('Purchase Failed', message);
+```
+
+**Files Changed**:
+- `app/settings/subscription.tsx` — added `isRevenueCatConfigured` import; added `extractPurchaseError` helper; init effect now sets `initError` for degraded-mode and empty-offerings paths; `handlePurchase` and `handleRestore` use the extractor.
+- `ERROR_REPORT.md` — opened 🔴 ACTIVE intake for the fix, will reset to 🟢 after verification.
+- `BUILD_FIX_LOG.md` — this entry.
+
+**Verification Command**:
+```bash
+npx tsc --noEmit
+# → clean (no new errors introduced by this change)
+
+# Manual on simulator / device:
+# 1. Open Profile tab → Subscription
+# 2. Confirm tiers display when RevenueCat is fully configured + App Store IAP active.
+# 3. Confirm a clear, specific message appears when RevenueCat is in degraded mode
+#    (kill the EXPO_PUBLIC_REVENUECAT_API_KEY_IOS in .env.local locally to reproduce).
+# 4. Tap a tier with sandbox not signed in → confirm the Alert now surfaces
+#    `PURCHASE_NOT_ALLOWED_ERROR` (or similar readableErrorCode) instead of
+#    "Something went wrong. Please try again."
+```
+
+**Result**: Fixed at the screen layer. The lib's silent-catch contract is preserved (per FIX-031 design), with diagnostic surfacing now happening in the consumer.
+
+**Lesson**:
+When a library's contract is "catch errors silently and return null/defaults," consumers must do explicit post-condition checks to surface the failure to users — otherwise the screen's own `try/catch` becomes dead code and users see a misleading happy-path fallback. For SDKs with structured error objects (RevenueCat, Stripe, Sentry), always extract their richer fields (`readableErrorCode`, `code`, `userInfo`, `underlyingErrorMessage`) before falling back to `.message`. The `.message` field is the weakest signal — it can be empty, generic, or platform-localized in ways that lose useful detail.
+
+**Pattern Category**: Error surfacing / SDK error structure / Degraded-mode UX
+
+---
+
+### [FIX-041] — My Hadith Folder Screen Always Empty (PostgREST Embed Alias Mismatch)
+**Date**: 2026-05-23
+**Session**: Claude Code (authentic-hadith-debugger skill)
+**Severity**: High — entire My Hadith folder feature was non-functional; tapping any folder rendered "No hadiths in this folder yet" regardless of saved content.
+
+**Trigger**: KP reported the route `app/my-hadith/folder/[id].tsx` showed the empty-state copy for every folder, even folders with saved hadiths. His hypothesis was that the folder ID from `useLocalSearchParams` wasn't being applied to the Supabase fetch.
+
+**Root cause**: The PostgREST embedded select in `lib/api/my-hadith.ts:getFolderHadiths` selected the join as `hadiths(*)` (unaliased). PostgREST returns embedded relationships under the table-name key by default, so each row arrived as `{ ..., hadiths: { ... } }` — plural. The folder screen render at `app/my-hadith/folder/[id].tsx:86-101` and the TypeScript type `SavedHadithWithNotes.hadith?: Hadith` at `types/my-hadith.ts:40` both expect singular `hadith`. With the joined object stranded on the wrong key, every `item.hadith` was undefined.
+
+Compounding the failure: `useFolderHadiths` exposes only `data` and `isLoading` — no `isError` — and the API function threw on any underlying error without logging. So any PostgREST embed failure, RLS denial, or transport error left the screen with `data === undefined`, which `FlatList` renders as `ListEmptyComponent`. The user could not distinguish "query failed" from "no saves yet."
+
+The working pattern was already in `lib/services/bookmark-service.ts:34` (`hadith:hadiths(*)` — aliased), proving the same FK join works when the alias is provided. The folder API simply hadn't adopted it.
+
+**Fix applied**:
+1. `lib/api/my-hadith.ts:getFolderHadiths` — embed alias changed `hadiths(*)` → `hadith:hadiths(*)`. Result now matches the `SavedHadithWithNotes.hadith` type, so the existing render code at `app/my-hadith/folder/[id].tsx:88` lights up.
+2. Same alias applied in `lib/api/my-hadith.ts:getFolderByShareToken` so the public/unlisted shared-folder view (consumed by `/shared/[token]` deep links) renders the same.
+3. Added `__DEV__ && console.error(...)` inside both functions' error branches so silent PostgREST failures surface in Metro logs rather than vanishing through the throw.
+
+**Files changed**:
+- `lib/api/my-hadith.ts` — `getFolderHadiths` and `getFolderByShareToken` embed alias + dev error logging
+- `BUILD_FIX_LOG.md` — this entry
+
+**Files intentionally NOT changed**:
+- `app/my-hadith/folder/[id].tsx` — render already reads `item.hadith` correctly; the bug was upstream in the query
+- `hooks/useMyHadith.ts` — hook signature stays the same; no API surface change needed
+- `components/my-hadith/SaveHadithModal.tsx` — save flow already persists `folder_id` correctly when a folder chip is tapped; no change required
+- `types/my-hadith.ts` — type was always correct, code was wrong
+- `supabase/migrations/996-my-hadith-tables.sql` — schema is correct; bug was client-side
+
+**Verification command**:
+```bash
+npx tsc --noEmit
+```
+Expected: exit 0, zero errors. Actual: passed (no output).
+
+Manual verification (KP):
+1. Open My Hadith tab, pick any folder with saved hadiths
+2. Folder screen now renders each saved hadith as a `HadithCard` instead of "No hadiths in this folder yet"
+3. Notes appear under each card when present
+4. Tapping a hadith routes to `/hadith/${item.hadith_id}` (already working)
+
+If a folder still appears empty after this fix:
+- Check Metro log for the new `getFolderHadiths failed: { folderId, error }` line — that surfaces RLS denial or column-not-found issues
+- Verify saved_hadiths rows actually have `folder_id` set: hadiths bookmarked via the bookmark icon (`BookmarkService.add`) store `folder_id = NULL` and only appear in the global Bookmarks page, not in any folder. Only hadiths saved via the SaveHadithModal with a folder chip selected appear here.
+
+**Result**: Fixed. Typecheck clean. Render path now matches the query response shape.
+
+**Lesson**:
+1. PostgREST embedded selects return the joined object under the **table name** unless you alias it (`alias:table(*)`). When the TypeScript type uses a singular field name (`hadith`) and the table is plural (`hadiths`), the alias is required, not optional. Mismatches don't error; they leave the field undefined and the render silently degrades.
+2. Mirror Golden Rule #1's "Hadiths Table is a Flat Island" insight: even valid FK joins TO hadiths (`saved_hadiths.hadith_id → hadiths.id`) need explicit aliasing when the response shape matters. The aliased pattern in `BookmarkService.getAll` is the reference implementation; any new `saved_hadiths`+`hadiths` join should copy it verbatim.
+3. Hooks that wrap React Query must expose `isError` (or surface errors otherwise) when the parent screen renders a meaningful empty state — otherwise "query errored" and "no data" become indistinguishable to the user, and the symptom looks like a data problem when it's a query problem.
+
+**Pattern category**: POSTGREST_EMBED_ALIAS_MISMATCH / SILENT_QUERY_ERROR_SWALLOWING
+
+---
+
+### [FIX-041 FOLLOW-UP] — Runtime Verification Surfaced Deeper Root Cause (Missing FK in Production)
+
+**Date**: 2026-05-23 (same session, ~minutes after initial FIX-041)
+
+**Trigger**: KP ran the simulator immediately after the alias fix. The new `__DEV__ && console.error` log line (added in the original FIX-041) surfaced the actual PostgREST error in the LogBox overlay:
+
+```
+getFolderHadiths failed:
+{
+  "folderId": "06b3fc20-8452-4fd9-9ef2-3ae04916c93c",
+  "error": {
+    "code": "PGRST200",
+    "details": "Searched for a foreign key relationship between 'saved_hadiths' and 'hadiths' in the schema 'public'...",
+    "hint": "Perhaps you meant 'hadith_folders' instead of 'hadiths'."
+  }
+}
+```
+
+**Actual root cause**: The production `saved_hadiths.hadith_id` column has **no foreign key constraint** to `hadiths.id`. Golden Rule #1 documents this FK as one of two "Valid FK joins TO hadiths," but the production schema for this app does not enforce it. PostgREST's embedded-select machinery requires either a declared FK constraint or a `db-schemas` view hint to auto-resolve a relationship; neither exists here. So both `hadiths(*)` and `hadith:hadiths(*)` return PGRST200 — the alias change in the original FIX-041 was orthogonal to the real problem.
+
+The original FIX-041 alias change was still net-positive because it (a) would have made the query response shape match the `SavedHadithWithNotes.hadith` type once the join works, and (b) added the dev-error logging that surfaced this deeper issue. Without that log, the next session would have spent another hour staring at "data array is empty" with no signal.
+
+**Corrected fix**: Refactored `getFolderHadiths` (and `getFolderByShareToken`) to the two-query pattern Golden Rule #1 actually prescribes: "ALWAYS use `.select('*')` and do separate lookups." Step 1 fetches `saved_hadiths` rows filtered by `folder_id`. Step 2 collects the distinct `hadith_id` values and runs a single `.from('hadiths').select('*').in('id', hadithIds)` lookup. Step 3 merges client-side into the `SavedHadithWithNotes.hadith` field. No PostgREST embed, no FK dependency.
+
+Behavior preserved:
+- Same return type (`SavedHadithWithNotes[]`)
+- Same ordering (`created_at` descending)
+- Same hook signature, same React Query key, same render
+- If the `hadiths` batch lookup fails, the saved rows are still returned (notes survive even if hadith body load fails)
+
+`getFolderByShareToken` now resolves the folder by share token in one query, then delegates to `getFolderHadiths(folder.id)` for the saved-hadith fan-out — keeps the join logic in exactly one place.
+
+**Files changed (this follow-up)**:
+- `lib/api/my-hadith.ts` — `getFolderHadiths` rewritten to two-query merge; `getFolderByShareToken` refactored to delegate to `getFolderHadiths`
+
+**Verification**:
+- `npx tsc --noEmit` → EXIT=0, zero errors
+- Manual KP test: open My Hadith, tap a folder with saved hadiths, cards now render with notes (instead of empty state). The LogBox warning from before should be gone.
+
+**Lesson (the real one)**:
+1. **Don't trust documented FKs without verifying production.** Golden Rule #1's "Valid FK joins TO hadiths" list assumed `saved_hadiths.hadith_id → hadiths.id` exists as a constraint. It doesn't, in this database. Any embed that depends on that FK will silently fail with PGRST200. Default to two-query client-side merges for any join touching the `hadiths` table until the FK is actually added by a migration KP applies and verifies.
+2. **The most valuable line in the original FIX-041 was the `__DEV__ && console.error`.** The functional change (the alias) was a partial fix; the diagnostic change is what enabled the real fix. Add silent-failure logging as a reflex on any throw-then-rethrow in API layers — the cost is one line, the payoff is the next session not flying blind.
+3. **`useFolderHadiths` still needs `isError` exposure.** Even with the corrected fix, a future infra-side failure will manifest as "empty state" unless the hook surfaces the error. Out of scope for this bug (user asked for the fetch fix only, not a UX rework), but flagged here so the next pass picks it up.
+
+**Pattern category update**: Add `POSTGREST_MISSING_FK_FORCE_CLIENT_JOIN` alongside the original `POSTGREST_EMBED_ALIAS_MISMATCH`. Both belong to the same recurring family: **trusting PostgREST embeds without verifying the underlying FK exists in production**.
+
+**Golden Rule #1 amendment to consider** (KP to approve before edit): downgrade `saved_hadiths.hadith_id → hadiths.id` from the "Valid FK joins" list to "use client-side merge; FK not present in production." Same for `hadith_views.hadith_id → hadiths.id` until proven otherwise.
+
+---
+
+### [FIX-040] — EAS Production Environment Empty (TestFlight Pre-Submit Blocker)
+**Date**: 2026-05-18
+**Session**: Claude Code (TestFlight readiness audit, authentic-hadith-debugger skill)
+**Severity**: Critical (TestFlight build would launch and immediately fail Supabase + RevenueCat init)
+
+**Trigger**: KP requested a pre-TestFlight readiness audit. Local checks all passed (`expo doctor` 17/17, `tsc --noEmit` 0 errors, all 12 pinned deps match exactly, mobile-chat endpoint HTTP 200, bundle ID + ITSAppUsesNonExemptEncryption correct). However, `eas env:list --environment production` returned `No variables found for this environment.` — all three EAS environments (production, preview, development) were empty.
+
+**Root cause**: `.env.local` is correctly gitignored (`.env*.local` in `.gitignore`). It is read by Metro and `expo start` locally, but EAS Build servers never see it. EAS Build pulls environment variables from the EAS env service (or from `eas.json` profile `env` blocks), and our production profile only set `autoIncrement: true`. So the production bundle would ship with every `EXPO_PUBLIC_*` value undefined:
+- `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY` undefined → Supabase client init throws → app crashes on launch.
+- `EXPO_PUBLIC_REVENUECAT_API_KEY_IOS` undefined → RevenueCat init fails → paywall broken.
+- `EXPO_PUBLIC_APP_ENV` falls back to literal string `'development'` in `app.config.js` → wrong env tag in analytics/logs.
+- `EXPO_PUBLIC_API_URL` falls back to `https://authentichadith.app` (apex), which 307-redirects to `www.` (functional but extra hop on every request).
+
+**Fix Applied**:
+1. Extracted only `EXPO_PUBLIC_*` keys from `.env.local` into a temp file (`grep -E "^EXPO_PUBLIC_" .env.local > /tmp/eas-mobile-prod.env`), filtering out 17 server-only secrets (`STRIPE_SECRET_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `OPENAI_API_KEY`, `GROQ_API_KEY`, `HADITH_API_KEY`, `SUNNAH_API_KEY`, `REVENUECAT_SECRET_API_KEY`, `STRIPE_WEBHOOK_SECRET`, `TRUTHSERUM_*_PEM_BASE64`, all `STRIPE_PRICE_ID_*` / `STRIPE_PRODUCT_ID_*`, `STRIPE_PUBLISHABLE_KEY`) that belong only on the Vercel web backend, not on EAS Build infra.
+2. Dropped `EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID` from the temp file because its value was empty (Android RevenueCat not configured yet, and `eas env:push` rejects empty values). iOS TestFlight does not need it.
+3. Pushed the remaining 6 keys with `eas env:push production --path /tmp/eas-mobile-prod.env --force`. Result: `Uploaded env file to production.`
+4. Securely removed the temp file (`rm -f /tmp/eas-mobile-prod.env`).
+
+**Keys now present in EAS production environment** (values intentionally not logged):
+- `EXPO_PUBLIC_SUPABASE_URL`
+- `EXPO_PUBLIC_SUPABASE_ANON_KEY`
+- `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+- `EXPO_PUBLIC_APP_ENV` (= `production`)
+- `EXPO_PUBLIC_API_URL`
+- `EXPO_PUBLIC_REVENUECAT_API_KEY_IOS`
+
+**Files Changed**: None in the repo. All changes live in the EAS env service.
+
+**Files Intentionally NOT Changed**:
+- `.env.local` — left untouched per KP directive.
+- `eas.json` — `production.env` block deliberately not added; EAS env service is the single source of truth and avoids duplicating values in committed files.
+- `app.config.js` — `apiUrl` default left as apex `https://authentichadith.app`; the env var now overrides it cleanly.
+
+**Verification Command**:
+```bash
+eas env:list --environment production
+```
+Expected: 6 `EXPO_PUBLIC_*` entries listed (was: "No variables found for this environment.").
+
+**Result**: Fixed. EAS production builds will now bundle the correct Supabase URL/anon key and RevenueCat iOS key into the JS, and `EXPO_PUBLIC_APP_ENV` will report `production`.
+
+**Lesson**:
+1. `.env.local` is gitignored AND invisible to EAS Build. Local `expo start` working is not evidence that an EAS build will work. Always run `eas env:list --environment production` before submitting to TestFlight.
+2. When using `eas env:push`, pre-filter the env file to only the keys the mobile app actually needs. Pushing server-only secrets to EAS infra is unnecessary (they won't bundle into the JS because they lack the `EXPO_PUBLIC_` prefix, but they shouldn't live there at all).
+3. `eas env:push` rejects empty values with a generic GraphQL error (`Variable value can not be empty`). Audit the file with `awk -F= 'NF<2 || $2=="" {print $1}' file.env` before pushing.
+4. The `--non-interactive` flag does not exist on `eas env:push`. Use `--force` to skip the override-confirmation prompt.
+
+**Pattern category**: ENV_PIPELINE / EAS_BUILD_CONFIGURATION
+
+**Pre-TestFlight Checklist Verified This Session**:
+- [x] `npx expo-doctor` — 17/17 checks pass
+- [x] `npx tsc --noEmit` — 0 errors
+- [x] `package.json` dependency drift check — 12/12 pinned versions exact match
+- [x] `app.json` — bundle ID `com.byred.authentichadith`, version `1.0.0`, `ITSAppUsesNonExemptEncryption: false`
+- [x] `eas.json` — `submit.production.ios.ascAppId: 6764673665` set; `appVersionSource: remote`; `production.autoIncrement: true`
+- [x] `https://www.authentichadith.app/api/mobile-chat` returns HTTP 200 (FIX-038 still holds)
+- [x] EAS production env vars populated (this fix)
+
+---
+
+### [FIX-039] — Content Trust Sweep (Source Attribution, AI Labeling, Client-Side Safety Filter)
+**Date**: 2026-05-13
+**Session**: Claude Code (Agent 2 — Content Trust & Data Integrity)
+**Severity**: High (App Store trust / religious safety risk; not a runtime crash)
+
+**Trigger**: Pre-submission content-trust audit found six distinct surfaces where the app made stronger religious-authority claims than its content or AI could substantiate:
+1. Raw kebab-case `collection_slug` (e.g. `sahih-bukhari 1234`) rendered as the visible reference on every hadith card, detail screen, and share message.
+2. AI Summary output labeled only "Summary" with no AI label or "not a religious ruling" footnote — indistinguishable from sourced commentary.
+3. Assistant tab claimed answers were "backed by authentic hadiths" and lacked a persistent fatwa disclaimer despite `APPSTORE_METADATA.md` explicitly promising Apple Review that the AI "encourages you to consult qualified scholars".
+4. Onboarding overclaimed: "AI assistant is trained to provide only authentic Islamic knowledge from verified sources" (false — general-purpose LLM under a system prompt) and listed hardcoded collection counts that did not match production (`7,563 / 7,500 / 3,956 / 5,274 / 5,761 / 4,341` vs actual `7,277 / 7,167 / 3,241 / 3,751 / 5,045 / 3,524`).
+5. `Hadith.grade` typed as required `'sahih' | 'hasan' | 'daif'` while production may have null/unknown values — GradeBadge would index into an undefined map key.
+6. `lib/api/groq.ts` sent raw user input to the network with no client-side safety filter and rendered raw `err.message` strings in the Assistant red error banner. The `enriched_hadiths.key_teaching_en` panel rendered as authoritative "Key Teaching" commentary with no documented provenance.
+
+**Root cause**: The hadith data pipeline and FIX-037/FIX-038 fallbacks were solid. The trust gaps were in **labeling and claims** — the app's marketing voice (App Store description, onboarding, brand) was tighter than its in-product copy and AI guardrails.
+
+**Fix applied (single sweep, two-step sequence after Agent 1's tab restructure handoff)**:
+
+Step 1 (foundation, parallel-safe):
+- New `lib/hadith/collectionDisplayName.ts` — `useCollectionDisplayNames()` hook + `getCollectionDisplayName()` pure helper + `formatHadithReference()` formatter. React Query cache keyed `['collection-display-names']` with 24h staleTime + offline-safe static fallback map for the 8 production slugs.
+- `components/hadith/HadithCard.tsx` — slug rendered via `formatHadithReference`; grade rendering guarded against null; AI Summary box label changed `"Summary"` → `"AI Summary"` with new disclaimer line `"AI-generated. Not a religious ruling."`; summarize prompt body appended with explicit no-ruling instruction.
+- `app/hadith/[id].tsx` — same slug + summary + prompt + disclaimer changes; new `books` + `chapters` React Query lookups added to populate Book and Chapter rows in the Reference table; `enriched_hadiths` panel gated behind `ENRICHED_HADITHS_ENABLED = false` until `docs/ENRICHED_HADITHS_PROVENANCE.md` is filled in.
+- `components/share/ShareSheet.tsx` — share message uses `getCollectionDisplayName` (static-fallback safe for one-shot fire-and-forget).
+- `app/bookmarks/index.tsx` — replaces longstanding "Unknown" collection display with `getCollectionDisplayName` (also fixes `APP_STORE_RELEASE_BLOCKERS.md` PI-02).
+- `types/hadith.ts` — `grade: HadithGrade | null`.
+- `components/hadith/GradeBadge.tsx` — accepts null/undefined; renders "Ungraded" pill with muted color for unknown values instead of indexing into an undefined key.
+- `app/quiz.tsx` — guarded `hadith.grade` index after the type widening (was line 75).
+- `lib/islamic-safety-filter.ts` — added `ruling_request` safety category, new `RULING_REQUEST_PATTERNS` regex group (fatwa requests, "is X halal/haram", "what is the ruling on X", "can I eat/drink/wear/marry/divorce/sell/buy/invest/gamble/smoke/date"), and a scholar-deferral `BLOCKED_RESPONSES.ruling_request` message.
+- `lib/api/groq.ts` — calls `checkInputSafety` BEFORE every network request; on filter hit returns the blocked response directly with no fetch. Exports `AI_REQUEST_FAILED` constant; all network/HTTP/JSON-parse failures throw this fixed friendly string. Raw error details remain in `__DEV__` console only.
+- `app/(tabs)/assistant.tsx` — subtitle softened from `"backed by authentic hadiths"` to `"Ask questions about hadith. Answers are AI-generated context, not a fatwa."`; empty-state disclaimer rewritten as a limitation (`"AI guidance only. For religious rulings, consult a qualified scholar."`); new persistent `fatwaFooter` row above the input shows the same disclaimer for every conversation; error banner uses `AI_REQUEST_FAILED` constant instead of `err.message`.
+- `app/settings/credits.tsx` — new Credits & Sources screen listing the 8 hadith collections by compiler, a placeholder section for translation source attribution (pending CTB-02), an AI Assistant section reiterating the "not a religious ruling" framing, and a byRed LLC acknowledgement.
+- `app/settings/index.tsx` — new SettingsItem row "Credits & Sources" linking to the new screen.
+- `docs/ENRICHED_HADITHS_PROVENANCE.md` (new) — documents the unresolved provenance and the gating flag.
+- `docs/CONTENT_TRUST_BLOCKERS.md` (new) — tracks CTB-01 through CTB-05.
+
+Step 2 (post-handoff, after Agent 1 unlocked tab files):
+- `app/(tabs)/today.tsx` — Daily Hadith share message uses `getCollectionDisplayName` (static fallback) so shared text reads "— Sahih al-Bukhari #1234".
+- `app/(tabs)/index.tsx` — Hadith of the Moment queries now `.eq('grade', 'sahih')` on both count and select so the headline card cannot surface a hasan or daif hadith.
+- `app/onboarding.tsx` — collection counts replaced with the V1 audit production numbers; AI claim copy softened from "trained to provide only authentic Islamic knowledge from verified sources" to "guided to focus on authentic hadith and to defer to qualified scholars for religious rulings" in both English and Arabic. Tab-reference language sweep ran zero hits.
+- `lib/i18n/translations/en.json` + `ar.json` — `safetyDesc` key updated to match the new onboarding copy so any future use of the translation table stays consistent.
+
+**Files changed**:
+- New: `lib/hadith/collectionDisplayName.ts`, `app/settings/credits.tsx`, `docs/ENRICHED_HADITHS_PROVENANCE.md`, `docs/CONTENT_TRUST_BLOCKERS.md`
+- Edited: `components/hadith/HadithCard.tsx`, `components/hadith/GradeBadge.tsx`, `components/share/ShareSheet.tsx`, `app/hadith/[id].tsx`, `app/bookmarks/index.tsx`, `app/quiz.tsx`, `app/(tabs)/today.tsx`, `app/(tabs)/index.tsx`, `app/(tabs)/assistant.tsx`, `app/onboarding.tsx`, `app/settings/index.tsx`, `types/hadith.ts`, `lib/api/groq.ts`, `lib/islamic-safety-filter.ts`, `lib/i18n/translations/en.json`, `lib/i18n/translations/ar.json`
+
+**Verification**:
+```
+# 1. No raw kebab slug + hadith number rendered as a string anywhere in app/ or components/
+grep -rnE '\$\{[^}]*collection_slug[^}]*\}\s+\$\{[^}]*hadith_number' app/ components/
+#   (expect zero hits)
+
+# 2. Overclaim copy fully removed
+grep -rn 'trained to provide only' .
+#   (expect zero hits in app/, components/, lib/, json files)
+
+# 3. New AI claim copy is present
+grep -rn 'guided to focus' app/onboarding.tsx lib/i18n/translations/
+
+# 4. Client-side filter wired
+grep -n 'checkInputSafety' lib/api/groq.ts
+
+# 5. AI_REQUEST_FAILED used in chat error path
+grep -n 'AI_REQUEST_FAILED\|err.message' app/\(tabs\)/assistant.tsx
+
+# 6. Onboarding counts match production
+grep -nE '7,277|7,167|3,241|3,751|5,045|3,524' app/onboarding.tsx
+
+# 7. Key Teaching panel gated until provenance is documented
+grep -n 'ENRICHED_HADITHS_ENABLED' app/hadith/\[id\].tsx
+
+# 8. Typecheck clean
+npx tsc --noEmit
+```
+
+All checks pass. Static QA matrix in `.claude/plans/zesty-floating-puzzle.md` (Phase 6) details the 16 manual real-device tests that should run on the next TestFlight build Agent 1 produces.
+
+**Result**: Fixed (static + typecheck). Real-device verification pending on next TestFlight build.
+
+**Lesson**: Religious-content apps live or die on labeling and provenance. The pipeline can be perfect — canonical collections, deterministic Daily Hadith, FIX-038 honest fallbacks — and still ship trust risk if the visible reference is a URL slug, the AI output is unlabeled, or the marketing voice promises behavior the app does not enforce. Always cross-check `APPSTORE_METADATA.md` claims against in-app copy: anything Apple Review reads in the description must be observably true in the build.
+
+**Pattern category**: New — App Store / religious-claim trust gap. Not a recurring runtime pattern; no new SYSTEM_RULES.md entry required.
+
+**Outstanding blockers**: tracked in `docs/CONTENT_TRUST_BLOCKERS.md`. CTB-01 (enriched_hadiths provenance) and CTB-02 (translator attribution) must be resolved before App Store submission. CTB-03 (Arabic phrasing review) is nice-to-have. CTB-04 (about-screen byRed LLC copyright) is a one-line fix that Agent 1 or KP can apply. CTB-05 closed.
+
+---
+
+### [FIX-038] — Verify `/api/mobile-chat` Restoration + Reset ERROR_REPORT to 🟢
+**Date**: 2026-05-13
+**Session**: Claude Code (iOS release-readiness audit)
+**Severity**: Warning (documentation/state hygiene; no mobile code change)
+
+**Trigger**: Pre-submit audit found `ERROR_REPORT.md` still in 🔴 ACTIVE state for the `/api/mobile-chat` 404 issue documented during FIX-037, even though commit `7ee5dd0 docs: WEB_BACKEND_DEPLOY_01 — restoration of /api/mobile-chat to production` indicated the web backend had been redeployed since.
+
+**Root cause**: State drift between the actual production deployment and the project's status file. The endpoint was restored web-side but the mobile-side ERROR_REPORT was never reset, leaving every future session reading "🔴 ACTIVE: AI Summary broken" as the top priority.
+
+**Verification commands**:
+```bash
+curl -s -i -X POST "https://www.authentichadith.app/api/mobile-chat" \
+  -H "Content-Type: application/json" \
+  -d '{"messages":[{"role":"user","content":"ping"}]}' --max-time 15
+```
+
+Response (2026-05-13):
+- HTTP/2 200
+- `content-type: application/json`
+- `x-matched-path: /api/mobile-chat`
+- Body: `{"response":"I'm here to help with any questions you have about Islamic teachings. ..."}`
+
+The apex domain `https://authentichadith.app/api/mobile-chat` still 307-redirects to the `www.` host. React Native's `fetch` follows redirects transparently. No mobile code change required.
+
+**Files changed**:
+- `ERROR_REPORT.md` — full rewrite, status reset 🔴 → 🟢, verification trace included
+- `BUILD_FIX_LOG.md` — this entry
+
+**Files NOT changed** (intentional):
+- `lib/api/groq.ts` — endpoint URL unchanged (`${API_CONFIG.baseUrl}/api/mobile-chat`)
+- `lib/supabase/client.ts` — `API_CONFIG.baseUrl` unchanged
+- `lib/config/constants.ts` — `PRODUCTION_API_URL` unchanged
+- `ios/AuthenticHadithApp.xcworkspace/contents.xcworkspacedata` — verified to already point at `AuthenticHadith.xcodeproj`; FIX-030 sed patch was a no-op at audit time
+
+**Verification result**: Fixed (status hygiene + audit doc). Mobile AI Summary path is live end-to-end.
+
+**Lesson**:
+1. ERROR_REPORT.md drift is a real cost. When a backend fix lands without a corresponding mobile-side commit, the mobile-side status file silently stays stale and the next session burns time on a non-issue. Pair every external-service fix with a mobile-side ERROR_REPORT reset.
+2. The FIX-030 stale-workspace patch is currently a no-op because the workspace file already references the canonical `AuthenticHadith.xcodeproj`. The patch should still be applied any time `expo run:ios` regenerates the workspace with the slug-derived bad reference — verify with `grep AuthenticHadithApp.xcodeproj ios/AuthenticHadithApp.xcworkspace/contents.xcworkspacedata` before running the sed.
+3. Always follow apex-vs-www redirects in production curl checks. The 307 from apex masked the live 200 response when only the apex was tested.
+
+**Pattern category**: STATE_DOCUMENTATION_DRIFT / EXTERNAL_BACKEND_VERIFICATION
+
+---
+
 ### [FIX-037] — V1 Content + AI Summary Audit (chapter truncation, home subtitle, AI fallback)
 **Date**: 2026-05-09
 **Trigger**: Real-device QA on the internal-device build (RoPhone) surfaced two complaints: "the other hadiths never downloaded" and "AI Summary is not configured correctly." Full audit in `V1_CONTENT_AI_AUDIT.md`.
@@ -1871,6 +2469,65 @@ Supabase sign-out must use scope:global AND clear server-side cookies via a dedi
 
 ---
 
+### [FIX-025] — PrivacyInfo.xcprivacy Not Durable Across `expo prebuild`
+**Date**: 2026-05-23 PT
+**Session**: Claude Code — App Store Submission Hardening
+**Severity**: Warning (App Store rejection risk on next prebuild)
+
+**Error Message**:
+```
+Apple requires PrivacyInfo.xcprivacy in every iOS submission since Spring 2024.
+File exists at ios/AuthenticHadith/PrivacyInfo.xcprivacy but `/ios` is in .gitignore,
+so any `npx expo prebuild` regenerates the directory and the manifest reverts to the
+Expo template (which lacks NSPrivacyTrackingDomains). Brittle.
+```
+
+**Root Cause**:
+PrivacyInfo.xcprivacy was authored directly in the gitignored `ios/` folder. With Continuous Native Generation enabled (Expo SDK 54 prebuild), the canonical source of truth for native config must live in `app.json` so Expo regenerates it on every prebuild.
+
+**Fix Applied**:
+Added `ios.privacyManifests` block to `app.json`. Expo prebuild now injects the manifest into the regenerated `ios/AuthenticHadith/PrivacyInfo.xcprivacy` on every build, with NSPrivacyTrackingDomains explicitly declared.
+
+```json
+"ios": {
+  ...
+  "privacyManifests": {
+    "NSPrivacyTracking": false,
+    "NSPrivacyTrackingDomains": [],
+    "NSPrivacyCollectedDataTypes": [],
+    "NSPrivacyAccessedAPITypes": [
+      { "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",   "NSPrivacyAccessedAPITypeReasons": ["CA92.1"] },
+      { "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryFileTimestamp",  "NSPrivacyAccessedAPITypeReasons": ["C617.1","0A2A.1","3B52.1"] },
+      { "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryDiskSpace",      "NSPrivacyAccessedAPITypeReasons": ["85F4.1","E174.1"] },
+      { "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategorySystemBootTime", "NSPrivacyAccessedAPITypeReasons": ["35F9.1"] }
+    ]
+  }
+}
+```
+
+**Files Changed**:
+- `app.json` — added `expo.ios.privacyManifests` block (durable across prebuild). No edits to `ios/` (per WORKFLOW_ROUTER restriction).
+
+**Verification Command**:
+```
+python3 -c "import json; json.load(open('app.json'))"            # valid JSON
+plutil -lint ios/AuthenticHadith/PrivacyInfo.xcprivacy           # current generated file: OK
+plutil -lint ios/Pods/RevenueCat/Sources/PrivacyInfo.xcprivacy   # RevenueCat ships its own manifest: OK
+plutil -lint ios/Pods/PurchasesHybridCommon/.../PrivacyInfo.xcprivacy  # PurchasesHybridCommon: OK
+```
+
+**Result**: Fixed (config-side). Next EAS production build will regenerate manifest from app.json. Local `eas build --local` not run (would consume disk + Xcode time; deferred to scheduled production build).
+
+**Lesson**:
+When `ios/` is gitignored, any native file edit is ephemeral. The canonical place for App Store-mandated metadata in an Expo SDK 50+ project is `app.json` `ios.privacyManifests`, not the generated `.xcprivacy` file. Same principle for `infoPlist`, `entitlements`, and `usesAppleSignIn`.
+
+**Bundle ID Discrepancy Noted**:
+External Deployment Plan brief referenced `com.redlanternstudios.authentichadith`. Source of truth (`app.json`, `project.pbxproj`, `CLAUDE.md`) is `com.byred.authentichadith`. Brief is stale. Not modified.
+
+**Pattern Category**: Native config durability under CNG / prebuild
+
+---
+
 ### [FIX-024] — Dark Mode Broken on 6 Screens (Static COLORS Import)
 **Date**: 2026-05-07
 **Session**: Claude Code — Release Hardening Sprint 02
@@ -2015,6 +2672,7 @@ Any usage limit displayed to the user MUST be backed by actual enforcement. A co
 | Static COLORS import (dark mode) | 6 screens (FIX-024) | COLORS = LIGHT_COLORS always light. Screens using COLORS instead of getColors(isDark) | Every screen MUST use getColors(isDark) with useTheme() hook. Never import COLORS directly |
 | Ungated console statements | 19 statements (FIX-023) | console.error/warn shipped to production without __DEV__ guard | All console statements must be prefixed with __DEV__ && except ErrorBoundary and server routes |
 | Cosmetic-only enforcement | 1 (FIX-022) | Usage limit displayed but not persisted or enforced | Any user-facing limit must be backed by AsyncStorage persistence + actual send gate |
+| EAS env pipeline drift | 1 (FIX-040) | `.env.local` is gitignored and invisible to EAS Build; production env was empty | Before every TestFlight/App Store submit, run `eas env:list --environment production` and confirm all EXPO_PUBLIC_* keys the mobile app reads are present |
 
 ---
 
