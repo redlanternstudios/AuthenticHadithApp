@@ -2469,6 +2469,95 @@ Supabase sign-out must use scope:global AND clear server-side cookies via a dedi
 
 ---
 
+### [FIX-046] — `.claude/` Governance Scaffold + `qa:truthserum` Audit Chain
+**Date**: 2026-05-23 PT
+**Session**: Claude Code — Level 4 Mobile Governance Scaffold
+**Severity**: Infrastructure (no live bug; preventative governance + verification)
+
+> Note: KP requested entry ID `FIX-026`. That ID was already taken by an older log entry (lines ~1300+, RN Purchases plugin work). Logging as `FIX-046` (next sequential after the highest existing `FIX-045`) to avoid corrupting the log. A separate cleanup may be warranted: there is now also a duplicate `FIX-025` (this session's privacy manifest entry collides with an older `WORKFLOW_ROUTER.md Governance Hardening` entry at line 1587). Both duplicates should be renumbered in a follow-up housekeeping pass.
+
+**Trigger**:
+```
+KP requested a Level 4 governance scaffold under .claude/ (commands + rules) and a
+truthserum verification chain. Initial blueprint was Next.js-shaped; recalibrated to
+the actual stack: Expo SDK 54 + React Native 0.81.5 + Supabase + RevenueCat.
+Root CLAUDE.md preserved untouched per direct instruction.
+```
+
+**Root Cause**:
+No standing convention existed for (a) declaring which paths require human approval for autonomous edits, (b) defining the low-risk self-heal scope, or (c) running a repeatable env/routes/deps verification chain before EAS builds. Project-specific governance had to be inferred each session from the long root CLAUDE.md plus tribal knowledge in BUILD_FIX_LOG.md.
+
+**Fix Applied**:
+
+Created `.claude/` governance tree and a four-step audit chain. Mapped every rule to the *real* mobile stack paths, not the Next.js paths from the original blueprint.
+
+```
+.claude/
+├── commands/
+│   └── notify-imessage.md          [outbound notify skeleton, dispatch TODO]
+└── rules/
+    ├── forbidden-actions.md        [lib/auth, lib/supabase, ios/, app.json, eas.json, .env*]
+    └── approval-gates.md           [low-risk self-heal scope + branch+diff protocol]
+
+scripts/
+├── qa-audit-env.mjs                [loads .env.local, validates 5 client + 1 server key,
+│                                    soft-warns server keys when EAS_BUILD=true]
+├── qa-audit-routes.mjs             [walks ./app, classifies screens/layouts/dynamic/groups]
+├── qa-audit-deps.mjs               [Expo SDK 54 compat checks, banned-pkg list,
+│                                    acknowledges zod^4 vs @ai-sdk/groq peer^3 from FIX-025]
+└── qa-audit-report.mjs             [writes docs/reports/latest-verification.md]
+
+docs/reports/                       [new dir; chain output target]
+
+package.json scripts (APPEND-ONLY, no rewrites):
+- qa:audit:env
+- qa:audit:routes
+- qa:audit:deps
+- qa:audit:report
+- qa:truthserum     (chains the 4 above)
+- worker:health     (sanity check for the scaffold itself)
+
+UNTOUCHED: root CLAUDE.md, existing qa:routes (Jest), existing qa:report (composite QA),
+scripts/qa-route-scanner.js, scripts/reset-project.js.
+```
+
+**Verification Command**:
+```
+npm run worker:health
+# -> worker:health OK
+
+npm run qa:truthserum
+# -> env audit:     PASS (0 warnings)
+# -> routes audit:  PASS (37 screens, 3 layouts, 10 dynamic, 1 group)
+# -> deps audit:    PASS (1 expected warning: zod/groq peer, handled by .npmrc)
+# -> report audit:  PASS (wrote docs/reports/latest-verification.md)
+```
+
+**Files Changed**:
+- `.claude/rules/forbidden-actions.md` — NEW
+- `.claude/rules/approval-gates.md` — NEW
+- `.claude/commands/notify-imessage.md` — NEW (slash command stub, dispatch wiring TODO)
+- `scripts/qa-audit-env.mjs` — NEW
+- `scripts/qa-audit-routes.mjs` — NEW
+- `scripts/qa-audit-deps.mjs` — NEW
+- `scripts/qa-audit-report.mjs` — NEW
+- `docs/reports/latest-verification.md` — GENERATED
+- `package.json` — APPEND 6 scripts under `qa:audit:*` and `worker:health` namespaces
+
+**Result**: PASS. Chain runs in <2s. Worker health check confirms scaffold integrity.
+
+**Lesson**:
+When a blueprint arrives shaped for the wrong stack (Next.js paths in this case), pivot the **paths and conventions** but keep the **structural intent**. Scaffolding doesn't have to be perfect on first draft if the namespaces are clean enough to extend later. The `qa:audit:*` namespace was chosen specifically to avoid clobbering existing `qa:routes` (Jest route-integrity) and `qa:report` (composite QA) scripts that do real work in the existing release workflow.
+
+**Pending TODO**:
+- Wire `.claude/commands/notify-imessage.md` dispatch (3 options documented: Make.com webhook, local AppleScript, existing PE notify scenarios).
+- Consider promoting `qa:truthserum` into a pre-EAS-build gate once the chain has burned in over a few real builds.
+- Housekeeping: renumber the two duplicate IDs (FIX-025 and the once-requested FIX-026) in a dedicated commit.
+
+**Pattern Category**: Governance scaffolding / repeatable preflight verification
+
+---
+
 ### [FIX-025] — PrivacyInfo.xcprivacy Not Durable Across `expo prebuild`
 **Date**: 2026-05-23 PT
 **Session**: Claude Code — App Store Submission Hardening

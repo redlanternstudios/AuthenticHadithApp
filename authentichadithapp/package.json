@@ -8,7 +8,20 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "test": "jest --passWithNoTests",
+    "qa:routes": "jest __tests__/navigation/route-integrity.test.ts --verbose",
+    "qa:types": "npx tsc --noEmit",
+    "qa:lint": "expo lint",
+    "qa:test": "jest --verbose --coverage",
+    "qa:build": "npx eas-cli build --platform ios --profile production --non-interactive --no-wait",
+    "qa:report": "npm run qa:types 2>&1; npm run qa:lint 2>&1; npm run qa:test 2>&1; echo '--- QA Complete ---'",
+    "qa:audit:env": "node scripts/qa-audit-env.mjs",
+    "qa:audit:routes": "node scripts/qa-audit-routes.mjs",
+    "qa:audit:deps": "node scripts/qa-audit-deps.mjs",
+    "qa:audit:report": "node scripts/qa-audit-report.mjs",
+    "qa:truthserum": "npm run qa:audit:env && npm run qa:audit:routes && npm run qa:audit:deps && npm run qa:audit:report",
+    "worker:health": "test -f CLAUDE.md && test -d .claude/commands && test -d .claude/rules && echo 'worker:health OK'"
   },
   "dependencies": {
     "@ai-sdk/groq": "^1.2.9",
@@ -51,12 +64,17 @@
     "react-native-svg": "15.12.1",
     "react-native-url-polyfill": "^2.0.0",
     "react-native-web": "~0.21.0",
+    "zod": "^4.4.3",
     "zustand": "^5.0.2"
   },
   "devDependencies": {
+    "@testing-library/react-native": "^13.3.3",
+    "@types/jest": "^30.0.0",
     "@types/react": "~19.1.0",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
+    "jest": "^30.4.2",
+    "jest-expo": "^55.0.18",
     "typescript": "~5.9.2"
   },
   "private": true,
