@@ -6,12 +6,15 @@ import { supabase } from '@/lib/supabase/client';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { COLORS, SPACING, FONT_SIZES } from '@/lib/styles/colors';
+import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors';
+import { useTheme } from '@/lib/theme/ThemeProvider';
 import { Lesson } from '@/types/hadith';
 
 export default function LearningPathDetailScreen() {
   const { pathId } = useLocalSearchParams<{ pathId: string }>();
   const router = useRouter();
+  const { isDark } = useTheme();
+  const colors = getColors(isDark);
 
   const { data: lessons, isLoading } = useQuery({
     queryKey: ['path-lessons', pathId],
@@ -25,7 +28,18 @@ export default function LearningPathDetailScreen() {
         .eq('path_lessons.learning_path_id', pathId)
         .order('order_index');
 
-      if (error) throw error;
+      if (error) {
+        // Unconditional log — surfaces in iOS device console too. Includes
+        // PostgREST code/details/hint so an embed/FK regression is loud.
+        console.error('[Learn:pathId] lessons embed fetch failed:', {
+          pathId,
+          code: (error as any).code,
+          message: error.message,
+          details: (error as any).details,
+          hint: (error as any).hint,
+        });
+        throw error;
+      }
       return data as Lesson[];
     },
   });
@@ -35,14 +49,14 @@ export default function LearningPathDetailScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <Button
           title="← Back"
           onPress={() => router.back()}
           variant="ghost"
         />
-        <Text style={styles.title}>Lessons</Text>
+        <Text style={[styles.title, { color: colors.bronzeText }]}>Lessons</Text>
       </View>
 
       <FlatList
@@ -52,11 +66,11 @@ export default function LearningPathDetailScreen() {
           <Pressable onPress={() => router.push(`/learn/lesson/${item.id}`)}>
             <Card variant="elevated" style={styles.lessonCard}>
               <View style={styles.lessonHeader}>
-                <Text style={styles.lessonNumber}>Lesson {index + 1}</Text>
-                <Text style={styles.duration}>{item.estimated_minutes} min</Text>
+                <Text style={[styles.lessonNumber, { color: colors.emeraldMid }]}>Lesson {index + 1}</Text>
+                <Text style={[styles.duration, { color: colors.mutedText }]}>{item.estimated_minutes} min</Text>
               </View>
-              <Text style={styles.lessonTitle}>{item.title}</Text>
-              <Text style={styles.lessonDescription}>{item.description}</Text>
+              <Text style={[styles.lessonTitle, { color: colors.bronzeText }]}>{item.title}</Text>
+              <Text style={[styles.lessonDescription, { color: colors.mutedText }]}>{item.description}</Text>
             </Card>
           </Pressable>
         )}
@@ -69,7 +83,6 @@ export default function LearningPathDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   header: {
     padding: SPACING.md,
@@ -78,7 +91,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONT_SIZES.xxl,
     fontWeight: '700',
-    color: COLORS.bronzeText,
     marginTop: SPACING.sm,
   },
   content: {
@@ -94,21 +106,17 @@ const styles = StyleSheet.create({
   },
   lessonNumber: {
     fontSize: FONT_SIZES.sm,
-    color: COLORS.emeraldMid,
     fontWeight: '600',
   },
   duration: {
     fontSize: FONT_SIZES.sm,
-    color: COLORS.mutedText,
   },
   lessonTitle: {
     fontSize: FONT_SIZES.lg,
     fontWeight: '600',
-    color: COLORS.bronzeText,
     marginBottom: SPACING.xs,
   },
   lessonDescription: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.mutedText,
   },
 });
