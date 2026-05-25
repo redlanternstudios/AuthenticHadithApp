@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { Stack, router } from 'expo-router';
-import { SPACING, FONT_SIZES } from '@/lib/styles/colors';
+import { SPACING, FONT_SIZES , getColors } from '@/lib/styles/colors';
 import { useTheme } from '@/lib/theme/ThemeProvider';
-import { getColors } from '@/lib/styles/colors';
 import { supabase } from '@/lib/supabase/client';
 import Constants from 'expo-constants';
 

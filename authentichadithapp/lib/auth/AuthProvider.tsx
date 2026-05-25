@@ -72,12 +72,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Create profile if signup successful
     if (data.user) {
-      await supabase.from('profiles').insert({
-        id: data.user.id,
-        email: email,
-        full_name: fullName,
-        is_premium: false,
-      })
+      try {
+        await supabase.from('profiles').insert({
+          id: data.user.id,
+          email: email,
+          full_name: fullName,
+          is_premium: false,
+        })
+      } catch (profileErr) {
+        if (__DEV__) console.warn('[auth] profile insert failed', profileErr)
+      }
     }
   }
 

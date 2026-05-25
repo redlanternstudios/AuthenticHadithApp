@@ -14,6 +14,7 @@ export type SafetyCategory =
   | "haram_facilitation"
   | "blasphemy"
   | "extremism"
+  | "ruling_request"
 
 export interface SafetyCheckResult {
   allowed: boolean
@@ -48,6 +49,10 @@ const BLOCKED_RESPONSES: Record<SafetyCategory, string> = {
     "I cannot engage with content that promotes violence or extremism. " +
     "The Prophet Muhammad (peace be upon him) said: 'The best of your religion is the easiest.' " +
     "(Sahih al-Bukhari). How can I help you learn about Islam's true teachings of compassion and justice?",
+
+  ruling_request:
+    "This is a question of jurisprudence (fiqh). I can share relevant authentic hadiths and explain their context, but for a binding religious ruling please consult a qualified scholar in your community or madhhab. " +
+    "Would you like me to find hadiths on this topic?",
 }
 
 const PROMPT_INJECTION_PATTERNS: RegExp[] = [
@@ -106,6 +111,18 @@ const EXTREMISM_PATTERNS: RegExp[] = [
   /how\s+to\s+radicalize\b/i,
 ]
 
+// Ruling/fatwa-style framings. These do NOT block the conversation — the
+// filter returns a soft scholar-deferral so the user gets a useful answer
+// without the app pretending to issue a ruling.
+const RULING_REQUEST_PATTERNS: RegExp[] = [
+  /\bis\s+(?:it\s+|.+?\s+)?(?:halal|haram|haraam|haalal|permissible|forbidden)\b/i,
+  /\bgive\s+me\s+(?:a\s+)?fatwa\b/i,
+  /\bwhat(?:'s|\s+is)\s+the\s+(?:islamic\s+)?(?:ruling|hukm|verdict|fatwa)\b/i,
+  /\bcan\s+(?:i|a\s+muslim|we)\s+(?:eat|drink|wear|marry|divorce|sell|buy|invest|gamble|smoke|date)\b/i,
+  /\bam\s+i\s+allowed\s+to\b/i,
+  /\bissue\s+(?:a\s+)?fatwa\b/i,
+]
+
 export function checkInputSafety(
   messages: Array<{ role: string; content: string }>,
 ): SafetyCheckResult {
@@ -120,6 +137,7 @@ export function checkInputSafety(
     [EXTREMISM_PATTERNS, "extremism"],
     [EXPLICIT_CONTENT_PATTERNS, "explicit_content"],
     [HARAM_FACILITATION_PATTERNS, "haram_facilitation"],
+    [RULING_REQUEST_PATTERNS, "ruling_request"],
   ]
 
   for (const [patterns, category] of checks) {

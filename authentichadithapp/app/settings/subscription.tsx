@@ -1,16 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Platform } from 'react-native';
 import { Stack } from 'expo-router';
-import { SPACING, FONT_SIZES } from '@/lib/styles/colors';
+import { SPACING, FONT_SIZES , getColors } from '@/lib/styles/colors';
 import { useTheme } from '@/lib/theme/ThemeProvider';
-import { getColors } from '@/lib/styles/colors';
 import {
   getOfferings,
   purchasePackage,
   restorePurchases,
   getSubscriptionStatus,
+  isRevenueCatConfigured,
   type SubscriptionStatus,
 } from '@/lib/purchases/revenuecat';
+
+// RevenueCat purchase errors expose richer fields than `.message`. Prefer them
+// so users see something actionable instead of a catch-all fallback.
+function extractPurchaseError(err: any, fallback: string): string {
+  if (!err) return fallback;
+  if (err.userCancelled) return ''; // signal: do not alert
+  const readable = err.readableErrorCode || err.userInfo?.readableErrorCode;
+  const underlying = err.underlyingErrorMessage || err.userInfo?.NSUnderlyingError?.message;
+  const msg = typeof err.message === 'string' ? err.message.trim() : '';
+  if (msg) return underlying ? `${msg} (${underlying})` : msg;
+  if (readable) return `${readable.replace(/_/g, ' ').toLowerCase()}.`.replace(/^./, (c: string) => c.toUpperCase());
+  if (underlying) return underlying;
+  if (typeof err.code !== 'undefined') return `${fallback} (code ${err.code})`;
+  return fallback;
+}
 
 export default function SubscriptionScreen() {
   const { isDark } = useTheme();
@@ -27,6 +42,20 @@ export default function SubscriptionScreen() {
     (async () => {
       try {
         const [off, sub] = await Promise.all([getOfferings(), getSubscriptionStatus()]);
+        // getOfferings / getSubscriptionStatus swallow errors and return
+        // null / defaultStatus on degraded mode. Surface that explicitly so
+        // the screen doesn't fall through to a misleading "No plans" message.
+        if (!isRevenueCatConfigured()) {
+          setInitError(
+            Platform.OS === 'web'
+              ? 'In-app purchases are available on iOS and Android.'
+              : 'In-app purchases are unavailable right now. Please make sure you are signed in and online, then reopen this screen.'
+          );
+        } else if (!off || !off.availablePackages || off.availablePackages.length === 0) {
+          setInitError(
+            'No subscription plans are currently available from the App Store. This usually means in-app purchases are still being provisioned. Please try again in a few minutes.'
+          );
+        }
         setOfferings(off);
         setStatus(sub);
       } catch (err: any) {
@@ -47,7 +76,8 @@ export default function SubscriptionScreen() {
         Alert.alert('Welcome to Premium!', 'Your subscription is now active.');
       }
     } catch (err: any) {
-      Alert.alert('Purchase Failed', err.message || 'Something went wrong. Please try again.');
+      const message = extractPurchaseError(err, 'Something went wrong. Please try again.');
+      if (message) Alert.alert('Purchase Failed', message);
     } finally {
       setPurchasing(false);
     }
@@ -64,7 +94,8 @@ export default function SubscriptionScreen() {
         Alert.alert('Nothing to Restore', 'No previous purchases were found for this account.');
       }
     } catch (err: any) {
-      Alert.alert('Restore Failed', err.message || 'Something went wrong.');
+      const message = extractPurchaseError(err, 'Something went wrong.');
+      if (message) Alert.alert('Restore Failed', message);
     } finally {
       setRestoring(false);
     }

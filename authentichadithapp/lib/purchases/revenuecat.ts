@@ -1,16 +1,9 @@
 /**
  * RevenueCat integration for Apple In-App Purchases.
  *
- * SETUP REQUIRED:
- * 1. Install: npx expo install react-native-purchases
- * 2. Add plugin to app.json: ["react-native-purchases", { "ios": { "usesStoreKi
-t2": true } }]
- * 3. Create products in App Store Connect
- * 4. Configure products in RevenueCat dashboard
- * 5. Set REVENUECAT_API_KEY_IOS in app.json > extra
- *
- * This file provides a clean abstraction over RevenueCat so the rest of
- * the app doesn't import the SDK directly.
+ * react-native-purchases uses standard React Native autolinking (NOT an Expo
+ * config plugin). Do NOT add it to the plugins array in app.json (FIX-027).
+ * The In-App Purchase capability is enabled via the Apple Developer portal.
  */
 
 import { Platform } from 'react-native'

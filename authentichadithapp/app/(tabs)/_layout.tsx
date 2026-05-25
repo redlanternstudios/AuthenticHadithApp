@@ -55,30 +55,20 @@ export default function TabLayout() {
         },
       }}
     >
+      {/*
+        Bottom-bar order for v1.0 (per the 5-tab consolidation in the iOS readiness plan):
+        Home · Search · Collections · My Hadith · More.
+        Today, Learn, Assistant, and Profile are NOT removed from the app — they live
+        under More. The files for those routes remain present in app/(tabs)/ so deep
+        links and router.push calls continue to resolve. Expo Router still discovers
+        them; they are just hidden from the bar via href: null.
+      */}
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
           tabBarIcon: ({ color }) => (
             <IconSymbol size={LAYOUT.tabIconSize} name="house.fill" color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="today"
-        options={{
-          title: 'Today',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={LAYOUT.tabIconSize} name="sun.max.fill" color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="collections"
-        options={{
-          title: 'Collections',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={LAYOUT.tabIconSize} name="book.fill" color={color} />
           ),
         }}
       />
@@ -92,6 +82,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="collections"
+        options={{
+          title: 'Collections',
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={LAYOUT.tabIconSize} name="book.fill" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="my-hadith"
         options={{
           title: 'My Hadith',
@@ -101,32 +100,19 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="learn"
+        name="more"
         options={{
-          title: 'Learn',
+          title: 'More',
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={LAYOUT.tabIconSize} name="graduationcap.fill" color={color} />
+            <IconSymbol size={LAYOUT.tabIconSize} name="ellipsis.circle.fill" color={color} />
           ),
         }}
       />
-      <Tabs.Screen
-        name="assistant"
-        options={{
-          title: 'Assistant',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={LAYOUT.tabIconSize} name="sparkles" color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={LAYOUT.tabIconSize} name="person.fill" color={color} />
-          ),
-        }}
-      />
+      {/* Routes hidden from the bar but kept reachable via More and deep links. */}
+      <Tabs.Screen name="today" options={{ href: null, title: 'Today' }} />
+      <Tabs.Screen name="learn" options={{ href: null, title: 'Learn' }} />
+      <Tabs.Screen name="assistant" options={{ href: null, title: 'Assistant' }} />
+      <Tabs.Screen name="profile" options={{ href: null, title: 'Profile' }} />
     </Tabs>
   );
 }

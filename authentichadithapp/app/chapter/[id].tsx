@@ -6,7 +6,9 @@ import { supabase } from '@/lib/supabase/client'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { HadithList } from '@/components/hadith/HadithList'
 import { Hadith } from '@/types/hadith'
-import { COLORS, SPACING, FONT_SIZES } from '@/lib/styles/colors'
+import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors'
+import { useTheme } from '@/lib/theme/ThemeProvider'
+import { QueryErrorBanner } from '@/components/common/QueryErrorBanner'
 
 interface ChapterDetail {
   id: string
@@ -19,10 +21,12 @@ interface ChapterDetail {
 }
 
 export default function ChapterDetailScreen() {
+  const { isDark } = useTheme()
+  const colors = getColors(isDark)
   const { id } = useLocalSearchParams<{ id: string }>()
   const router = useRouter()
 
-  const { data: chapter, isLoading: chapterLoading } = useQuery({
+  const { data: chapter, isLoading: chapterLoading, isError: chapterError, refetch: refetchChapter } = useQuery({
     queryKey: ['chapter', id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -89,29 +93,30 @@ export default function ChapterDetailScreen() {
 
   if (!chapter) {
     return (
-      <View style={styles.errorContainer}>
+      <View style={[styles.errorContainer, { backgroundColor: colors.background }]}>
         <Stack.Screen options={{ title: 'Chapter', headerShown: true }} />
-        <Text style={styles.errorText}>Chapter not found</Text>
+        <Text style={[styles.errorText, { color: colors.mutedText }]}>Chapter not found</Text>
       </View>
     )
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen
         options={{
           title: `Chapter ${chapter.number}`,
           headerShown: true,
         }}
       />
+      {chapterError && <QueryErrorBanner onRetry={refetchChapter} />}
 
       <View style={styles.header}>
-        <Text style={styles.chapterLabel}>Chapter {chapter.number}</Text>
-        <Text style={styles.title}>{chapter.name_en}</Text>
+        <Text style={[styles.chapterLabel, { color: colors.emeraldMid }]}>Chapter {chapter.number}</Text>
+        <Text style={[styles.title, { color: colors.bronzeText }]}>{chapter.name_en}</Text>
         {chapter.name_ar && (
-          <Text style={styles.arabic}>{chapter.name_ar}</Text>
+          <Text style={[styles.arabic, { color: colors.goldMid }]}>{chapter.name_ar}</Text>
         )}
-        <Text style={styles.subtitle}>{chapter.total_hadiths} hadiths</Text>
+        <Text style={[styles.subtitle, { color: colors.mutedText }]}>{chapter.total_hadiths} hadiths</Text>
       </View>
 
       <HadithList
@@ -127,7 +132,6 @@ export default function ChapterDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   header: {
     padding: SPACING.md,
@@ -136,36 +140,30 @@ const styles = StyleSheet.create({
   chapterLabel: {
     fontSize: FONT_SIZES.sm,
     fontWeight: '600',
-    color: COLORS.emeraldMid,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   title: {
     fontSize: FONT_SIZES.xxl,
     fontWeight: '700',
-    color: COLORS.bronzeText,
     marginTop: SPACING.xs,
   },
   arabic: {
     fontSize: FONT_SIZES.lg,
-    color: COLORS.goldMid,
     marginTop: 2,
   },
   subtitle: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.mutedText,
     marginTop: SPACING.xs,
   },
   errorContainer: {
     flex: 1,
-    backgroundColor: COLORS.background,
     justifyContent: 'center',
     alignItems: 'center',
     padding: SPACING.xl,
   },
   errorText: {
     fontSize: FONT_SIZES.md,
-    color: COLORS.mutedText,
     textAlign: 'center',
   },
 })

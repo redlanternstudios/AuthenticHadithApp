@@ -5,7 +5,9 @@ export interface Hadith {
   hadith_number: string
   arabic_text: string
   english_text: string
-  grade: HadithGrade
+  // Nullable: production may have rows with no grade, or with values outside
+  // the three canonical grades. Renderers must guard before indexing.
+  grade: HadithGrade | null
   collection_slug: string
   book_number?: number
   chapter_number?: number

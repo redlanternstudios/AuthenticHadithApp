@@ -4,11 +4,14 @@ import { useRouter, Link } from 'expo-router';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { COLORS, SPACING, FONT_SIZES } from '@/lib/styles/colors';
+import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors';
+import { useTheme } from '@/lib/theme/ThemeProvider';
 
 export default function LoginScreen() {
   const router = useRouter();
   const { signIn } = useAuth();
+  const { isDark } = useTheme();
+  const colors = getColors(isDark);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -31,10 +34,10 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>Welcome Back</Text>
-        <Text style={styles.subtitle}>Sign in to continue</Text>
+        <Text style={[styles.title, { color: colors.bronzeText }]}>Welcome Back</Text>
+        <Text style={[styles.subtitle, { color: colors.mutedText }]}>Sign in to continue</Text>
       </View>
 
       <View style={styles.form}>
@@ -61,14 +64,14 @@ export default function LoginScreen() {
         />
 
         <Link href="/auth/forgot-password" style={styles.link}>
-          <Text style={styles.linkText}>Forgot password?</Text>
+          <Text style={[styles.linkText, { color: colors.emeraldMid }]}>Forgot password?</Text>
         </Link>
       </View>
 
       <View style={styles.footer}>
-        <Text style={styles.footerText}>Don't have an account? </Text>
+        <Text style={[styles.footerText, { color: colors.mutedText }]}>Don't have an account? </Text>
         <Link href="/auth/signup">
-          <Text style={styles.footerLink}>Sign up</Text>
+          <Text style={[styles.footerLink, { color: colors.emeraldMid }]}>Sign up</Text>
         </Link>
       </View>
     </View>
@@ -78,7 +81,6 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
     padding: SPACING.xl,
   },
   header: {
@@ -88,12 +90,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONT_SIZES.xxxl,
     fontWeight: '700',
-    color: COLORS.bronzeText,
     marginBottom: SPACING.sm,
   },
   subtitle: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.mutedText,
   },
   form: {
     gap: SPACING.md,
@@ -103,7 +103,6 @@ const styles = StyleSheet.create({
     marginTop: SPACING.sm,
   },
   linkText: {
-    color: COLORS.emeraldMid,
     fontSize: FONT_SIZES.base,
   },
   footer: {
@@ -112,11 +111,9 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xl,
   },
   footerText: {
-    color: COLORS.mutedText,
     fontSize: FONT_SIZES.base,
   },
   footerLink: {
-    color: COLORS.emeraldMid,
     fontSize: FONT_SIZES.base,
     fontWeight: '600',
   },

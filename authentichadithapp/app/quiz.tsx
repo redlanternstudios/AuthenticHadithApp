@@ -11,6 +11,7 @@ import { Card } from '@/components/ui/Card'
 import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
 import { trackActivity } from '@/lib/gamification/track-activity'
 import { Hadith } from '@/types/hadith'
+import { QueryErrorBanner } from '@/components/common/QueryErrorBanner'
 
 interface QuizQuestion {
   question: string
@@ -100,7 +101,7 @@ export default function QuizScreen() {
   const [timer, setTimer] = useState(0)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const { data: hadiths, isLoading } = useQuery({
+  const { data: hadiths, isLoading, isError, refetch } = useQuery({
     queryKey: ['quiz-hadiths'],
     queryFn: async () => {
       // UX hardening (FIX-038): quiz pulls random hadiths to build questions.
@@ -188,6 +189,7 @@ export default function QuizScreen() {
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
       <Stack.Screen options={{ title: 'Quiz', headerShown: true }} />
+      {isError && <QueryErrorBanner onRetry={refetch} />}
 
       {quizState === 'start' && (
         <View style={styles.startScreen}>

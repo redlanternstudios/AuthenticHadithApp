@@ -4,12 +4,15 @@ import { useRouter } from 'expo-router'
 import { useCreateFolder } from '@/hooks/useMyHadith'
 import { useAuth } from '@/lib/auth/AuthProvider'
 import { Button } from '@/components/ui/Button'
-import { COLORS, SPACING, FONT_SIZES } from '@/lib/styles/colors'
+import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors'
+import { useTheme } from '@/lib/theme/ThemeProvider'
 
 const ICONS = ['📚', '⭐', '❤️', '🕌', '🤲', '📖', '✨', '🌙']
 const COLORS_PALETTE = ['#D4A574', '#50C878', '#FF6B6B', '#4ECDC4', '#95E1D3']
 
 export default function CreateFolderScreen() {
+  const { isDark } = useTheme()
+  const colors = getColors(isDark)
   const router = useRouter()
   const { user } = useAuth()
   const createFolder = useCreateFolder()
@@ -40,45 +43,46 @@ export default function CreateFolderScreen() {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <Button
           title="← Back"
           onPress={() => router.back()}
           variant="ghost"
         />
-        <Text style={styles.title}>Create Folder</Text>
+        <Text style={[styles.title, { color: colors.bronzeText }]}>Create Folder</Text>
       </View>
 
       <View style={styles.form}>
-        <Text style={styles.label}>Folder Name</Text>
+        <Text style={[styles.label, { color: colors.bronzeText }]}>Folder Name</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { backgroundColor: colors.card, color: colors.bronzeText, borderColor: colors.border }]}
           value={name}
           onChangeText={setName}
           placeholder="e.g., Prayer Hadiths"
-          placeholderTextColor={COLORS.mutedText}
+          placeholderTextColor={colors.mutedText}
         />
 
-        <Text style={styles.label}>Description (Optional)</Text>
+        <Text style={[styles.label, { color: colors.bronzeText }]}>Description (Optional)</Text>
         <TextInput
-          style={[styles.input, styles.textArea]}
+          style={[styles.input, styles.textArea, { backgroundColor: colors.card, color: colors.bronzeText, borderColor: colors.border }]}
           value={description}
           onChangeText={setDescription}
           placeholder="What's this folder about?"
-          placeholderTextColor={COLORS.mutedText}
+          placeholderTextColor={colors.mutedText}
           multiline
           numberOfLines={3}
         />
 
-        <Text style={styles.label}>Choose Icon</Text>
+        <Text style={[styles.label, { color: colors.bronzeText }]}>Choose Icon</Text>
         <View style={styles.iconGrid}>
           {ICONS.map((emoji) => (
             <Pressable
               key={emoji}
               style={[
                 styles.iconOption,
-                icon === emoji && styles.iconSelected
+                { backgroundColor: colors.card, borderColor: colors.border },
+                icon === emoji && { borderColor: colors.emeraldMid }
               ]}
               onPress={() => setIcon(emoji)}
             >
@@ -87,7 +91,7 @@ export default function CreateFolderScreen() {
           ))}
         </View>
 
-        <Text style={styles.label}>Choose Color</Text>
+        <Text style={[styles.label, { color: colors.bronzeText }]}>Choose Color</Text>
         <View style={styles.colorGrid}>
           {COLORS_PALETTE.map((c) => (
             <Pressable
@@ -95,7 +99,7 @@ export default function CreateFolderScreen() {
               style={[
                 styles.colorOption,
                 { backgroundColor: c },
-                color === c && styles.colorSelected
+                color === c && [styles.colorSelected, { borderColor: colors.bronzeText }]
               ]}
               onPress={() => setColor(c)}
             />
@@ -116,7 +120,6 @@ export default function CreateFolderScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   header: {
     padding: SPACING.md,
@@ -125,7 +128,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONT_SIZES.xxl,
     fontWeight: '700',
-    color: COLORS.bronzeText,
     marginTop: SPACING.sm,
   },
   form: {
@@ -134,18 +136,14 @@ const styles = StyleSheet.create({
   label: {
     fontSize: FONT_SIZES.md,
     fontWeight: '600',
-    color: COLORS.bronzeText,
     marginBottom: SPACING.sm,
     marginTop: SPACING.md,
   },
   input: {
-    backgroundColor: COLORS.card,
     borderRadius: 8,
     padding: SPACING.md,
     fontSize: FONT_SIZES.base,
-    color: COLORS.bronzeText,
     borderWidth: 1,
-    borderColor: COLORS.border,
   },
   textArea: {
     minHeight: 80,
@@ -163,12 +161,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 8,
-    backgroundColor: COLORS.card,
     borderWidth: 2,
-    borderColor: COLORS.border,
-  },
-  iconSelected: {
-    borderColor: COLORS.emeraldMid,
   },
   iconEmoji: {
     fontSize: 24,
@@ -186,7 +179,6 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   colorSelected: {
-    borderColor: COLORS.bronzeText,
     borderWidth: 3,
   },
 })

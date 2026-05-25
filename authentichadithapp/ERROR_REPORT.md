@@ -7,86 +7,100 @@
 
 ## CURRENT ERROR
 
-**Status**: 🔴 ACTIVE
+**Status**: 🟢 No active errors
 
-### Headline
-AI Summary feature is broken end-to-end on real device — `/api/mobile-chat` returns HTTP 404 on the deployed Vercel host.
+### Latest fix: FIX-045 (AI Assistant spinner hang) — code complete, device verification PENDING
+KP reported "the AI Assistant is currently not working correctly" on a TestFlight build. AskUserQuestion narrowed it to: spinner shows after send, never returns, no red error banner appears. Live probe of `https://www.authentichadith.app/api/mobile-chat` returned HTTP 200 in 2.84s with the correct `{response: string}` shape — backend healthy. cURL also handled the apex 307→www redirect cleanly in 2.37s.
 
-### Reproduction
-On the internal-device build installed on RoPhone (and reproducible from any client):
+Root cause was the **mobile transport layer**, not the backend: `PRODUCTION_API_URL` was the apex `https://authentichadith.app`, which 307-redirects to www. iOS NSURLSession (under React Native fetch) has documented edge cases where a 307 with a POST body silently stalls — and `lib/api/groq.ts` had **no client-side timeout** (NSURLSession's default `timeoutIntervalForResource` is 7 days), so a stalled fetch never resolved or rejected, leaving `isLoading=true` and never triggering the assistant.tsx catch block that would show the error banner.
 
-1. Open the app → Home tab → tap **AI Summary** under "Hadith of the Moment", OR
-2. Open any hadith detail screen → tap **AI Summary**, OR
-3. Open Assistant tab → send any prompt.
+Fix applied three places:
+1. `lib/config/constants.ts` — `PRODUCTION_API_URL` apex → `https://www.authentichadith.app`.
+2. `app.config.js` — `apiUrl` env fallback apex → `https://www.authentichadith.app`.
+3. `lib/api/groq.ts` — added `AbortController` + 12s timeout, DEV log on `AbortError` path, DEV log on malformed-payload path.
 
-All three paths fail with the same root cause: a `fetch` POST to `https://authentichadith.app/api/mobile-chat` is 307-redirected to `https://www.authentichadith.app/api/mobile-chat` and the redirected target returns a Next.js 404 page (HTML, not JSON). The mobile UI surfaces the failure as the friendly fallback (post-FIX-037: *"Summary is temporarily unavailable. Please try again later."*), and the Assistant tab surfaces the JSON-parse error as a red error banner.
+Typecheck clean (`npx tsc --noEmit` → exit 0). **Manual TestFlight verification PENDING.** Next physical pass on the Assistant tab should confirm: (1) "What does Sahih Bukhari say about prayer?" returns grounded response in <10s, (2) "Is coffee halal?" returns scholar-deferral string instantly (no network), (3) airplane-mode-mid-request surfaces the red error banner + Retry within ~12s.
 
-### Root cause hypothesis
-The `/api/mobile-chat` route is missing from the current Vercel deployment serving `authentichadith.app`. The 404 response carries `x-vercel-cache: HIT` with an `etag` `dc07c1d7be439073f002e79594a68780` and `last-modified: Tue, 28 Apr 2026` — i.e. the 404 has been the cached, stable production behavior for at least 11 days. Sibling routes on the same host respond correctly:
+**Out-of-band**: `eas env:list --environment production | grep -i API_URL`. If `EXPO_PUBLIC_API_URL` is set to apex, update it to www. so the env override matches the code default.
 
-| Route | Status |
-|---|---|
-| `GET /api/chat` | 405 (route exists) |
-| `POST /api/chat` | 401 (route exists, requires auth — not the mobile path) |
-| `GET /api/mobile-chat` | **404** |
-| `GET /api/daily-hadith` | 200 |
-| `GET /api/test-groq` | 200 |
-| `GET /api/search` | 200 |
+**AC3 (Supabase session-history reload on Assistant reopen) was dropped from scope** — repo-wide grep confirmed no chat-persistence code or migrations have ever existed. Implementing AC3 is net-new feature work, not a fix. Tracked separately.
 
-So the deployment is healthy in general; only `/api/mobile-chat` is missing. The route used to live at `external/v0-authentic-hadith/app/api/mobile-chat/route.ts` per the parity audit, but the entire `external/v0-authentic-hadith/app/` subtree is no longer present in this repo (only a single Supabase migration remains).
-
-The `GROQ_API_KEY` env var on Vercel is a separate, downstream concern — even if the route is restored, it will return 503 (per the friendly handler in `app/api/chat/route.ts`) unless the secret is set in Vercel → project → Settings → Environment Variables → Production.
-
-### Build identity
-- Mobile commit on `main`: `efb4870` ("chore: add internal-device EAS build profile") at the time of audit.
-- Internal-device EAS build: `809cceba-69f6-4f2d-892f-7ac0120be1af` (per `EAS_PREVIEW_QA_02.md`) installed on RoPhone.
-- Vercel deployment etag (current production): `dc07c1d7be439073f002e79594a68780` (404 page).
-
-### Classification
-- **Layer**: VS_CODE_APP_LAYER + external Vercel/web deploy. Not Expo, not Xcode.
-- **Type**: BACKEND_ROUTE_ERROR (primary) + secondary UI_FALLBACK_ONLY (already addressed in mobile via FIX-037).
-
-### Severity
-**High — blocks ship readiness for the AI Summary feature** that is part of the V1 surface area. The hadith reading and browsing experience is unaffected; only the AI Summary / Assistant features are dead. Mobile already shows a friendly inline fallback per FIX-037 so users are not confronted with a redbox or alert popup.
-
-### Recommended fix paths
-
-**Path A (preferred): redeploy the web app with the route restored.**
-
-1. Locate the canonical source repo for the deployed web app (this monorepo only contains a stub of it under `external/v0-authentic-hadith/`).
-2. Confirm that `app/api/mobile-chat/route.ts` is present in that source repo's working tree.
-3. Confirm `GROQ_API_KEY` is set in Vercel → Settings → Environment Variables → Production.
-4. Trigger a Vercel redeploy.
-5. Verify with:
-   ```bash
-   curl -i -X POST "https://authentichadith.app/api/mobile-chat" \
-     -H "Content-Type: application/json" \
-     -d '{"messages":[{"role":"user","content":"Test."}]}'
-   ```
-   Expected: HTTP 200 + JSON body `{ "response": "..." }`. A 503 means env var still missing. A 404 means the route is still not deployed.
-
-**Path B (only if the web source repo is unrecoverable): point the mobile app at a different existing route.**
-
-`POST /api/chat` is live but returns 401. Either (a) provision an unauthenticated path on the website (essentially recreating `/api/mobile-chat`), or (b) ship a server-side function elsewhere (Supabase Edge Function) and update `lib/config/constants.ts` + `lib/api/groq.ts` accordingly. Path B is significantly more work and not appropriate for V1 launch; Path A should be tried first.
-
-### Ruled-out items
-- **Mobile endpoint URL is wrong.** Verified: `lib/config/constants.ts` and `lib/api/groq.ts` build the URL the system was designed around. Issue is that the route no longer exists on the backend.
-- **Mobile payload shape is wrong.** The mobile `{messages: [...]}` shape matches the contract used by the local `app/api/chat/route.ts` shim. Cannot fully verify against the deployed route while it is 404, but historical parity (FIX-031 narrative) confirms shape was correct when the route was live.
-- **App's friendly fallback is broken.** Verified post-FIX-037: hadith detail screen and `HadithCard` both render the friendly inline message. No popup, no redbox.
-- **GROQ_API_KEY is the only blocker.** The 404 page has `x-vercel-cache: HIT` and `x-matched-path: /404` — a missing API key would surface as a 503 from the route handler, not a 404 from the Next.js error page. Env var may still be missing, but it is a downstream blocker, not the current one.
-- **Reanimated / launch hang.** Resolved by FIX-036; cold launch and warm relaunch are stable.
+See `BUILD_FIX_LOG.md` FIX-045 for the full root-cause + lesson + files-changed log.
 
 ---
 
-## RELATED DOCUMENT
+### Prior fix: FIX-044 (Learning Paths) — code complete, simulator verification PENDING
+KP reported "the learning paths are not loading correctly." Production probe (anon key) confirmed `learning_paths` has 6 rows, `lessons` 10, `path_lessons` 10, RLS allows anon SELECT, and the `[pathId]` embed query returns 4 lessons for the Foundations path. The data and queries are healthy.
 
-`V1_CONTENT_AI_AUDIT.md` (FIX-037 audit) contains the full evidence trail, per-collection content counts, the `curl` traces, and the reasoning for the smallest-safe code fixes that were applied this sprint.
+Root cause was **spec coverage**, not data: `app/(tabs)/learn.tsx` rendered title/description/level/hours but never wired a progress indicator, even though AC #1 required one and AC #3 required cross-screen completion reactivity. Fix added a `path_lessons` query, `useCompletedItems('lesson')` subscription to the local progress store, a `progressByPath` memo, and an emerald progress bar + "X / Y lessons" caption on every card (free and premium). Also added `__DEV__ && console.error` upstream of every Supabase throw in `app/(tabs)/learn.tsx` and `app/learn/[pathId].tsx` so future failures surface in Metro / LogBox instead of vanishing into React Query.
+
+Typecheck clean (`npx tsc --noEmit` → exit 0). **Manual simulator verification of the 3 acceptance criteria has NOT been run from this session** — the next physical pass on a booted iPhone simulator should confirm: (1) cards render in <3s with the progress bar, (2) Foundations → 4 lesson cards, (3) Mark Complete on a lesson → Learn screen bar advances to 1/4.
+
+See `BUILD_FIX_LOG.md` FIX-044 for the full root-cause + lesson + files-changed log.
+
+---
+
+### Prior fix: FIX-042 (Subscription) — verified
+The prior issue (subscription screen silently swallowing degraded-mode failures and surfacing a useless generic "Something went wrong. Please try again." Alert on purchase rejection) was resolved by `FIX-042` in `BUILD_FIX_LOG.md`. Two surgical changes in `app/settings/subscription.tsx`:
+
+1. The init `useEffect` now calls `isRevenueCatConfigured()` and inspects `offerings.availablePackages` after the parallel fetch, setting `initError` with a specific message for degraded mode vs. empty-offerings. The screen no longer falls through to the misleading "No subscription plans available right now" fallback.
+2. `handlePurchase` and `handleRestore` now use a new `extractPurchaseError(err, fallback)` helper that prefers RevenueCat's structured error fields (`readableErrorCode`, `code`, `userInfo.readableErrorCode`, `underlyingErrorMessage`) over `err.message`, so the most actionable failure modes (`PURCHASE_NOT_ALLOWED_ERROR`, `STORE_PROBLEM_ERROR`, etc.) no longer collapse into the generic catch-all.
+
+### Verification trace (2026-05-23)
+
+```bash
+npx tsc --noEmit
+# → clean (no new errors introduced; pre-existing unrelated expo-sqlite warning unchanged)
+```
+
+Manual physical verification still required:
+1. Open Profile tab → Subscription, confirm tiers render when RevenueCat is fully configured.
+2. Reproduce degraded mode locally (blank `EXPO_PUBLIC_REVENUECAT_API_KEY_IOS` in `.env.local`) → screen now shows the explicit "In-app purchases are unavailable right now…" message.
+3. Tap a tier with sandbox not signed in → Alert now surfaces a `readableErrorCode`-based message instead of the catch-all string.
+
+---
+
+## TESTFLIGHT READINESS SNAPSHOT (2026-05-18)
+
+| Check | Result |
+|-------|--------|
+| `npx expo-doctor` | 17/17 pass |
+| `npx tsc --noEmit` | 0 errors |
+| Pinned dependency versions (12) | All exact match |
+| `app.json` bundle ID | `com.byred.authentichadith` ✓ |
+| `app.json` version | `1.0.0` |
+| `ITSAppUsesNonExemptEncryption` | `false` ✓ (no export compliance prompt) |
+| `eas.json` `submit.production.ios.ascAppId` | `6764673665` ✓ |
+| `eas.json` `appVersionSource` | `remote` (EAS manages build number) |
+| `eas.json` `production.autoIncrement` | `true` ✓ |
+| EAS production env vars | 6 EXPO_PUBLIC_* keys present ✓ |
+| `https://www.authentichadith.app/api/mobile-chat` | HTTP 200 ✓ |
+
+**Next physical step**: trigger the production build with `eas build --profile production --platform ios`, then `eas submit --profile production --platform ios` once the build artifact is ready.
+
+---
+
+## RELATED DOCUMENTS
+
+- `BUILD_FIX_LOG.md` entry `FIX-042` — full root cause, fix, and lesson for the subscription error-surfacing fix.
+- `BUILD_FIX_LOG.md` entry `FIX-040` — env pipeline issue: 6 `EXPO_PUBLIC_*` keys pushed to EAS production.
+- `BUILD_FIX_LOG.md` entry `FIX-031` — RevenueCat configure + degraded-mode hardening that this fix builds on.
 
 ---
 
 ## INSTRUCTIONS FOR CLAUDE (NEXT SESSION)
 
-1. The blocker above is a backend/Vercel deploy task, **not a mobile code task**. Mobile-side cleanup is already done in FIX-037. Do not attempt to "fix" this in mobile code — the mobile URL and payload are correct.
+1. There is no active mobile bug. Proceed to your task.
 2. If a new mobile error appears, replace this entire file with a fresh 🔴 ACTIVE intake matching the prior format (Headline, Reproduction, Root cause hypothesis, Build identity, Classification, Severity, Recommended fix paths, Ruled-out items).
 3. Do NOT delete or edit `BUILD_FIX_LOG.md` historical entries.
-4. Before declaring this 🔴 status resolved: re-run the `curl` from "Path A" step 5 and confirm a 200 + JSON body. Then reset this file to 🟢.
+4. Before any TestFlight or App Store submit, run these three checks in order. If ANY fail, file a fresh 🔴 entry:
+   ```bash
+   npx expo-doctor
+   npx tsc --noEmit
+   eas env:list --environment production    # must show the 6 EXPO_PUBLIC_* keys
+   curl -s -o /dev/null -w "HTTP %{http_code}\n" -L -X POST \
+     "https://www.authentichadith.app/api/mobile-chat" \
+     -H "Content-Type: application/json" \
+     -d '{"messages":[{"role":"user","content":"ping"}]}'
+   ```
+5. Never push `.env.local` to EAS without first filtering to `EXPO_PUBLIC_*` only. Server-only secrets (Stripe, Supabase service role, OpenAI, Groq, TruthSerum private key, Sunnah/Hadith API keys) live on the Vercel web backend, not on EAS Build infra.

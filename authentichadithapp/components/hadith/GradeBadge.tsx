@@ -4,34 +4,40 @@ import { COLORS, BORDER_RADIUS, SPACING, FONT_SIZES } from '../../lib/styles/col
 import { HadithGrade } from '../../types/hadith'
 
 interface GradeBadgeProps {
-  grade: HadithGrade
+  grade: HadithGrade | null | undefined
   size?: 'small' | 'medium'
 }
 
-export function GradeBadge({ grade, size = 'medium' }: GradeBadgeProps) {
-  const gradeColors = {
-    sahih: COLORS.sahih,
-    hasan: COLORS.hasan,
-    daif: COLORS.daif,
-  }
+const GRADE_COLORS: Record<HadithGrade, string> = {
+  sahih: COLORS.sahih,
+  hasan: COLORS.hasan,
+  daif: COLORS.daif,
+}
 
-  const gradeLabels = {
-    sahih: 'Sahih',
-    hasan: 'Hasan',
-    daif: 'Daif',
-  }
+const GRADE_LABELS: Record<HadithGrade, string> = {
+  sahih: 'Sahih',
+  hasan: 'Hasan',
+  daif: 'Daif',
+}
+
+const UNGRADED_COLOR = COLORS.mutedText ?? '#7B7B7B'
+
+export function GradeBadge({ grade, size = 'medium' }: GradeBadgeProps) {
+  const isKnown = grade === 'sahih' || grade === 'hasan' || grade === 'daif'
+  const bg = isKnown ? GRADE_COLORS[grade as HadithGrade] : UNGRADED_COLOR
+  const label = isKnown ? GRADE_LABELS[grade as HadithGrade] : 'Ungraded'
 
   return (
     <View style={[
-      styles.badge, 
-      { backgroundColor: gradeColors[grade] },
+      styles.badge,
+      { backgroundColor: bg },
       size === 'small' && styles.badgeSmall,
     ]}>
       <Text style={[
         styles.text,
         size === 'small' && styles.textSmall,
       ]}>
-        {gradeLabels[grade]}
+        {label}
       </Text>
     </View>
   )

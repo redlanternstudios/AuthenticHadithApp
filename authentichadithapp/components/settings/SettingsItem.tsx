@@ -1,9 +1,8 @@
 import React, { ReactNode } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { SPACING, FONT_SIZES } from '@/lib/styles/colors';
+import { SPACING, FONT_SIZES , getColors } from '@/lib/styles/colors';
 import { useTheme } from '@/lib/theme/ThemeProvider';
-import { getColors } from '@/lib/styles/colors';
 
 interface SettingsItemProps {
   icon?: keyof typeof Ionicons.glyphMap;

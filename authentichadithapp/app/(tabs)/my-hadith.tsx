@@ -8,13 +8,14 @@ import { Button } from '@/components/ui/Button'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors'
 import { useTheme } from '@/lib/theme/ThemeProvider'
+import { QueryErrorBanner } from '@/components/common/QueryErrorBanner'
 
 export default function MyHadithScreen() {
   const router = useRouter()
   const { user } = useAuth()
   const { isDark } = useTheme()
   const colors = getColors(isDark)
-  const { data: folders, isLoading } = useFolders()
+  const { data: folders, isLoading, isError, refetch } = useFolders()
 
   if (!user) {
     return (
@@ -37,6 +38,7 @@ export default function MyHadithScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {isError && <QueryErrorBanner onRetry={refetch} />}
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.bronzeText }]}>My Hadith</Text>
         <Button

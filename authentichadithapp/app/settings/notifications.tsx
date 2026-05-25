@@ -1,9 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, Switch } from 'react-native';
 import { Stack } from 'expo-router';
-import { SPACING, FONT_SIZES } from '@/lib/styles/colors';
+import { SPACING, FONT_SIZES , getColors } from '@/lib/styles/colors';
 import { useTheme } from '@/lib/theme/ThemeProvider';
-import { getColors } from '@/lib/styles/colors';
 
 export default function NotificationsScreen() {
   const { isDark } = useTheme();

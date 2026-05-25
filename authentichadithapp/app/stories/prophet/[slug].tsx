@@ -7,11 +7,14 @@ import { useAuth } from '@/lib/auth/AuthProvider'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
+import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
+import { useTheme } from '@/lib/theme/ThemeProvider'
 import { trackActivity } from '@/lib/gamification/track-activity'
 import { useCompletionStatus } from '@/hooks/useProgress'
 
 export default function ProphetStoryScreen() {
+  const { isDark } = useTheme()
+  const colors = getColors(isDark)
   const { slug } = useLocalSearchParams<{ slug: string }>()
   const { user } = useAuth()
   // Local-first completion. Authoritative for UI state. Supabase mirror happens
@@ -84,7 +87,7 @@ export default function ProphetStoryScreen() {
     return (
       <View style={styles.center}>
         <Stack.Screen options={{ title: 'Not Found', headerShown: true }} />
-        <Text style={styles.emptyText}>Story not found.</Text>
+        <Text style={[styles.emptyText, { color: colors.mutedText }]}>Story not found.</Text>
       </View>
     )
   }
@@ -95,28 +98,28 @@ export default function ProphetStoryScreen() {
   const isComplete = completion.isComplete
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
       <Stack.Screen options={{ title: prophet.name_en, headerShown: true }} />
 
       {/* Hero Header */}
-      <View style={[styles.hero, { backgroundColor: prophet.theme_primary || COLORS.emeraldMid + '15' }]}>
-        <Text style={styles.heroName}>{prophet.name_en}</Text>
+      <View style={[styles.hero, { backgroundColor: prophet.theme_primary || colors.emeraldMid + '15' }]}>
+        <Text style={[styles.heroName, { color: colors.bronzeText }]}>{prophet.name_en}</Text>
         {prophet.name_ar && (
-          <Text style={styles.heroArabic}>{prophet.name_ar}</Text>
+          <Text style={[styles.heroArabic, { color: colors.goldMid }]}>{prophet.name_ar}</Text>
         )}
         <View style={styles.metaRow}>
           {prophet.era && (
-            <View style={styles.metaBadge}>
-              <Text style={styles.metaBadgeText}>{prophet.era}</Text>
+            <View style={[styles.metaBadge, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Text style={[styles.metaBadgeText, { color: colors.mutedText }]}>{prophet.era}</Text>
             </View>
           )}
-          <View style={styles.metaBadge}>
-            <Text style={styles.metaBadgeText}>
+          <View style={[styles.metaBadge, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Text style={[styles.metaBadgeText, { color: colors.mutedText }]}>
               {prophet.quran_mentions || 0} Quran mentions
             </Text>
           </View>
-          <View style={styles.metaBadge}>
-            <Text style={styles.metaBadgeText}>
+          <View style={[styles.metaBadge, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Text style={[styles.metaBadgeText, { color: colors.mutedText }]}>
               {prophet.estimated_read_time_minutes || 5} min read
             </Text>
           </View>
@@ -125,21 +128,21 @@ export default function ProphetStoryScreen() {
 
       {/* Description */}
       {prophet.title_en && (
-        <Text style={styles.description}>{prophet.title_en}</Text>
+        <Text style={[styles.description, { color: colors.bronzeText }]}>{prophet.title_en}</Text>
       )}
 
       {/* Content Parts */}
       {parts.map((part: any) => (
         <Card key={part.id} variant="elevated" style={styles.partCard}>
-          <Text style={styles.partTitle}>{part.title_en || `Part ${part.part_number}`}</Text>
+          <Text style={[styles.partTitle, { color: colors.goldMid }]}>{part.title_en || `Part ${part.part_number}`}</Text>
           {part.opening_hook && (
-            <Text style={styles.partHook}>{part.opening_hook}</Text>
+            <Text style={[styles.partHook, { color: colors.goldMid }]}>{part.opening_hook}</Text>
           )}
-          <Text style={styles.partContent}>{part.content_en}</Text>
+          <Text style={[styles.partContent, { color: colors.bronzeText }]}>{part.content_en}</Text>
           {part.key_lesson && (
-            <View style={styles.lessonBox}>
-              <Text style={styles.lessonLabel}>Key Lesson</Text>
-              <Text style={styles.lessonText}>{part.key_lesson}</Text>
+            <View style={[styles.lessonBox, { backgroundColor: colors.emeraldMid + '10', borderLeftColor: colors.emeraldMid }]}>
+              <Text style={[styles.lessonLabel, { color: colors.emeraldMid }]}>Key Lesson</Text>
+              <Text style={[styles.lessonText, { color: colors.bronzeText }]}>{part.key_lesson}</Text>
             </View>
           )}
         </Card>
@@ -158,7 +161,7 @@ export default function ProphetStoryScreen() {
       )}
       {isComplete && (
         <View style={styles.completeBadge}>
-          <Text style={styles.completeText}>✅ Completed</Text>
+          <Text style={[styles.completeText, { color: colors.emeraldMid }]}>✅ Completed</Text>
         </View>
       )}
     </ScrollView>
@@ -166,33 +169,33 @@ export default function ProphetStoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+  container: { flex: 1 },
   content: { paddingBottom: SPACING.xxl },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  emptyText: { fontSize: FONT_SIZES.base, color: COLORS.mutedText },
+  emptyText: { fontSize: FONT_SIZES.base },
   hero: {
     padding: SPACING.xl, alignItems: 'center', gap: SPACING.sm,
   },
-  heroName: { fontSize: FONT_SIZES.xxxl, fontWeight: '700', color: COLORS.bronzeText },
-  heroArabic: { fontSize: FONT_SIZES.xl, color: COLORS.goldMid },
+  heroName: { fontSize: FONT_SIZES.xxxl, fontWeight: '700' },
+  heroArabic: { fontSize: FONT_SIZES.xl },
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, marginTop: SPACING.sm },
   metaBadge: {
-    backgroundColor: COLORS.card, paddingHorizontal: SPACING.md, paddingVertical: SPACING.xs,
-    borderRadius: BORDER_RADIUS.full, borderWidth: 1, borderColor: COLORS.border,
+    paddingHorizontal: SPACING.md, paddingVertical: SPACING.xs,
+    borderRadius: BORDER_RADIUS.full, borderWidth: 1,
   },
-  metaBadgeText: { fontSize: FONT_SIZES.sm, color: COLORS.mutedText },
+  metaBadgeText: { fontSize: FONT_SIZES.sm },
   description: {
-    fontSize: FONT_SIZES.md, color: COLORS.bronzeText, lineHeight: 26,
+    fontSize: FONT_SIZES.md, lineHeight: 26,
     padding: SPACING.md, marginBottom: SPACING.md,
   },
   partCard: { marginHorizontal: SPACING.md, marginBottom: SPACING.md },
-  partTitle: { fontSize: FONT_SIZES.md, fontWeight: '700', color: COLORS.goldMid, marginBottom: SPACING.sm },
-  partHook: { fontSize: FONT_SIZES.base, color: COLORS.goldMid, fontStyle: 'italic', marginBottom: SPACING.sm, lineHeight: 22 },
-  partContent: { fontSize: FONT_SIZES.base, color: COLORS.bronzeText, lineHeight: 24 },
-  lessonBox: { marginTop: SPACING.md, padding: SPACING.sm, backgroundColor: COLORS.emeraldMid + '10', borderRadius: BORDER_RADIUS.md, borderLeftWidth: 3, borderLeftColor: COLORS.emeraldMid },
-  lessonLabel: { fontSize: FONT_SIZES.xs, fontWeight: '700', color: COLORS.emeraldMid, marginBottom: 4, textTransform: 'uppercase' },
-  lessonText: { fontSize: FONT_SIZES.sm, color: COLORS.bronzeText, lineHeight: 20 },
+  partTitle: { fontSize: FONT_SIZES.md, fontWeight: '700', marginBottom: SPACING.sm },
+  partHook: { fontSize: FONT_SIZES.base, fontStyle: 'italic', marginBottom: SPACING.sm, lineHeight: 22 },
+  partContent: { fontSize: FONT_SIZES.base, lineHeight: 24 },
+  lessonBox: { marginTop: SPACING.md, padding: SPACING.sm, borderRadius: BORDER_RADIUS.md, borderLeftWidth: 3 },
+  lessonLabel: { fontSize: FONT_SIZES.xs, fontWeight: '700', marginBottom: 4, textTransform: 'uppercase' },
+  lessonText: { fontSize: FONT_SIZES.sm, lineHeight: 20 },
   completeButton: { marginHorizontal: SPACING.md, marginTop: SPACING.md },
   completeBadge: { alignItems: 'center', padding: SPACING.lg },
-  completeText: { fontSize: FONT_SIZES.md, color: COLORS.emeraldMid, fontWeight: '600' },
+  completeText: { fontSize: FONT_SIZES.md, fontWeight: '600' },
 })

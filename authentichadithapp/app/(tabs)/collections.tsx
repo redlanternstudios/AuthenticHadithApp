@@ -8,13 +8,14 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors';
 import { useTheme } from '@/lib/theme/ThemeProvider';
 import { Collection } from '@/types/hadith';
+import { QueryErrorBanner } from '@/components/common/QueryErrorBanner';
 
 export default function CollectionsScreen() {
   const router = useRouter();
   const { isDark } = useTheme();
   const colors = getColors(isDark);
 
-  const { data: collections, isLoading } = useQuery({
+  const { data: collections, isLoading, isError, refetch } = useQuery({
     queryKey: ['collections'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -33,6 +34,7 @@ export default function CollectionsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {isError && <QueryErrorBanner onRetry={refetch} />}
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.bronzeText }]}>{'\u{1F4DA}'} Hadith Collections</Text>
         <Text style={[styles.subtitle, { color: colors.mutedText }]}>

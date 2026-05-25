@@ -8,10 +8,13 @@ import { supabase } from '@/lib/supabase/client'
 import { HadithCard } from '@/components/hadith/HadithCard'
 import { Button } from '@/components/ui/Button'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
-import { COLORS, SPACING, FONT_SIZES } from '@/lib/styles/colors'
+import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors'
+import { useTheme } from '@/lib/theme/ThemeProvider'
 import type { HadithFolder } from '@/types/my-hadith'
 
 export default function FolderDetailScreen() {
+  const { isDark } = useTheme()
+  const colors = getColors(isDark)
   const { id } = useLocalSearchParams<{ id: string }>()
   const router = useRouter()
   const { data: hadiths, isLoading } = useFolderHadiths(id)
@@ -60,7 +63,7 @@ export default function FolderDetailScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <Button
           title="← Back"
@@ -86,22 +89,22 @@ export default function FolderDetailScreen() {
               <>
                 <HadithCard hadith={item.hadith} />
                 {item.notes && (
-                  <View style={styles.notes}>
-                    <Text style={styles.notesLabel}>My Notes:</Text>
-                    <Text style={styles.notesText}>{item.notes}</Text>
+                  <View style={[styles.notes, { backgroundColor: colors.card, borderLeftColor: colors.emeraldMid }]}>
+                    <Text style={[styles.notesLabel, { color: colors.emeraldMid }]}>My Notes:</Text>
+                    <Text style={[styles.notesText, { color: colors.bronzeText }]}>{item.notes}</Text>
                   </View>
                 )}
               </>
             ) : (
-              <View style={styles.notes}>
-                <Text style={styles.notesText}>Hadith not found</Text>
+              <View style={[styles.notes, { backgroundColor: colors.card, borderLeftColor: colors.emeraldMid }]}>
+                <Text style={[styles.notesText, { color: colors.bronzeText }]}>Hadith not found</Text>
               </View>
             )}
           </Pressable>
         )}
         ListEmptyComponent={() => (
           <View style={styles.empty}>
-            <Text style={styles.emptyText}>No hadiths in this folder yet</Text>
+            <Text style={[styles.emptyText, { color: colors.mutedText }]}>No hadiths in this folder yet</Text>
           </View>
         )}
       />
@@ -112,7 +115,6 @@ export default function FolderDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   header: {
     flexDirection: 'row',
@@ -121,23 +123,19 @@ const styles = StyleSheet.create({
     paddingTop: SPACING.xl,
   },
   notes: {
-    backgroundColor: COLORS.card,
     padding: SPACING.md,
     marginTop: SPACING.sm,
     marginHorizontal: SPACING.md,
     borderRadius: 8,
     borderLeftWidth: 3,
-    borderLeftColor: COLORS.emeraldMid,
   },
   notesLabel: {
     fontSize: FONT_SIZES.sm,
     fontWeight: '600',
-    color: COLORS.emeraldMid,
     marginBottom: SPACING.xs,
   },
   notesText: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.bronzeText,
     lineHeight: 20,
   },
   empty: {
@@ -146,7 +144,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: FONT_SIZES.lg,
-    color: COLORS.mutedText,
     textAlign: 'center',
   },
 })

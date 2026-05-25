@@ -1,9 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Stack, router } from 'expo-router';
-import { SPACING, FONT_SIZES } from '@/lib/styles/colors';
+import { SPACING, FONT_SIZES , getColors } from '@/lib/styles/colors';
 import { useTheme } from '@/lib/theme/ThemeProvider';
-import { getColors } from '@/lib/styles/colors';
 import { SettingsSection } from '@/components/settings/SettingsSection';
 import { SettingsItem } from '@/components/settings/SettingsItem';
 
@@ -86,6 +85,13 @@ export default function SettingsScreen() {
             showArrow
             onPress={() => router.push('/settings/privacy')}
             isFirst
+          />
+          <SettingsItem
+            icon="library"
+            title="Credits & Sources"
+            subtitle="Hadith collections, translations, AI"
+            showArrow
+            onPress={() => router.push('/settings/credits')}
           />
           <SettingsItem
             icon="information-circle"

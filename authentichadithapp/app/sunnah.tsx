@@ -5,11 +5,13 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Card } from '@/components/ui/Card'
-import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
+import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
+import { useTheme } from '@/lib/theme/ThemeProvider'
 import {
   FALLBACK_SUNNAH_CATEGORIES,
   FALLBACK_SUNNAH_PRACTICES,
 } from '@/lib/sunnah/sunnahFallbackData'
+import { QueryErrorBanner } from '@/components/common/QueryErrorBanner'
 
 interface SunnahCategory {
   id: string
@@ -44,10 +46,12 @@ function getDayOfYear(): number {
 }
 
 export default function SunnahScreen() {
+  const { isDark } = useTheme()
+  const colors = getColors(isDark)
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null)
   const dayOfYear = useMemo(() => getDayOfYear(), [])
 
-  const { data: dbCategories, isLoading: categoriesLoading } = useQuery({
+  const { data: dbCategories, isLoading: categoriesLoading, isError: categoriesError, refetch: refetchCategories } = useQuery({
     queryKey: ['sunnah-categories'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -115,32 +119,33 @@ export default function SunnahScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
       <Stack.Screen options={{ title: 'Sunnah Practices', headerShown: true }} />
+      {categoriesError && <QueryErrorBanner onRetry={refetchCategories} />}
 
-      <Text style={styles.title}>Sunnah Practices</Text>
-      <Text style={styles.subtitle}>
+      <Text style={[styles.title, { color: colors.bronzeText }]}>Sunnah Practices</Text>
+      <Text style={[styles.subtitle, { color: colors.mutedText }]}>
         Daily practices from the life of the Prophet &#xFDFA;
       </Text>
 
       {/* Today's Sunnah Card */}
       {todaysPractice && (
-        <View style={styles.todayCard}>
+        <View style={[styles.todayCard, { backgroundColor: colors.card, borderColor: colors.goldMid }]}>
           <View style={styles.todayHeader}>
-            <Text style={styles.todayLabel}>Today's Sunnah</Text>
-            <Text style={styles.todayDay}>Day {dayOfYear}</Text>
+            <Text style={[styles.todayLabel, { color: colors.goldMid }]}>Today's Sunnah</Text>
+            <Text style={[styles.todayDay, { color: colors.mutedText }]}>Day {dayOfYear}</Text>
           </View>
-          <Text style={styles.todayTitle}>{todaysPractice.title}</Text>
+          <Text style={[styles.todayTitle, { color: colors.bronzeText }]}>{todaysPractice.title}</Text>
           {todaysPractice.title_ar ? (
-            <Text style={styles.todayTitleAr}>{todaysPractice.title_ar}</Text>
+            <Text style={[styles.todayTitleAr, { color: colors.mutedText }]}>{todaysPractice.title_ar}</Text>
           ) : null}
           {todaysPractice.description ? (
-            <Text style={styles.todayDescription}>
+            <Text style={[styles.todayDescription, { color: colors.mutedText }]}>
               {todaysPractice.description}
             </Text>
           ) : null}
           {todaysPractice.hadith_ref ? (
-            <Text style={styles.todayRef}>{todaysPractice.hadith_ref}</Text>
+            <Text style={[styles.todayRef, { color: colors.emeraldMid }]}>{todaysPractice.hadith_ref}</Text>
           ) : null}
         </View>
       )}
@@ -150,7 +155,7 @@ export default function SunnahScreen() {
         const isExpanded = expandedCategory === category.id
         const categoryPractices = practicesByCategory[category.id] || []
         return (
-          <View key={category.id} style={styles.categoryContainer}>
+          <View key={category.id} style={[styles.categoryContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Pressable
               style={styles.categoryHeader}
               onPress={() =>
@@ -162,7 +167,7 @@ export default function SunnahScreen() {
                   styles.categoryIcon,
                   {
                     backgroundColor:
-                      (category.bg_color || category.color || COLORS.emeraldMid) + '20',
+                      (category.bg_color || category.color || colors.emeraldMid) + '20',
                   },
                 ]}
               >
@@ -171,34 +176,34 @@ export default function SunnahScreen() {
                 </Text>
               </View>
               <View style={styles.categoryInfo}>
-                <Text style={styles.categoryName}>{category.title}</Text>
-                <Text style={styles.categoryCount}>
+                <Text style={[styles.categoryName, { color: colors.bronzeText }]}>{category.title}</Text>
+                <Text style={[styles.categoryCount, { color: colors.mutedText }]}>
                   {categoryPractices.length} practices
                 </Text>
               </View>
               <Text
-                style={[styles.chevron, isExpanded && styles.chevronExpanded]}
+                style={[styles.chevron, { color: colors.mutedText }, isExpanded && styles.chevronExpanded]}
               >
                 ›
               </Text>
             </Pressable>
 
             {isExpanded && (
-              <View style={styles.practicesList}>
+              <View style={[styles.practicesList, { borderTopColor: colors.border }]}>
                 {categoryPractices.map((practice) => (
                   <View key={practice.id} style={styles.practiceItem}>
-                    <View style={styles.practiceDot} />
+                    <View style={[styles.practiceDot, { backgroundColor: colors.goldMid }]} />
                     <View style={styles.practiceContent}>
-                      <Text style={styles.practiceTitle}>
+                      <Text style={[styles.practiceTitle, { color: colors.bronzeText }]}>
                         {practice.title}
                       </Text>
                       {practice.description ? (
-                        <Text style={styles.practiceDescription}>
+                        <Text style={[styles.practiceDescription, { color: colors.mutedText }]}>
                           {practice.description}
                         </Text>
                       ) : null}
                       {practice.hadith_ref ? (
-                        <Text style={styles.practiceRef}>
+                        <Text style={[styles.practiceRef, { color: colors.emeraldMid }]}>
                           {practice.hadith_ref}
                         </Text>
                       ) : null}
@@ -206,7 +211,7 @@ export default function SunnahScreen() {
                   </View>
                 ))}
                 {categoryPractices.length === 0 && (
-                  <Text style={styles.emptyPractices}>
+                  <Text style={[styles.emptyPractices, { color: colors.mutedText }]}>
                     No practices in this category yet.
                   </Text>
                 )}
@@ -218,7 +223,7 @@ export default function SunnahScreen() {
 
       {categories.length === 0 && !isLoading && (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyText}>
+          <Text style={[styles.emptyText, { color: colors.mutedText }]}>
             No sunnah categories available yet. Check back soon.
           </Text>
         </View>
@@ -228,28 +233,24 @@ export default function SunnahScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+  container: { flex: 1 },
   content: { padding: SPACING.md, paddingBottom: SPACING.xxl },
   title: {
     fontSize: FONT_SIZES.xxxl,
     fontWeight: '700',
-    color: COLORS.bronzeText,
     paddingTop: SPACING.md,
   },
   subtitle: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.mutedText,
     marginBottom: SPACING.lg,
   },
 
   // Today's Sunnah card
   todayCard: {
-    backgroundColor: COLORS.card,
     borderRadius: BORDER_RADIUS.xl,
     padding: SPACING.md,
     marginBottom: SPACING.lg,
     borderWidth: 2,
-    borderColor: COLORS.goldMid,
   },
   todayHeader: {
     flexDirection: 'row',
@@ -260,46 +261,38 @@ const styles = StyleSheet.create({
   todayLabel: {
     fontSize: FONT_SIZES.sm,
     fontWeight: '700',
-    color: COLORS.goldMid,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
   todayDay: {
     fontSize: FONT_SIZES.xs,
-    color: COLORS.mutedText,
   },
   todayTitle: {
     fontSize: FONT_SIZES.lg,
     fontWeight: '700',
-    color: COLORS.bronzeText,
     lineHeight: 24,
   },
   todayTitleAr: {
     fontSize: FONT_SIZES.md,
-    color: COLORS.mutedText,
     textAlign: 'right',
     marginTop: SPACING.xs,
   },
   todayDescription: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.mutedText,
     lineHeight: 20,
     marginTop: SPACING.sm,
   },
   todayRef: {
     fontSize: FONT_SIZES.xs,
-    color: COLORS.emeraldMid,
     marginTop: SPACING.sm,
     fontWeight: '500',
   },
 
   // Category accordion
   categoryContainer: {
-    backgroundColor: COLORS.card,
     borderRadius: BORDER_RADIUS.lg,
     marginBottom: SPACING.sm,
     borderWidth: 1,
-    borderColor: COLORS.border,
     overflow: 'hidden',
   },
   categoryHeader: {
@@ -320,12 +313,10 @@ const styles = StyleSheet.create({
   categoryName: {
     fontSize: FONT_SIZES.md,
     fontWeight: '600',
-    color: COLORS.bronzeText,
   },
-  categoryCount: { fontSize: FONT_SIZES.sm, color: COLORS.mutedText },
+  categoryCount: { fontSize: FONT_SIZES.sm },
   chevron: {
     fontSize: 24,
-    color: COLORS.mutedText,
     transform: [{ rotate: '0deg' }],
   },
   chevronExpanded: { transform: [{ rotate: '90deg' }] },
@@ -335,7 +326,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingBottom: SPACING.md,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
   },
   practiceItem: {
     flexDirection: 'row',
@@ -347,31 +337,26 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: COLORS.goldMid,
     marginTop: 7,
   },
   practiceContent: { flex: 1 },
   practiceTitle: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.bronzeText,
     lineHeight: 20,
     fontWeight: '500',
   },
   practiceDescription: {
     fontSize: FONT_SIZES.sm,
-    color: COLORS.mutedText,
     lineHeight: 18,
     marginTop: 2,
   },
   practiceRef: {
     fontSize: FONT_SIZES.xs,
-    color: COLORS.emeraldMid,
     marginTop: 4,
     fontWeight: '500',
   },
   emptyPractices: {
     fontSize: FONT_SIZES.sm,
-    color: COLORS.mutedText,
     paddingVertical: SPACING.sm,
     fontStyle: 'italic',
   },
@@ -381,7 +366,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.mutedText,
     textAlign: 'center',
   },
 })

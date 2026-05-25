@@ -7,11 +7,14 @@ import { useAuth } from '@/lib/auth/AuthProvider'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
+import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
+import { useTheme } from '@/lib/theme/ThemeProvider'
 import { trackActivity } from '@/lib/gamification/track-activity'
 import { useCompletionStatus } from '@/hooks/useProgress'
 
 export default function CompanionStoryScreen() {
+  const { isDark } = useTheme()
+  const colors = getColors(isDark)
   const { slug } = useLocalSearchParams<{ slug: string }>()
   const { user } = useAuth()
   const completion = useCompletionStatus('story', slug ?? null)
@@ -78,7 +81,7 @@ export default function CompanionStoryScreen() {
     return (
       <View style={styles.center}>
         <Stack.Screen options={{ title: 'Not Found', headerShown: true }} />
-        <Text style={styles.emptyText}>Story not found.</Text>
+        <Text style={[styles.emptyText, { color: colors.mutedText }]}>Story not found.</Text>
       </View>
     )
   }
@@ -87,49 +90,49 @@ export default function CompanionStoryScreen() {
   const isComplete = completion.isComplete
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
       <Stack.Screen options={{ title: companion.name_en, headerShown: true }} />
 
       {/* Hero Header */}
-      <View style={styles.hero}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{companion.name_en?.charAt(0)}</Text>
+      <View style={[styles.hero, { backgroundColor: colors.goldMid + '10' }]}>
+        <View style={[styles.avatar, { backgroundColor: colors.goldMid + '25' }]}>
+          <Text style={[styles.avatarText, { color: colors.goldMid }]}>{companion.name_en?.charAt(0)}</Text>
         </View>
-        <Text style={styles.heroName}>{companion.name_en}</Text>
+        <Text style={[styles.heroName, { color: colors.bronzeText }]}>{companion.name_en}</Text>
         {companion.name_ar && (
-          <Text style={styles.heroArabic}>{companion.name_ar}</Text>
+          <Text style={[styles.heroArabic, { color: colors.goldMid }]}>{companion.name_ar}</Text>
         )}
         {companion.notable_for && companion.notable_for.length > 0 && (
           <View style={styles.tagsRow}>
             {companion.notable_for.map((tag: string) => (
-              <View key={tag} style={styles.tag}>
-                <Text style={styles.tagText}>{tag}</Text>
+              <View key={tag} style={[styles.tag, { backgroundColor: colors.emeraldMid + '15' }]}>
+                <Text style={[styles.tagText, { color: colors.emeraldMid }]}>{tag}</Text>
               </View>
             ))}
           </View>
         )}
-        <Text style={styles.readTime}>
+        <Text style={[styles.readTime, { color: colors.mutedText }]}>
           {companion.estimated_read_time_minutes || 5} min read
         </Text>
       </View>
 
       {/* Description */}
       {companion.title_en && (
-        <Text style={styles.description}>{companion.title_en}</Text>
+        <Text style={[styles.description, { color: colors.bronzeText }]}>{companion.title_en}</Text>
       )}
 
       {/* Content Parts */}
       {parts.map((part: any) => (
         <Card key={part.id} variant="elevated" style={styles.partCard}>
-          <Text style={styles.partTitle}>{part.title_en || `Part ${part.part_number}`}</Text>
+          <Text style={[styles.partTitle, { color: colors.goldMid }]}>{part.title_en || `Part ${part.part_number}`}</Text>
           {part.opening_hook && (
-            <Text style={styles.partHook}>{part.opening_hook}</Text>
+            <Text style={[styles.partHook, { color: colors.goldMid }]}>{part.opening_hook}</Text>
           )}
-          <Text style={styles.partContent}>{part.content_en}</Text>
+          <Text style={[styles.partContent, { color: colors.bronzeText }]}>{part.content_en}</Text>
           {part.key_lesson && (
-            <View style={styles.lessonBox}>
-              <Text style={styles.lessonLabel}>Key Lesson</Text>
-              <Text style={styles.lessonText}>{part.key_lesson}</Text>
+            <View style={[styles.lessonBox, { backgroundColor: colors.emeraldMid + '10', borderLeftColor: colors.emeraldMid }]}>
+              <Text style={[styles.lessonLabel, { color: colors.emeraldMid }]}>Key Lesson</Text>
+              <Text style={[styles.lessonText, { color: colors.bronzeText }]}>{part.key_lesson}</Text>
             </View>
           )}
         </Card>
@@ -148,7 +151,7 @@ export default function CompanionStoryScreen() {
       )}
       {isComplete && (
         <View style={styles.completeBadge}>
-          <Text style={styles.completeText}>✅ Completed</Text>
+          <Text style={[styles.completeText, { color: colors.emeraldMid }]}>✅ Completed</Text>
         </View>
       )}
     </ScrollView>
@@ -156,40 +159,39 @@ export default function CompanionStoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+  container: { flex: 1 },
   content: { paddingBottom: SPACING.xxl },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  emptyText: { fontSize: FONT_SIZES.base, color: COLORS.mutedText },
+  emptyText: { fontSize: FONT_SIZES.base },
   hero: {
     padding: SPACING.xl, alignItems: 'center', gap: SPACING.sm,
-    backgroundColor: COLORS.goldMid + '10',
   },
   avatar: {
-    width: 80, height: 80, borderRadius: 40, backgroundColor: COLORS.goldMid + '25',
+    width: 80, height: 80, borderRadius: 40,
     alignItems: 'center', justifyContent: 'center', marginBottom: SPACING.sm,
   },
-  avatarText: { fontSize: FONT_SIZES.xxxl, fontWeight: '700', color: COLORS.goldMid },
-  heroName: { fontSize: FONT_SIZES.xxxl, fontWeight: '700', color: COLORS.bronzeText },
-  heroArabic: { fontSize: FONT_SIZES.xl, color: COLORS.goldMid },
+  avatarText: { fontSize: FONT_SIZES.xxxl, fontWeight: '700' },
+  heroName: { fontSize: FONT_SIZES.xxxl, fontWeight: '700' },
+  heroArabic: { fontSize: FONT_SIZES.xl },
   tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.xs, marginTop: SPACING.xs },
   tag: {
-    backgroundColor: COLORS.emeraldMid + '15', paddingHorizontal: SPACING.sm,
+    paddingHorizontal: SPACING.sm,
     paddingVertical: 2, borderRadius: BORDER_RADIUS.sm,
   },
-  tagText: { fontSize: FONT_SIZES.xs, color: COLORS.emeraldMid, fontWeight: '500' },
-  readTime: { fontSize: FONT_SIZES.sm, color: COLORS.mutedText },
+  tagText: { fontSize: FONT_SIZES.xs, fontWeight: '500' },
+  readTime: { fontSize: FONT_SIZES.sm },
   description: {
-    fontSize: FONT_SIZES.md, color: COLORS.bronzeText, lineHeight: 26,
+    fontSize: FONT_SIZES.md, lineHeight: 26,
     padding: SPACING.md, marginBottom: SPACING.md,
   },
   partCard: { marginHorizontal: SPACING.md, marginBottom: SPACING.md },
-  partTitle: { fontSize: FONT_SIZES.md, fontWeight: '700', color: COLORS.goldMid, marginBottom: SPACING.sm },
-  partHook: { fontSize: FONT_SIZES.base, color: COLORS.goldMid, fontStyle: 'italic', marginBottom: SPACING.sm, lineHeight: 22 },
-  partContent: { fontSize: FONT_SIZES.base, color: COLORS.bronzeText, lineHeight: 24 },
-  lessonBox: { marginTop: SPACING.md, padding: SPACING.sm, backgroundColor: COLORS.emeraldMid + '10', borderRadius: BORDER_RADIUS.md, borderLeftWidth: 3, borderLeftColor: COLORS.emeraldMid },
-  lessonLabel: { fontSize: FONT_SIZES.xs, fontWeight: '700', color: COLORS.emeraldMid, marginBottom: 4, textTransform: 'uppercase' },
-  lessonText: { fontSize: FONT_SIZES.sm, color: COLORS.bronzeText, lineHeight: 20 },
+  partTitle: { fontSize: FONT_SIZES.md, fontWeight: '700', marginBottom: SPACING.sm },
+  partHook: { fontSize: FONT_SIZES.base, fontStyle: 'italic', marginBottom: SPACING.sm, lineHeight: 22 },
+  partContent: { fontSize: FONT_SIZES.base, lineHeight: 24 },
+  lessonBox: { marginTop: SPACING.md, padding: SPACING.sm, borderRadius: BORDER_RADIUS.md, borderLeftWidth: 3 },
+  lessonLabel: { fontSize: FONT_SIZES.xs, fontWeight: '700', marginBottom: 4, textTransform: 'uppercase' },
+  lessonText: { fontSize: FONT_SIZES.sm, lineHeight: 20 },
   completeButton: { marginHorizontal: SPACING.md, marginTop: SPACING.md },
   completeBadge: { alignItems: 'center', padding: SPACING.lg },
-  completeText: { fontSize: FONT_SIZES.md, color: COLORS.emeraldMid, fontWeight: '600' },
+  completeText: { fontSize: FONT_SIZES.md, fontWeight: '600' },
 })

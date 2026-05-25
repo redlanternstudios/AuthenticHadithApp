@@ -1,22 +1,24 @@
 import React from 'react';
-import { StyleSheet, View, Text, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, ScrollView , View as RNView, Text as RNText } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase/client';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { COLORS, SPACING, FONT_SIZES } from '@/lib/styles/colors';
+import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors';
+import { useTheme } from '@/lib/theme/ThemeProvider';
 import { Lesson } from '@/types/hadith';
 import { useCompletionStatus } from '@/hooks/useProgress';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import { trackActivity } from '@/lib/gamification/track-activity';
-import { View as RNView, Text as RNText } from 'react-native';
 
 export default function LessonDetailScreen() {
   const { lessonId } = useLocalSearchParams<{ lessonId: string }>();
   const router = useRouter();
   const { user } = useAuth();
+  const { isDark } = useTheme();
+  const colors = getColors(isDark);
   const completion = useCompletionStatus('lesson', lessonId ?? null);
 
   const { data: lesson, isLoading } = useQuery({
@@ -46,10 +48,10 @@ export default function LessonDetailScreen() {
   if (!lesson) {
     // Intentional empty state — replaces silent `return null` (Rule 005).
     return (
-      <View style={styles.notFoundContainer}>
+      <View style={[styles.notFoundContainer, { backgroundColor: colors.background }]}>
         <Text style={styles.notFoundEmoji}>🔍</Text>
-        <Text style={styles.notFoundTitle}>Lesson not found</Text>
-        <Text style={styles.notFoundText}>
+        <Text style={[styles.notFoundTitle, { color: colors.bronzeText }]}>Lesson not found</Text>
+        <Text style={[styles.notFoundText, { color: colors.mutedText }]}>
           This lesson is no longer available. It may have been moved or removed.
         </Text>
         <Button
@@ -62,7 +64,7 @@ export default function LessonDetailScreen() {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.content}>
         <Button
           title="← Back"
@@ -71,20 +73,20 @@ export default function LessonDetailScreen() {
         />
 
         <Card style={styles.lessonCard}>
-          <Text style={styles.title}>{lesson.title}</Text>
-          <Text style={styles.duration}>⏱️ {lesson.estimated_minutes} minutes</Text>
-          <Text style={styles.description}>{lesson.description}</Text>
-          
+          <Text style={[styles.title, { color: colors.bronzeText }]}>{lesson.title}</Text>
+          <Text style={[styles.duration, { color: colors.mutedText }]}>⏱️ {lesson.estimated_minutes} minutes</Text>
+          <Text style={[styles.description, { color: colors.bronzeText }]}>{lesson.description}</Text>
+
           {lesson.content && (
-            <View style={styles.contentSection}>
-              <Text style={styles.contentText}>{lesson.content}</Text>
+            <View style={[styles.contentSection, { backgroundColor: colors.marbleBase }]}>
+              <Text style={[styles.contentText, { color: colors.bronzeText }]}>{lesson.content}</Text>
             </View>
           )}
         </Card>
 
         {completion.isComplete ? (
-          <RNView style={styles.completedBadge}>
-            <RNText style={styles.completedText}>✅ Lesson Completed</RNText>
+          <RNView style={[styles.completedBadge, { backgroundColor: colors.emeraldMid + '15', borderColor: colors.emeraldMid + '30' }]}>
+            <RNText style={[styles.completedText, { color: colors.emeraldMid }]}>✅ Lesson Completed</RNText>
           </RNView>
         ) : (
           <Button
@@ -116,7 +118,6 @@ export default function LessonDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   content: {
     padding: SPACING.md,
@@ -127,42 +128,34 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONT_SIZES.xxl,
     fontWeight: '700',
-    color: COLORS.bronzeText,
     marginBottom: SPACING.sm,
   },
   duration: {
     fontSize: FONT_SIZES.sm,
-    color: COLORS.mutedText,
     marginBottom: SPACING.md,
   },
   description: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.bronzeText,
     lineHeight: 24,
     marginBottom: SPACING.md,
   },
   contentSection: {
     marginTop: SPACING.md,
     padding: SPACING.md,
-    backgroundColor: COLORS.marbleBase,
     borderRadius: 8,
   },
   contentText: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.bronzeText,
     lineHeight: 24,
   },
   completedBadge: {
     alignItems: 'center',
     padding: SPACING.lg,
     borderRadius: 12,
-    backgroundColor: COLORS.emeraldMid + '15',
     borderWidth: 1,
-    borderColor: COLORS.emeraldMid + '30',
   },
   completedText: {
     fontSize: FONT_SIZES.md,
-    color: COLORS.emeraldMid,
     fontWeight: '600',
   },
   notFoundContainer: {
@@ -171,17 +164,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: SPACING.xl,
     gap: SPACING.md,
-    backgroundColor: COLORS.background,
   },
   notFoundEmoji: { fontSize: 48 },
   notFoundTitle: {
     fontSize: FONT_SIZES.xl,
     fontWeight: '700',
-    color: COLORS.bronzeText,
   },
   notFoundText: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.mutedText,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: SPACING.md,

@@ -21,6 +21,7 @@ import {
 import { useTheme } from '@/lib/theme/ThemeProvider';
 import { Hadith } from '@/types/hadith';
 import { useRouter } from 'expo-router';
+import { QueryErrorBanner } from '@/components/common/QueryErrorBanner';
 
 const GRADE_OPTIONS = ['All', 'Sahih', 'Hasan', "Da'if"] as const;
 
@@ -53,7 +54,7 @@ export default function SearchScreen() {
     return count;
   }, [gradeFilter, collectionFilter]);
 
-  const { data: hadiths = [], isLoading } = useQuery({
+  const { data: hadiths = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['search-hadiths', debouncedQuery, gradeFilter, collectionFilter],
     queryFn: async () => {
       if (!debouncedQuery) return [];
@@ -194,6 +195,8 @@ export default function SearchScreen() {
           </ScrollView>
         )}
       </View>
+
+      {isError && <QueryErrorBanner onRetry={refetch} />}
 
       {debouncedQuery.length > 2 ? (
         <HadithList

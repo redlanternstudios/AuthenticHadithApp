@@ -4,7 +4,9 @@ import { Stack, useRouter } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
-import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
+import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
+import { useTheme } from '@/lib/theme/ThemeProvider'
+import { QueryErrorBanner } from '@/components/common/QueryErrorBanner'
 
 interface Tag {
   id: string
@@ -17,9 +19,11 @@ interface Tag {
 }
 
 export default function TopicsScreen() {
+  const { isDark } = useTheme()
+  const colors = getColors(isDark)
   const router = useRouter()
 
-  const { data: tags, isLoading } = useQuery({
+  const { data: tags, isLoading, isError, refetch } = useQuery({
     queryKey: ['tags'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -39,11 +43,12 @@ export default function TopicsScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
       <Stack.Screen options={{ title: 'Topics', headerShown: true }} />
+      {isError && <QueryErrorBanner onRetry={refetch} />}
 
-      <Text style={styles.title}>Browse by Topic</Text>
-      <Text style={styles.subtitle}>
+      <Text style={[styles.title, { color: colors.bronzeText }]}>Browse by Topic</Text>
+      <Text style={[styles.subtitle, { color: colors.mutedText }]}>
         {totalHadiths.toLocaleString()} tagged hadiths across {tags?.length || 0} topics
       </Text>
 
@@ -51,17 +56,17 @@ export default function TopicsScreen() {
         {tags?.map((tag) => (
           <Pressable
             key={tag.id}
-            style={styles.tagCard}
+            style={[styles.tagCard, { backgroundColor: colors.card, borderColor: colors.border }]}
             onPress={() => router.push(`/topics/${tag.slug}`)}
           >
-            <View style={styles.tagIconContainer}>
-              <Text style={styles.tagIcon}>{tag.name_en.charAt(0).toUpperCase()}</Text>
+            <View style={[styles.tagIconContainer, { backgroundColor: colors.emeraldMid + '20' }]}>
+              <Text style={[styles.tagIcon, { color: colors.emeraldMid }]}>{tag.name_en.charAt(0).toUpperCase()}</Text>
             </View>
-            <Text style={styles.tagNameEn} numberOfLines={2}>{tag.name_en}</Text>
+            <Text style={[styles.tagNameEn, { color: colors.bronzeText }]} numberOfLines={2}>{tag.name_en}</Text>
             {tag.name_ar && (
-              <Text style={styles.tagNameAr} numberOfLines={1}>{tag.name_ar}</Text>
+              <Text style={[styles.tagNameAr, { color: colors.goldMid }]} numberOfLines={1}>{tag.name_ar}</Text>
             )}
-            <Text style={styles.tagCount}>{tag.usage_count} hadiths</Text>
+            <Text style={[styles.tagCount, { color: colors.mutedText }]}>{tag.usage_count} hadiths</Text>
           </Pressable>
         ))}
       </View>
@@ -72,7 +77,6 @@ export default function TopicsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   content: {
     padding: SPACING.md,
@@ -81,12 +85,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONT_SIZES.xxxl,
     fontWeight: '700',
-    color: COLORS.bronzeText,
     paddingTop: SPACING.md,
   },
   subtitle: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.mutedText,
     marginBottom: SPACING.lg,
   },
   grid: {
@@ -96,18 +98,15 @@ const styles = StyleSheet.create({
   },
   tagCard: {
     width: '48.5%',
-    backgroundColor: COLORS.card,
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.md,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.border,
   },
   tagIconContainer: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: COLORS.emeraldMid + '20',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: SPACING.sm,
@@ -115,23 +114,19 @@ const styles = StyleSheet.create({
   tagIcon: {
     fontSize: FONT_SIZES.xl,
     fontWeight: '700',
-    color: COLORS.emeraldMid,
   },
   tagNameEn: {
     fontSize: FONT_SIZES.base,
     fontWeight: '600',
-    color: COLORS.bronzeText,
     textAlign: 'center',
   },
   tagNameAr: {
     fontSize: FONT_SIZES.sm,
-    color: COLORS.goldMid,
     textAlign: 'center',
     marginTop: 2,
   },
   tagCount: {
     fontSize: FONT_SIZES.xs,
-    color: COLORS.mutedText,
     marginTop: SPACING.xs,
   },
 })

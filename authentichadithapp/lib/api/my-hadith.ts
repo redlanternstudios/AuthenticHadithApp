@@ -91,18 +91,48 @@ export async function updateSavedHadithNotes(
   return data as SavedHadithWithNotes
 }
 
+// Golden Rule #1: the production saved_hadiths.hadith_id has no FK constraint
+// to hadiths.id, so PostgREST embeds (hadiths(*) / hadith:hadiths(*)) fail
+// with PGRST200. Fetch saved rows and hadith rows separately, then merge.
 export async function getFolderHadiths(folderId: string) {
-  const { data, error } = await supabase
+  const { data: savedRows, error: savedError } = await supabase
     .from('saved_hadiths')
-    .select(`
-      *,
-      hadiths(*)
-    `)
+    .select('*')
     .eq('folder_id', folderId)
     .order('created_at', { ascending: false })
-  
-  if (error) throw error
-  return data as SavedHadithWithNotes[]
+
+  if (savedError) {
+    __DEV__ && console.error('getFolderHadiths saved_hadiths failed:', { folderId, error: savedError })
+    throw savedError
+  }
+
+  if (!savedRows || savedRows.length === 0) {
+    return [] as SavedHadithWithNotes[]
+  }
+
+  const hadithIds = Array.from(
+    new Set(savedRows.map(row => row.hadith_id).filter((id): id is string => !!id))
+  )
+
+  if (hadithIds.length === 0) {
+    return savedRows as SavedHadithWithNotes[]
+  }
+
+  const { data: hadithRows, error: hadithError } = await supabase
+    .from('hadiths')
+    .select('*')
+    .in('id', hadithIds)
+
+  if (hadithError) {
+    __DEV__ && console.error('getFolderHadiths hadiths failed:', { folderId, hadithIds, error: hadithError })
+    return savedRows as SavedHadithWithNotes[]
+  }
+
+  const hadithById = new Map((hadithRows ?? []).map(h => [h.id, h]))
+  return savedRows.map(row => ({
+    ...row,
+    hadith: hadithById.get(row.hadith_id),
+  })) as SavedHadithWithNotes[]
 }
 
 // Sharing
@@ -126,20 +156,19 @@ export async function generateShareToken(folderId: string, privacy: 'public' | '
 }
 
 export async function getFolderByShareToken(token: string) {
-  const { data, error } = await supabase
+  const { data: folder, error: folderError } = await supabase
     .from('hadith_folders')
-    .select(`
-      *,
-      saved_hadiths(
-        *,
-        hadiths(*)
-      )
-    `)
+    .select('*')
     .eq('share_token', token)
     .single()
-  
-  if (error) throw error
-  return data as HadithFolder
+
+  if (folderError) {
+    __DEV__ && console.error('getFolderByShareToken failed:', { token, error: folderError })
+    throw folderError
+  }
+
+  const savedHadiths = await getFolderHadiths(folder.id)
+  return { ...folder, saved_hadiths: savedHadiths } as HadithFolder
 }
 
 // Comments

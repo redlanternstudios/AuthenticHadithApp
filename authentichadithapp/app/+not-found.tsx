@@ -1,19 +1,23 @@
 import { Link, Stack } from 'expo-router';
 import { StyleSheet, View, Text } from 'react-native';
-import { COLORS, SPACING, FONT_SIZES } from '@/lib/styles/colors';
+import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors';
+import { useTheme } from '@/lib/theme/ThemeProvider';
 
 export default function NotFoundScreen() {
+  const { isDark } = useTheme();
+  const colors = getColors(isDark);
+
   return (
     <>
       <Stack.Screen options={{ title: 'Oops!' }} />
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <Text style={styles.emoji}>📖</Text>
-        <Text style={styles.title}>This hadith cannot be found</Text>
-        <Text style={styles.message}>
+        <Text style={[styles.title, { color: colors.bronzeText }]}>This hadith cannot be found</Text>
+        <Text style={[styles.message, { color: colors.mutedText }]}>
           The page you're looking for doesn't exist.
         </Text>
-        <Link href="/" style={styles.link}>
-          <Text style={styles.linkText}>Go to home screen</Text>
+        <Link href="/" style={[styles.link, { backgroundColor: colors.emeraldMid }]}>
+          <Text style={[styles.linkText, { color: colors.white }]}>Go to home screen</Text>
         </Link>
       </View>
     </>
@@ -26,7 +30,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: SPACING.xl,
-    backgroundColor: COLORS.background,
   },
   emoji: {
     fontSize: 64,
@@ -35,13 +38,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONT_SIZES.xxl,
     fontWeight: '700',
-    color: COLORS.bronzeText,
     marginBottom: SPACING.md,
     textAlign: 'center',
   },
   message: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.mutedText,
     textAlign: 'center',
     marginBottom: SPACING.xl,
   },
@@ -49,12 +50,10 @@ const styles = StyleSheet.create({
     marginTop: SPACING.md,
     paddingVertical: SPACING.md,
     paddingHorizontal: SPACING.lg,
-    backgroundColor: COLORS.emeraldMid,
     borderRadius: 8,
   },
   linkText: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.white,
     fontWeight: '600',
   },
 });

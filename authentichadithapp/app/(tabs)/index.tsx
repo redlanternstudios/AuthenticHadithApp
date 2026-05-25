@@ -22,7 +22,9 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors';
 import { getLevelInfo } from '@/lib/gamification/level-calculator';
+import { TodayFeaturedSection } from '@/components/home/TodayFeaturedSection';
 import { Hadith } from '@/types/hadith';
+import { QueryErrorBanner } from '@/components/common/QueryErrorBanner';
 
 const QUICK_ACTIONS = [
   { icon: '☀️', label: 'Today', route: '/(tabs)/today' },
@@ -44,17 +46,18 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const { data: hadith, isLoading, refetch } = useQuery({
+  const { data: hadith, isLoading, isError, refetch } = useQuery({
     queryKey: ['random-hadith', refreshKey],
     queryFn: async () => {
       // UX hardening (FIX-038): only pick hadiths that actually have English text.
-      // ~1.2% of production rows have empty english_text. Without this filter the
-      // Hadith of the Moment card can render the FIX-038 fallback placeholder on
-      // first launch, which is jarring. UI guard only; content backfill is a
-      // separate ops task.
+      // Content-trust (CT-05): sahih-only — the headline "Hadith of the Moment" on
+      // Home must not surface a hasan or daif hadith, matching the Daily Hadith
+      // filter on Today so both "of the day"/"of the moment" surfaces hold to the
+      // authenticity bar the app's name implies.
       const { count } = await supabase
         .from('hadiths')
         .select('*', { count: 'exact', head: true })
+        .eq('grade', 'sahih')
         .not('english_text', 'is', null)
         .neq('english_text', '');
       const total = count || 100;
@@ -62,6 +65,7 @@ export default function HomeScreen() {
       const { data, error } = await supabase
         .from('hadiths')
         .select('*')
+        .eq('grade', 'sahih')
         .not('english_text', 'is', null)
         .neq('english_text', '')
         .limit(1)
@@ -132,6 +136,8 @@ export default function HomeScreen() {
       }
       showsVerticalScrollIndicator={false}
     >
+      {isError && <QueryErrorBanner onRetry={refetch} />}
+
       {/* Header */}
       <View style={styles.header}>
         <Text style={[styles.greeting, { color: colors.goldMid }]}>
@@ -157,6 +163,10 @@ export default function HomeScreen() {
           longestStreak={streak.longest_streak || 0}
         />
       )}
+
+      {/* Today's featured slot — surfaces date-driven sunnah + reflection on Home.
+          The full Today screen remains reachable via the CTA and from More → Today. */}
+      <TodayFeaturedSection />
 
       {/* Quick Actions */}
       <Text style={[styles.sectionLabel, { color: colors.mutedText }]}>EXPLORE</Text>

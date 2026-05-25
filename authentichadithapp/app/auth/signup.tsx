@@ -4,9 +4,12 @@ import { useRouter, Link } from 'expo-router';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { COLORS, SPACING, FONT_SIZES } from '@/lib/styles/colors';
+import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors';
+import { useTheme } from '@/lib/theme/ThemeProvider';
 
 export default function SignupScreen() {
+  const { isDark } = useTheme();
+  const colors = getColors(isDark);
   const router = useRouter();
   const { signUp } = useAuth();
   const [email, setEmail] = useState('');
@@ -38,10 +41,10 @@ export default function SignupScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>Create Account</Text>
-        <Text style={styles.subtitle}>Join the Authentic Hadith community</Text>
+        <Text style={[styles.title, { color: colors.bronzeText }]}>Create Account</Text>
+        <Text style={[styles.subtitle, { color: colors.mutedText }]}>Join the Authentic Hadith community</Text>
       </View>
 
       <View style={styles.form}>
@@ -75,9 +78,9 @@ export default function SignupScreen() {
       </View>
 
       <View style={styles.footer}>
-        <Text style={styles.footerText}>Already have an account? </Text>
+        <Text style={[styles.footerText, { color: colors.mutedText }]}>Already have an account? </Text>
         <Link href="/auth/login">
-          <Text style={styles.footerLink}>Sign in</Text>
+          <Text style={[styles.footerLink, { color: colors.emeraldMid }]}>Sign in</Text>
         </Link>
       </View>
     </View>
@@ -87,7 +90,6 @@ export default function SignupScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
     padding: SPACING.xl,
   },
   header: {
@@ -97,12 +99,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONT_SIZES.xxxl,
     fontWeight: '700',
-    color: COLORS.bronzeText,
     marginBottom: SPACING.sm,
   },
   subtitle: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.mutedText,
   },
   form: {
     gap: SPACING.md,
@@ -113,11 +113,9 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xl,
   },
   footerText: {
-    color: COLORS.mutedText,
     fontSize: FONT_SIZES.base,
   },
   footerLink: {
-    color: COLORS.emeraldMid,
     fontSize: FONT_SIZES.base,
     fontWeight: '600',
   },

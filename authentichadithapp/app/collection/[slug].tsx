@@ -12,12 +12,13 @@ import { supabase } from '@/lib/supabase/client';
 import { Card } from '@/components/ui/Card';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import {
-  COLORS,
+  getColors,
   SPACING,
   FONT_SIZES,
   BORDER_RADIUS,
   SHADOWS,
 } from '@/lib/styles/colors';
+import { useTheme } from '@/lib/theme/ThemeProvider';
 
 interface Collection {
   id: string;
@@ -35,23 +36,30 @@ interface Collection {
 }
 
 interface Book {
-  id: string;
-  collection_id: string;
-  number: number;
-  name_en: string;
-  name_ar: string;
-  total_hadiths: number;
-  total_chapters: number;
-  sort_order: number;
+  id: number;
+  collection_slug: string;
+  book_number: number | null;
+  book_name: string | null;
+  collection_name: string | null;
+  hadith_count: number | null;
 }
 
-const GRADE_COLORS: Record<string, string> = {
-  sahih: COLORS.sahih,
-  hasan: COLORS.hasan,
-  daif: COLORS.daif,
-};
+// Derived from hadiths table when books table has no granular rows
+interface DerivedBook {
+  book_number: number;
+  hadith_count: number;
+}
 
-function GradeBar({ distribution }: { distribution: Record<string, number> }) {
+function getGradeColors(colors: ReturnType<typeof getColors>): Record<string, string> {
+  return {
+    sahih: colors.sahih,
+    hasan: colors.hasan,
+    daif: colors.daif,
+  };
+}
+
+function GradeBar({ distribution, colors }: { distribution: Record<string, number>; colors: ReturnType<typeof getColors> }) {
+  const gradeColors = getGradeColors(colors);
   const total = Object.values(distribution).reduce((sum, v) => sum + v, 0);
   if (total === 0) return null;
 
@@ -61,12 +69,12 @@ function GradeBar({ distribution }: { distribution: Record<string, number> }) {
       grade,
       count,
       percent: (count / total) * 100,
-      color: GRADE_COLORS[grade] || COLORS.mutedText,
+      color: gradeColors[grade] || colors.mutedText,
     }));
 
   return (
     <View style={gradeStyles.container}>
-      <View style={gradeStyles.bar}>
+      <View style={[gradeStyles.bar, { backgroundColor: colors.border }]}>
         {segments.map((seg) => (
           <View
             key={seg.grade}
@@ -83,7 +91,7 @@ function GradeBar({ distribution }: { distribution: Record<string, number> }) {
             <View
               style={[gradeStyles.legendDot, { backgroundColor: seg.color }]}
             />
-            <Text style={gradeStyles.legendText}>
+            <Text style={[gradeStyles.legendText, { color: colors.mutedText }]}>
               {seg.grade.charAt(0).toUpperCase() + seg.grade.slice(1)}{' '}
               {seg.count.toLocaleString()}
             </Text>
@@ -95,6 +103,8 @@ function GradeBar({ distribution }: { distribution: Record<string, number> }) {
 }
 
 export default function CollectionDetailScreen() {
+  const { isDark } = useTheme();
+  const colors = getColors(isDark);
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const router = useRouter();
 
@@ -118,21 +128,53 @@ export default function CollectionDetailScreen() {
     enabled: !!slug,
   });
 
-  // Fetch books for this collection
+  // Fetch books for this collection.
+  // The books table has skeleton rows (book_name/book_number null). When no
+  // granular book rows exist, derive the book list from distinct book_number
+  // values on the hadiths table so the user can still browse by book.
   const { data: books = [], isLoading: booksLoading } = useQuery({
-    queryKey: ['collection-books', collection?.id],
+    queryKey: ['collection-books', slug],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First try the books table
+      const { data: bookRows } = await supabase
         .from('books')
         .select('*')
-        .eq('collection_id', collection!.id)
-        .order('sort_order')
-        .order('number');
+        .eq('collection_slug', slug as string)
+        .not('book_number', 'is', null)
+        .order('book_number');
 
-      if (error) throw error;
-      return data as Book[];
+      if (bookRows && bookRows.length > 0) {
+        return bookRows as Book[];
+      }
+
+      // Fallback: derive books from hadiths table
+      const { data: hadiths } = await supabase
+        .from('hadiths')
+        .select('book_number')
+        .eq('collection_slug', slug as string)
+        .not('book_number', 'is', null);
+
+      if (!hadiths || hadiths.length === 0) return [];
+
+      const bookMap = new Map<number, number>();
+      for (const h of hadiths) {
+        if (h.book_number != null) {
+          bookMap.set(h.book_number, (bookMap.get(h.book_number) || 0) + 1);
+        }
+      }
+
+      return Array.from(bookMap.entries())
+        .sort(([a], [b]) => a - b)
+        .map(([num, count]) => ({
+          id: num,
+          collection_slug: slug as string,
+          book_number: num,
+          book_name: null,
+          collection_name: null,
+          hadith_count: count,
+        })) as Book[];
     },
-    enabled: !!collection?.id,
+    enabled: !!slug,
   });
 
   if (collectionLoading || booksLoading) {
@@ -148,94 +190,88 @@ export default function CollectionDetailScreen() {
     return (
       <>
         <Stack.Screen options={{ title: 'Collection', headerShown: true }} />
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Collection not found.</Text>
+        <View style={[styles.errorContainer, { backgroundColor: colors.background }]}>
+          <Text style={[styles.errorText, { color: colors.mutedText }]}>Collection not found.</Text>
           <Pressable onPress={() => router.back()}>
-            <Text style={styles.backLink}>Go back</Text>
+            <Text style={[styles.backLink, { color: colors.emeraldMid }]}>Go back</Text>
           </Pressable>
         </View>
       </>
     );
   }
 
-  const renderBookCard = ({ item }: { item: Book }) => (
-    <Pressable onPress={() => router.push(`/book/${item.id}`)}>
-      <Card style={styles.bookCard}>
-        <View style={styles.bookRow}>
-          <View style={styles.bookNumberBadge}>
-            <Text style={styles.bookNumberText}>{item.number}</Text>
+  const renderBookCard = ({ item }: { item: Book }) => {
+    const displayNumber = item.book_number ?? item.id;
+    const displayName = item.book_name || `Book ${displayNumber}`;
+    const hadithCount = item.hadith_count ?? 0;
+
+    return (
+      <Pressable onPress={() => router.push(`/book/${item.id}?slug=${slug}&book_number=${displayNumber}`)}>
+        <Card style={styles.bookCard}>
+          <View style={styles.bookRow}>
+            <View style={[styles.bookNumberBadge, { backgroundColor: colors.emeraldMid + '15' }]}>
+              <Text style={[styles.bookNumberText, { color: colors.emeraldMid }]}>{displayNumber}</Text>
+            </View>
+            <View style={styles.bookInfo}>
+              <Text style={[styles.bookName, { color: colors.bronzeText }]}>{displayName}</Text>
+              <Text style={[styles.bookMeta, { color: colors.mutedText }]}>
+                {hadithCount} hadiths
+              </Text>
+            </View>
+            <Text style={[styles.bookChevron, { color: colors.mutedText }]}>{'›'}</Text>
           </View>
-          <View style={styles.bookInfo}>
-            <Text style={styles.bookName}>{item.name_en}</Text>
-            {item.name_ar ? (
-              <Text style={styles.bookNameAr}>{item.name_ar}</Text>
-            ) : null}
-            <Text style={styles.bookMeta}>
-              {item.total_hadiths} hadiths
-              {item.total_chapters > 0
-                ? ` · ${item.total_chapters} chapters`
-                : ''}
-            </Text>
-          </View>
-          <Text style={styles.bookChevron}>{'›'}</Text>
-        </View>
-      </Card>
-    </Pressable>
-  );
+        </Card>
+      </Pressable>
+    );
+  };
 
   const ListHeader = () => (
     <View style={styles.headerSection}>
-      {/* Collection name */}
-      <Text style={styles.title}>{collection.name_en}</Text>
+      <Text style={[styles.title, { color: colors.bronzeText }]}>{collection.name_en}</Text>
       {collection.name_ar ? (
-        <Text style={styles.titleAr}>{collection.name_ar}</Text>
+        <Text style={[styles.titleAr, { color: colors.mutedText }]}>{collection.name_ar}</Text>
       ) : null}
 
-      {/* Scholar info */}
       {collection.scholar ? (
-        <Text style={styles.scholar}>
+        <Text style={[styles.scholar, { color: colors.emeraldMid }]}>
           {collection.scholar}
           {collection.scholar_dates ? ` (${collection.scholar_dates})` : ''}
         </Text>
       ) : null}
 
-      {/* Stats row */}
-      <View style={styles.statsRow}>
+      <View style={[styles.statsRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>
+          <Text style={[styles.statValue, { color: colors.bronzeText }]}>
             {collection.total_hadiths?.toLocaleString() || '0'}
           </Text>
-          <Text style={styles.statLabel}>Hadiths</Text>
+          <Text style={[styles.statLabel, { color: colors.mutedText }]}>Hadiths</Text>
         </View>
-        <View style={styles.statDivider} />
+        <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>
+          <Text style={[styles.statValue, { color: colors.bronzeText }]}>
             {collection.total_books?.toLocaleString() || '0'}
           </Text>
-          <Text style={styles.statLabel}>Books</Text>
+          <Text style={[styles.statLabel, { color: colors.mutedText }]}>Books</Text>
         </View>
       </View>
 
-      {/* Grade distribution bar */}
       {collection.grade_distribution &&
       Object.keys(collection.grade_distribution).length > 0 ? (
-        <GradeBar distribution={collection.grade_distribution} />
+        <GradeBar distribution={collection.grade_distribution} colors={colors} />
       ) : null}
 
-      {/* Description */}
       {collection.description_en ? (
-        <Text style={styles.description}>{collection.description_en}</Text>
+        <Text style={[styles.description, { color: colors.mutedText }]}>{collection.description_en}</Text>
       ) : null}
 
-      {/* Section label */}
-      <Text style={styles.sectionLabel}>
+      <Text style={[styles.sectionLabel, { color: colors.bronzeText }]}>
         Books ({books.length})
       </Text>
     </View>
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen
         options={{
           title: collection.name_en,
@@ -244,13 +280,13 @@ export default function CollectionDetailScreen() {
       />
       <FlatList
         data={books}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => String(item.id)}
         renderItem={renderBookCard}
         ListHeaderComponent={ListHeader}
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No books found in this collection.</Text>
+            <Text style={[styles.emptyText, { color: colors.mutedText }]}>No books found in this collection.</Text>
           </View>
         }
       />
@@ -267,7 +303,6 @@ const gradeStyles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     overflow: 'hidden',
-    backgroundColor: COLORS.border,
   },
   segment: {
     height: '100%',
@@ -290,14 +325,12 @@ const gradeStyles = StyleSheet.create({
   },
   legendText: {
     fontSize: FONT_SIZES.xs,
-    color: COLORS.mutedText,
   },
 });
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   listContent: {
     paddingBottom: SPACING.xxl,
@@ -309,18 +342,15 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONT_SIZES.xxxl,
     fontWeight: '700',
-    color: COLORS.bronzeText,
   },
   titleAr: {
     fontSize: FONT_SIZES.xxl,
-    color: COLORS.mutedText,
     textAlign: 'right',
     marginTop: SPACING.xs,
     fontWeight: '600',
   },
   scholar: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.emeraldMid,
     marginTop: SPACING.sm,
     fontWeight: '500',
   },
@@ -328,11 +358,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: SPACING.md,
-    backgroundColor: COLORS.card,
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.md,
     borderWidth: 1,
-    borderColor: COLORS.border,
   },
   statItem: {
     flex: 1,
@@ -341,28 +369,23 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: FONT_SIZES.xxl,
     fontWeight: '700',
-    color: COLORS.bronzeText,
   },
   statLabel: {
     fontSize: FONT_SIZES.sm,
-    color: COLORS.mutedText,
     marginTop: 2,
   },
   statDivider: {
     width: 1,
     height: 32,
-    backgroundColor: COLORS.border,
   },
   description: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.mutedText,
     lineHeight: 20,
     marginTop: SPACING.md,
   },
   sectionLabel: {
     fontSize: FONT_SIZES.lg,
     fontWeight: '700',
-    color: COLORS.bronzeText,
     marginTop: SPACING.lg,
     marginBottom: SPACING.sm,
   },
@@ -379,14 +402,12 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.emeraldMid + '15',
     alignItems: 'center',
     justifyContent: 'center',
   },
   bookNumberText: {
     fontSize: FONT_SIZES.base,
     fontWeight: '700',
-    color: COLORS.emeraldMid,
   },
   bookInfo: {
     flex: 1,
@@ -394,38 +415,31 @@ const styles = StyleSheet.create({
   bookName: {
     fontSize: FONT_SIZES.md,
     fontWeight: '600',
-    color: COLORS.bronzeText,
   },
   bookNameAr: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.mutedText,
     textAlign: 'right',
     marginTop: 2,
   },
   bookMeta: {
     fontSize: FONT_SIZES.sm,
-    color: COLORS.mutedText,
     marginTop: SPACING.xs,
   },
   bookChevron: {
     fontSize: 24,
-    color: COLORS.mutedText,
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: SPACING.xl,
-    backgroundColor: COLORS.background,
   },
   errorText: {
     fontSize: FONT_SIZES.md,
-    color: COLORS.mutedText,
     marginBottom: SPACING.md,
   },
   backLink: {
     fontSize: FONT_SIZES.md,
-    color: COLORS.emeraldMid,
     fontWeight: '600',
   },
   emptyState: {
@@ -434,7 +448,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.mutedText,
     textAlign: 'center',
   },
 });

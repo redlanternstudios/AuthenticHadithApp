@@ -6,9 +6,12 @@ import { useAuth } from '@/lib/auth/AuthProvider';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { COLORS, SPACING, FONT_SIZES } from '@/lib/styles/colors';
+import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors';
+import { useTheme } from '@/lib/theme/ThemeProvider';
 
 export default function RedeemScreen() {
+  const { isDark } = useTheme();
+  const colors = getColors(isDark);
   const router = useRouter();
   const { user } = useAuth();
   const [code, setCode] = useState('');
@@ -46,19 +49,19 @@ export default function RedeemScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <Button
           title="← Back"
           onPress={() => router.back()}
           variant="ghost"
         />
-        <Text style={styles.title}>🎁 Redeem Code</Text>
+        <Text style={[styles.title, { color: colors.bronzeText }]}>🎁 Redeem Code</Text>
       </View>
 
       <View style={styles.content}>
         <Card>
-          <Text style={styles.instructions}>
+          <Text style={[styles.instructions, { color: colors.mutedText }]}>
             Enter a promo or referral code to unlock premium features
           </Text>
 
@@ -78,11 +81,11 @@ export default function RedeemScreen() {
         </Card>
 
         <Card style={styles.infoCard}>
-          <Text style={styles.infoTitle}>Premium Benefits:</Text>
-          <Text style={styles.infoBullet}>✓ AI Assistant</Text>
-          <Text style={styles.infoBullet}>✓ Unlimited Learning Paths</Text>
-          <Text style={styles.infoBullet}>✓ Offline Mode</Text>
-          <Text style={styles.infoBullet}>✓ Ad-Free Experience</Text>
+          <Text style={[styles.infoTitle, { color: colors.bronzeText }]}>Premium Benefits:</Text>
+          <Text style={[styles.infoBullet, { color: colors.mutedText }]}>✓ AI Assistant</Text>
+          <Text style={[styles.infoBullet, { color: colors.mutedText }]}>✓ Unlimited Learning Paths</Text>
+          <Text style={[styles.infoBullet, { color: colors.mutedText }]}>✓ Offline Mode</Text>
+          <Text style={[styles.infoBullet, { color: colors.mutedText }]}>✓ Ad-Free Experience</Text>
         </Card>
       </View>
     </View>
@@ -92,7 +95,6 @@ export default function RedeemScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   header: {
     padding: SPACING.md,
@@ -101,7 +103,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONT_SIZES.xxl,
     fontWeight: '700',
-    color: COLORS.bronzeText,
     marginTop: SPACING.sm,
   },
   content: {
@@ -110,7 +111,6 @@ const styles = StyleSheet.create({
   },
   instructions: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.mutedText,
     marginBottom: SPACING.md,
   },
   infoCard: {
@@ -119,12 +119,10 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: FONT_SIZES.lg,
     fontWeight: '600',
-    color: COLORS.bronzeText,
     marginBottom: SPACING.sm,
   },
   infoBullet: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.mutedText,
     marginBottom: SPACING.xs,
   },
 });

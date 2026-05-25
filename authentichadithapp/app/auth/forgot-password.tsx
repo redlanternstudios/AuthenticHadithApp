@@ -4,9 +4,12 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { COLORS, SPACING, FONT_SIZES } from '@/lib/styles/colors';
+import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors';
+import { useTheme } from '@/lib/theme/ThemeProvider';
 
 export default function ForgotPasswordScreen() {
+  const { isDark } = useTheme();
+  const colors = getColors(isDark);
   const router = useRouter();
   const { resetPassword } = useAuth();
   const [email, setEmail] = useState('');
@@ -34,10 +37,10 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>Reset Password</Text>
-        <Text style={styles.subtitle}>
+        <Text style={[styles.title, { color: colors.bronzeText }]}>Reset Password</Text>
+        <Text style={[styles.subtitle, { color: colors.mutedText }]}>
           Enter your email and we'll send you a reset link
         </Text>
       </View>
@@ -71,7 +74,6 @@ export default function ForgotPasswordScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
     padding: SPACING.xl,
   },
   header: {
@@ -81,12 +83,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONT_SIZES.xxxl,
     fontWeight: '700',
-    color: COLORS.bronzeText,
     marginBottom: SPACING.sm,
   },
   subtitle: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.mutedText,
   },
   form: {
     gap: SPACING.md,

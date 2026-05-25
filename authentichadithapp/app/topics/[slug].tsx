@@ -6,9 +6,12 @@ import { supabase } from '@/lib/supabase/client'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { HadithList } from '@/components/hadith/HadithList'
 import { Hadith } from '@/types/hadith'
-import { COLORS, SPACING, FONT_SIZES } from '@/lib/styles/colors'
+import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors'
+import { useTheme } from '@/lib/theme/ThemeProvider'
 
 export default function TopicHadithsScreen() {
+  const { isDark } = useTheme()
+  const colors = getColors(isDark)
   const { slug } = useLocalSearchParams<{ slug: string }>()
   const router = useRouter()
 
@@ -57,15 +60,15 @@ export default function TopicHadithsScreen() {
 
   if (!tag) {
     return (
-      <View style={styles.errorContainer}>
+      <View style={[styles.errorContainer, { backgroundColor: colors.background }]}>
         <Stack.Screen options={{ title: 'Topic', headerShown: true }} />
-        <Text style={styles.errorText}>Topic not found</Text>
+        <Text style={[styles.errorText, { color: colors.mutedText }]}>Topic not found</Text>
       </View>
     )
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen
         options={{
           title: tag.name_en,
@@ -74,9 +77,9 @@ export default function TopicHadithsScreen() {
       />
 
       <View style={styles.header}>
-        <Text style={styles.title}>{tag.name_en}</Text>
-        {tag.name_ar && <Text style={styles.arabic}>{tag.name_ar}</Text>}
-        <Text style={styles.subtitle}>{tag.usage_count} hadiths</Text>
+        <Text style={[styles.title, { color: colors.bronzeText }]}>{tag.name_en}</Text>
+        {tag.name_ar && <Text style={[styles.arabic, { color: colors.goldMid }]}>{tag.name_ar}</Text>}
+        <Text style={[styles.subtitle, { color: colors.mutedText }]}>{tag.usage_count} hadiths</Text>
       </View>
 
       <HadithList
@@ -92,7 +95,6 @@ export default function TopicHadithsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   header: {
     padding: SPACING.md,
@@ -101,28 +103,23 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONT_SIZES.xxl,
     fontWeight: '700',
-    color: COLORS.bronzeText,
   },
   arabic: {
     fontSize: FONT_SIZES.lg,
-    color: COLORS.goldMid,
     marginTop: 2,
   },
   subtitle: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.mutedText,
     marginTop: SPACING.xs,
   },
   errorContainer: {
     flex: 1,
-    backgroundColor: COLORS.background,
     justifyContent: 'center',
     alignItems: 'center',
     padding: SPACING.xl,
   },
   errorText: {
     fontSize: FONT_SIZES.md,
-    color: COLORS.mutedText,
     textAlign: 'center',
   },
 })

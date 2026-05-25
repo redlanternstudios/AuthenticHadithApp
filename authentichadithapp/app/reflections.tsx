@@ -7,15 +7,19 @@ import { useAuth } from '@/lib/auth/AuthProvider'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
-import { COLORS, SPACING, FONT_SIZES } from '@/lib/styles/colors'
+import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors'
+import { useTheme } from '@/lib/theme/ThemeProvider'
 import { trackActivity } from '@/lib/gamification/track-activity'
+import { QueryErrorBanner } from '@/components/common/QueryErrorBanner'
 
 export default function ReflectionsScreen() {
+  const { isDark } = useTheme()
+  const colors = getColors(isDark)
   const { user } = useAuth()
   const queryClient = useQueryClient()
   const [newReflection, setNewReflection] = useState('')
 
-  const { data: reflections, isLoading } = useQuery({
+  const { data: reflections, isLoading, isError, refetch } = useQuery({
     queryKey: ['reflections', user?.id],
     queryFn: async () => {
       if (!user) return []
@@ -82,7 +86,7 @@ export default function ReflectionsScreen() {
     return (
       <View style={styles.center}>
         <Stack.Screen options={{ title: 'Reflections', headerShown: true }} />
-        <Text style={styles.emptyText}>Sign in to write reflections.</Text>
+        <Text style={[styles.emptyText, { color: colors.mutedText }]}>Sign in to write reflections.</Text>
       </View>
     )
   }
@@ -92,21 +96,22 @@ export default function ReflectionsScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
       <Stack.Screen options={{ title: 'Reflections', headerShown: true }} />
+      {isError && <QueryErrorBanner onRetry={refetch} />}
 
-      <Text style={styles.title}>My Reflections</Text>
-      <Text style={styles.subtitle}>
+      <Text style={[styles.title, { color: colors.bronzeText }]}>My Reflections</Text>
+      <Text style={[styles.subtitle, { color: colors.mutedText }]}>
         Personal notes and thoughts on the hadiths you've read
       </Text>
 
       {/* Write New Reflection */}
       <Card variant="elevated" style={styles.writeCard}>
-        <Text style={styles.writeLabel}>Write a reflection on today's hadith</Text>
+        <Text style={[styles.writeLabel, { color: colors.bronzeText }]}>Write a reflection on today's hadith</Text>
         <TextInput
-          style={styles.textArea}
+          style={[styles.textArea, { backgroundColor: colors.background, borderColor: colors.border, color: colors.bronzeText }]}
           placeholder="What did this hadith teach you today?"
-          placeholderTextColor={COLORS.mutedText}
+          placeholderTextColor={colors.mutedText}
           value={newReflection}
           onChangeText={setNewReflection}
           multiline
@@ -127,13 +132,13 @@ export default function ReflectionsScreen() {
       {reflections && reflections.length > 0 ? (
         reflections.map((r: any) => (
           <Card key={r.id} style={styles.reflectionCard}>
-            <Text style={styles.reflectionNote}>{r.notes}</Text>
+            <Text style={[styles.reflectionNote, { color: colors.bronzeText }]}>{r.notes}</Text>
             {r.hadith && (
-              <Text style={styles.reflectionRef} numberOfLines={2}>
+              <Text style={[styles.reflectionRef, { color: colors.mutedText }]} numberOfLines={2}>
                 On: "{(r.hadith.english_text || '').slice(0, 80)}..."
               </Text>
             )}
-            <Text style={styles.reflectionDate}>
+            <Text style={[styles.reflectionDate, { color: colors.mutedText }]}>
               {new Date(r.created_at).toLocaleDateString()}
             </Text>
           </Card>
@@ -141,8 +146,8 @@ export default function ReflectionsScreen() {
       ) : (
         <View style={styles.emptyState}>
           <Text style={styles.emptyEmoji}>📝</Text>
-          <Text style={styles.emptyText}>No reflections yet.</Text>
-          <Text style={styles.emptyHint}>
+          <Text style={[styles.emptyText, { color: colors.mutedText }]}>No reflections yet.</Text>
+          <Text style={[styles.emptyHint, { color: colors.mutedText }]}>
             Start writing your thoughts on the hadiths you read.
           </Text>
         </View>
@@ -152,24 +157,24 @@ export default function ReflectionsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+  container: { flex: 1 },
   content: { padding: SPACING.md, paddingBottom: SPACING.xxl },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  title: { fontSize: FONT_SIZES.xxxl, fontWeight: '700', color: COLORS.bronzeText, paddingTop: SPACING.md },
-  subtitle: { fontSize: FONT_SIZES.base, color: COLORS.mutedText, marginBottom: SPACING.lg },
+  title: { fontSize: FONT_SIZES.xxxl, fontWeight: '700', paddingTop: SPACING.md },
+  subtitle: { fontSize: FONT_SIZES.base, marginBottom: SPACING.lg },
   writeCard: { marginBottom: SPACING.lg, gap: SPACING.sm },
-  writeLabel: { fontSize: FONT_SIZES.base, fontWeight: '600', color: COLORS.bronzeText },
+  writeLabel: { fontSize: FONT_SIZES.base, fontWeight: '600' },
   textArea: {
-    height: 100, backgroundColor: COLORS.background, borderRadius: 8,
-    borderWidth: 1, borderColor: COLORS.border, padding: SPACING.md,
-    fontSize: FONT_SIZES.base, color: COLORS.bronzeText,
+    height: 100, borderRadius: 8,
+    borderWidth: 1, padding: SPACING.md,
+    fontSize: FONT_SIZES.base,
   },
   reflectionCard: { marginBottom: SPACING.sm },
-  reflectionNote: { fontSize: FONT_SIZES.base, color: COLORS.bronzeText, lineHeight: 22, marginBottom: SPACING.sm },
-  reflectionRef: { fontSize: FONT_SIZES.sm, color: COLORS.mutedText, fontStyle: 'italic', marginBottom: SPACING.xs },
-  reflectionDate: { fontSize: FONT_SIZES.xs, color: COLORS.mutedText },
+  reflectionNote: { fontSize: FONT_SIZES.base, lineHeight: 22, marginBottom: SPACING.sm },
+  reflectionRef: { fontSize: FONT_SIZES.sm, fontStyle: 'italic', marginBottom: SPACING.xs },
+  reflectionDate: { fontSize: FONT_SIZES.xs },
   emptyState: { alignItems: 'center', paddingTop: SPACING.xxl, gap: SPACING.sm },
   emptyEmoji: { fontSize: 48 },
-  emptyText: { fontSize: FONT_SIZES.md, color: COLORS.mutedText },
-  emptyHint: { fontSize: FONT_SIZES.sm, color: COLORS.mutedText, textAlign: 'center' },
+  emptyText: { fontSize: FONT_SIZES.md },
+  emptyHint: { fontSize: FONT_SIZES.sm, textAlign: 'center' },
 })

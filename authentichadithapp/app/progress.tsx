@@ -9,15 +9,19 @@ import { LevelProgressBar } from '@/components/gamification/LevelProgressBar'
 import { StatCard } from '@/components/gamification/StatCard'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Card } from '@/components/ui/Card'
-import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
+import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
+import { useTheme } from '@/lib/theme/ThemeProvider'
 import { getLevelInfo } from '@/lib/gamification/level-calculator'
+import { QueryErrorBanner } from '@/components/common/QueryErrorBanner'
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 export default function ProgressScreen() {
+  const { isDark } = useTheme()
+  const colors = getColors(isDark)
   const { user } = useAuth()
 
-  const { data: stats, isLoading: statsLoading } = useQuery({
+  const { data: stats, isLoading: statsLoading, isError: statsError, refetch: refetchStats } = useQuery({
     queryKey: ['user-stats', user?.id],
     queryFn: async () => {
       if (!user) return null
@@ -106,10 +110,11 @@ export default function ProgressScreen() {
   })
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
       <Stack.Screen options={{ title: 'Progress', headerShown: true }} />
+      {statsError && <QueryErrorBanner onRetry={refetchStats} />}
 
-      <Text style={styles.title}>Your Progress</Text>
+      <Text style={[styles.title, { color: colors.bronzeText }]}>Your Progress</Text>
 
       {/* Level Progress */}
       <Card variant="elevated" style={styles.section}>
@@ -124,18 +129,19 @@ export default function ProgressScreen() {
 
       {/* Weekly Activity */}
       <Card variant="elevated" style={styles.section}>
-        <Text style={styles.sectionTitle}>This Week</Text>
+        <Text style={[styles.sectionTitle, { color: colors.bronzeText }]}>This Week</Text>
         <View style={styles.weekRow}>
           {weekActivity.map((d) => (
             <View key={d.day} style={styles.weekDay}>
-              <Text style={[styles.weekDayLabel, d.isToday && styles.weekDayToday]}>
+              <Text style={[styles.weekDayLabel, { color: colors.mutedText }, d.isToday && { color: colors.goldMid, fontWeight: '700' }]}>
                 {d.day}
               </Text>
               <View
                 style={[
                   styles.weekDot,
-                  d.active && styles.weekDotActive,
-                  d.isToday && styles.weekDotToday,
+                  { backgroundColor: colors.border },
+                  d.active && { backgroundColor: colors.emeraldMid + '30' },
+                  d.isToday && { borderWidth: 2, borderColor: colors.goldMid },
                 ]}
               >
                 {d.active && <Text style={styles.weekFlame}>🔥</Text>}
@@ -162,22 +168,22 @@ export default function ProgressScreen() {
       {/* Collection Reading Progress */}
       {collectionProgress && collectionProgress.length > 0 && (
         <Card variant="elevated" style={styles.section}>
-          <Text style={styles.sectionTitle}>Collection Progress</Text>
+          <Text style={[styles.sectionTitle, { color: colors.bronzeText }]}>Collection Progress</Text>
           {collectionProgress.map((c) => (
             <View key={c.id} style={styles.collectionRow}>
               <View style={styles.collectionHeader}>
-                <Text style={styles.collectionName} numberOfLines={1}>{c.name_en}</Text>
-                <Text style={styles.collectionCount}>
+                <Text style={[styles.collectionName, { color: colors.bronzeText }]} numberOfLines={1}>{c.name_en}</Text>
+                <Text style={[styles.collectionCount, { color: colors.mutedText }]}>
                   {c.read} / {c.total_hadiths}
                 </Text>
               </View>
-              <View style={styles.progressBarBg}>
+              <View style={[styles.progressBarBg, { backgroundColor: colors.border }]}>
                 <View
                   style={[
                     styles.progressBarFill,
                     {
                       width: `${c.percentage}%`,
-                      backgroundColor: c.percentage >= 50 ? COLORS.goldMid : COLORS.emeraldMid,
+                      backgroundColor: c.percentage >= 50 ? colors.goldMid : colors.emeraldMid,
                     },
                   ]}
                 />
@@ -193,7 +199,6 @@ export default function ProgressScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   content: {
     padding: SPACING.md,
@@ -202,7 +207,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONT_SIZES.xxxl,
     fontWeight: '700',
-    color: COLORS.bronzeText,
     marginBottom: SPACING.lg,
     paddingTop: SPACING.md,
   },
@@ -212,7 +216,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: FONT_SIZES.md,
     fontWeight: '700',
-    color: COLORS.bronzeText,
     marginBottom: SPACING.md,
   },
   weekRow: {
@@ -225,27 +228,14 @@ const styles = StyleSheet.create({
   },
   weekDayLabel: {
     fontSize: FONT_SIZES.xs,
-    color: COLORS.mutedText,
     fontWeight: '500',
-  },
-  weekDayToday: {
-    color: COLORS.goldMid,
-    fontWeight: '700',
   },
   weekDot: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: COLORS.border,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  weekDotActive: {
-    backgroundColor: COLORS.emeraldMid + '30',
-  },
-  weekDotToday: {
-    borderWidth: 2,
-    borderColor: COLORS.goldMid,
   },
   weekFlame: {
     fontSize: 16,
@@ -265,17 +255,14 @@ const styles = StyleSheet.create({
   },
   collectionName: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.bronzeText,
     fontWeight: '500',
     flex: 1,
   },
   collectionCount: {
     fontSize: FONT_SIZES.sm,
-    color: COLORS.mutedText,
   },
   progressBarBg: {
     height: 6,
-    backgroundColor: COLORS.border,
     borderRadius: 3,
     overflow: 'hidden',
   },

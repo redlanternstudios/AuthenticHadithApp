@@ -26,9 +26,9 @@ WHAT YOU GET:
 - Dark mode, light mode, and multiple language preferences
 
 WHY AUTHENTIC HADITH:
-Every hadith in the app is sourced from established scholarly collections with verified chains of narration. Our grading system helps you understand the authenticity level of each hadith at a glance.
+Hadiths in the app are sourced from established scholarly collections including Sahih al-Bukhari, Sahih Muslim, and other recognized compilations. Our grading system helps you understand the authenticity level of each hadith at a glance.
 
-The AI assistant is trained to provide context, not fatwa. It helps you understand hadith meaning, historical context, and connections between narrations while always encouraging you to consult qualified scholars for matters of jurisprudence.
+The AI assistant provides context and background, not religious rulings (fatwa). It helps you explore hadith meaning, historical context, and connections between narrations while encouraging you to consult qualified scholars for matters of jurisprudence.
 
 PREMIUM FEATURES:
 - Unlimited AI assistant conversations
@@ -56,9 +56,9 @@ This app requires account creation to access features. Use the provided demo cre
 
 ## Demo Account for Apple Review
 Email: applereview@byredllc.com
-Password: AppleReview2026!
+Password: [stored privately by KP; enter only in App Store Connect Review Information]
 
-NOTE: You must create this account in your Supabase dashboard before submitting.
+NOTE: Create this account in Supabase with premium entitlement before submitting. Rotate password after each review cycle.
 
 ---
 
@@ -67,13 +67,13 @@ NOTE: You must create this account in your Supabase dashboard before submitting.
 ### Subscription Group: Premium
 
 1. Monthly Premium
-   - Product ID: ah_premium_monthly
+   - Product ID: ah_monthly_premium
    - Price: $4.99/month
    - Display Name: Premium Monthly
    - Description: Unlimited AI assistant, advanced learning paths, quizzes, and all premium features. Cancel anytime.
 
 2. Annual Premium
-   - Product ID: ah_premium_annual
+   - Product ID: ah_annual_premium
    - Price: $29.99/year
    - Display Name: Premium Annual
    - Description: Unlimited AI assistant, advanced learning paths, quizzes, and all premium features. Save 50% compared to monthly.
@@ -81,7 +81,7 @@ NOTE: You must create this account in your Supabase dashboard before submitting.
 ### Non-Consumable
 
 3. Lifetime Premium
-   - Product ID: ah_lifetime
+   - Product ID: ah_lifetime_premium
    - Price: $79.99 (one-time)
    - Display Name: Lifetime Premium
    - Description: Unlock all premium features forever. Unlimited AI assistant, advanced learning paths, and all future premium content. One-time purchase, no subscription needed.

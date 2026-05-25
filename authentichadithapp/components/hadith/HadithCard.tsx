@@ -6,6 +6,10 @@ import { useTheme } from '@/lib/theme/ThemeProvider'
 import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
 import { Hadith } from '@/types/hadith'
 import { sendChatMessage } from '@/lib/api/groq'
+import {
+  formatHadithReference,
+  useCollectionDisplayNames,
+} from '@/lib/hadith/collectionDisplayName'
 
 interface HadithCardProps {
   hadith: Hadith
@@ -25,6 +29,7 @@ const SUMMARY_UNAVAILABLE = 'Summary is temporarily unavailable. Please try agai
 export function HadithCard({ hadith, onPress, compact = false, showSummarize = false }: HadithCardProps) {
   const { isDark } = useTheme()
   const colors = getColors(isDark)
+  const { data: collectionNames } = useCollectionDisplayNames()
 
   const [summary, setSummary] = useState<string | null>(null)
   const [isSummarizing, setIsSummarizing] = useState(false)
@@ -50,7 +55,7 @@ export function HadithCard({ hadith, onPress, compact = false, showSummarize = f
         {
           id: Date.now().toString(),
           role: 'user',
-          content: `Please provide a brief, clear summary of this hadith in 2-3 sentences. Focus on the key teaching or lesson:\n\n${hadith.english_text}`,
+          content: `Please provide a brief, clear summary of this hadith in 2-3 sentences. Focus on the key teaching or lesson. Do not issue any religious ruling, fatwa, or theological judgment. If the hadith requires scholarly interpretation, say so and recommend consulting a qualified scholar.\n\n${hadith.english_text}`,
           timestamp: new Date().toISOString(),
         },
       ])
@@ -72,9 +77,13 @@ export function HadithCard({ hadith, onPress, compact = false, showSummarize = f
     <Card variant="elevated" style={styles.card}>
       {/* Header row: grade badge + reference */}
       <View style={styles.header}>
-        <GradeBadge grade={hadith.grade} size={compact ? 'small' : 'medium'} />
+        {hadith.grade ? (
+          <GradeBadge grade={hadith.grade} size={compact ? 'small' : 'medium'} />
+        ) : (
+          <View />
+        )}
         <Text style={[styles.reference, { color: colors.mutedText }]}>
-          {hadith.collection_slug} {hadith.hadith_number}
+          {formatHadithReference(hadith, collectionNames)}
         </Text>
       </View>
 
@@ -85,7 +94,8 @@ export function HadithCard({ hadith, onPress, compact = false, showSummarize = f
       {hasArabic ? (
         <Text
           style={[styles.arabicText, { color: colors.bronzeText }]}
-          numberOfLines={compact ? 3 : undefined}
+          numberOfLines={compact ? 4 : undefined}
+          ellipsizeMode="tail"
         >
           {hadith.arabic_text}
         </Text>
@@ -95,7 +105,8 @@ export function HadithCard({ hadith, onPress, compact = false, showSummarize = f
       {hasEnglish ? (
         <Text
           style={[styles.englishText, { color: colors.bronzeText }]}
-          numberOfLines={compact ? 4 : undefined}
+          numberOfLines={compact ? 3 : undefined}
+          ellipsizeMode="tail"
         >
           {hadith.english_text}
         </Text>
@@ -148,8 +159,11 @@ export function HadithCard({ hadith, onPress, compact = false, showSummarize = f
 
           {summary ? (
             <View style={[styles.summaryBox, { backgroundColor: colors.emeraldMid + '12', borderLeftColor: colors.emeraldMid }]}>
-              <Text style={[styles.summaryLabel, { color: colors.emeraldMid }]}>Summary</Text>
+              <Text style={[styles.summaryLabel, { color: colors.emeraldMid }]}>AI Summary</Text>
               <Text style={[styles.summaryText, { color: colors.bronzeText }]}>{summary}</Text>
+              <Text style={[styles.summaryDisclaimer, { color: colors.mutedText }]}>
+                AI-generated. Not a religious ruling.
+              </Text>
             </View>
           ) : null}
 
@@ -256,5 +270,10 @@ const styles = StyleSheet.create({
   summaryText: {
     fontSize: FONT_SIZES.base,
     lineHeight: 22,
+  },
+  summaryDisclaimer: {
+    fontSize: FONT_SIZES.xs,
+    fontStyle: 'italic',
+    marginTop: SPACING.xs,
   },
 })

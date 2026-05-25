@@ -8,13 +8,17 @@ import QRCode from 'react-native-qrcode-svg';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { COLORS, SPACING, FONT_SIZES } from '@/lib/styles/colors';
+import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors';
+import { useTheme } from '@/lib/theme/ThemeProvider';
+import { QueryErrorBanner } from '@/components/common/QueryErrorBanner';
 
 export default function MyCodeScreen() {
+  const { isDark } = useTheme();
+  const colors = getColors(isDark);
   const router = useRouter();
   const { user } = useAuth();
 
-  const { data: referralCode, isLoading } = useQuery({
+  const { data: referralCode, isLoading, isError, refetch } = useQuery({
     queryKey: ['referral-code', user?.id],
     queryFn: async () => {
       if (!user) return null;
@@ -34,8 +38,8 @@ export default function MyCodeScreen() {
 
   if (!user) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.error}>Please sign in to view your referral code</Text>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <Text style={[styles.error, { color: colors.error }]}>Please sign in to view your referral code</Text>
       </View>
     );
   }
@@ -45,38 +49,39 @@ export default function MyCodeScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {isError && <QueryErrorBanner onRetry={refetch} />}
       <View style={styles.header}>
         <Button
           title="← Back"
           onPress={() => router.back()}
           variant="ghost"
         />
-        <Text style={styles.title}>My Referral Code</Text>
+        <Text style={[styles.title, { color: colors.bronzeText }]}>My Referral Code</Text>
       </View>
 
       <View style={styles.content}>
         <Card style={styles.qrCard}>
           {referralCode ? (
             <>
-              <Text style={styles.code}>{referralCode.code}</Text>
-              <View style={styles.qrContainer}>
+              <Text style={[styles.code, { color: colors.emeraldMid }]}>{referralCode.code}</Text>
+              <View style={[styles.qrContainer, { backgroundColor: colors.white }]}>
                 <QRCode
                   value={`authentichadith://redeem?code=${referralCode.code}`}
                   size={200}
-                  backgroundColor={COLORS.white}
-                  color={COLORS.emeraldMid}
+                  backgroundColor={colors.white}
+                  color={colors.emeraldMid}
                 />
               </View>
-              <Text style={styles.instructions}>
+              <Text style={[styles.instructions, { color: colors.mutedText }]}>
                 Share this code with friends to give them premium access
               </Text>
-              <Text style={styles.uses}>
+              <Text style={[styles.uses, { color: colors.mutedText }]}>
                 Used {referralCode.current_uses} times
               </Text>
             </>
           ) : (
-            <Text style={styles.noCode}>
+            <Text style={[styles.noCode, { color: colors.mutedText }]}>
               You don't have a referral code yet. Contact support to get one.
             </Text>
           )}
@@ -89,7 +94,6 @@ export default function MyCodeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   header: {
     padding: SPACING.md,
@@ -98,7 +102,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONT_SIZES.xxl,
     fontWeight: '700',
-    color: COLORS.bronzeText,
     marginTop: SPACING.sm,
   },
   content: {
@@ -111,34 +114,28 @@ const styles = StyleSheet.create({
   code: {
     fontSize: FONT_SIZES.xxxl,
     fontWeight: '700',
-    color: COLORS.emeraldMid,
     marginBottom: SPACING.lg,
     letterSpacing: 2,
   },
   qrContainer: {
     padding: SPACING.md,
-    backgroundColor: COLORS.white,
     borderRadius: 12,
     marginBottom: SPACING.lg,
   },
   instructions: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.mutedText,
     textAlign: 'center',
     marginBottom: SPACING.sm,
   },
   uses: {
     fontSize: FONT_SIZES.sm,
-    color: COLORS.mutedText,
   },
   noCode: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.mutedText,
     textAlign: 'center',
   },
   error: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.error,
     textAlign: 'center',
     padding: SPACING.xl,
   },

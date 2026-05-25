@@ -2,9 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Linking } from 'react-native';
 import { Stack } from 'expo-router';
 import Constants from 'expo-constants';
-import { SPACING, FONT_SIZES } from '@/lib/styles/colors';
+import { SPACING, FONT_SIZES , getColors } from '@/lib/styles/colors';
 import { useTheme } from '@/lib/theme/ThemeProvider';
-import { getColors } from '@/lib/styles/colors';
 import { SettingsSection } from '@/components/settings/SettingsSection';
 import { SettingsItem } from '@/components/settings/SettingsItem';
 
@@ -90,10 +89,10 @@ export default function AboutScreen() {
 
         <View style={styles.footer}>
           <Text style={[styles.footerText, { color: colors.mutedText }]}>
-            © 2024 Authentic Hadith App
+            © 2026 byRed LLC
           </Text>
           <Text style={[styles.footerText, { color: colors.mutedText }]}>
-            Built with ❤️ for the Muslim community
+            Built with care for the Muslim community
           </Text>
         </View>
       </ScrollView>

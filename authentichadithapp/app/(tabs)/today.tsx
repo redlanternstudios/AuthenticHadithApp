@@ -22,6 +22,8 @@ import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colo
 import { useDeviceLayout } from '@/lib/hooks/use-device-layout'
 import { trackActivity } from '@/lib/gamification/track-activity'
 import { Hadith } from '@/types/hadith'
+import { getCollectionDisplayName } from '@/lib/hadith/collectionDisplayName'
+import { QueryErrorBanner } from '@/components/common/QueryErrorBanner'
 
 const DAILY_ACTIONS = [
   { action: 'Say Bismillah before eating', reference: 'Sahih al-Bukhari 5376' },
@@ -67,7 +69,7 @@ export default function TodayScreen() {
   const todayAction = DAILY_ACTIONS[getDailyIndex(today, DAILY_ACTIONS.length)]
   const todayReflection = REFLECTION_PROMPTS[getDailyIndex(today, REFLECTION_PROMPTS.length)]
 
-  const { data: dailyHadith, isLoading, refetch } = useQuery({
+  const { data: dailyHadith, isLoading, isError, refetch } = useQuery({
     queryKey: ['daily-hadith', today.toDateString()],
     queryFn: async () => {
       const dateStr = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`
@@ -120,8 +122,9 @@ export default function TodayScreen() {
     if (!dailyHadith) return
     try {
       const text = dailyHadith.english_text || dailyHadith.arabic_text
+      const reference = `${getCollectionDisplayName(dailyHadith.collection_slug)} #${dailyHadith.hadith_number}`
       await Share.share({
-        message: `Daily Hadith:\n\n${text}\n\n— ${dailyHadith.collection_slug} ${dailyHadith.hadith_number}\n\nShared from Authentic Hadith`,
+        message: `Daily Hadith:\n\n${text}\n\n— ${reference}\n\nShared from Authentic Hadith`,
       })
       if (user) trackActivity(user.id, 'share')
     } catch {}
@@ -161,6 +164,8 @@ export default function TodayScreen() {
       }
       showsVerticalScrollIndicator={false}
     >
+      {isError && <QueryErrorBanner onRetry={refetch} />}
+
       {/* Header */}
       <View style={styles.header}>
         <Text style={[styles.dateText, { color: colors.goldMid }]}>

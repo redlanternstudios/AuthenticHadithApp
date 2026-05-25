@@ -4,122 +4,84 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
-import { Card } from '@/components/ui/Card'
-import { COLORS, SPACING, FONT_SIZES } from '@/lib/styles/colors'
-
-interface Chapter {
-  id: string
-  book_id: string
-  number: number
-  name_en: string
-  name_ar: string
-  total_hadiths: number
-  sort_order: number
-}
-
-interface Book {
-  id: string
-  name_en: string
-  name_ar: string
-  number: number
-}
+import { HadithList } from '@/components/hadith/HadithList'
+import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors'
+import { useTheme } from '@/lib/theme/ThemeProvider'
+import { QueryErrorBanner } from '@/components/common/QueryErrorBanner'
+import { Hadith } from '@/types/hadith'
 
 export default function BookDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>()
+  const { isDark } = useTheme()
+  const colors = getColors(isDark)
+  const { id, slug, book_number } = useLocalSearchParams<{ id: string; slug?: string; book_number?: string }>()
   const router = useRouter()
 
-  const { data: book, isLoading: bookLoading } = useQuery({
-    queryKey: ['book', id],
+  const bookNum = book_number ? parseInt(book_number, 10) : null
+  const collectionSlug = slug || null
+  const title = `Book ${bookNum ?? id}`
+
+  // Fetch hadiths for this book directly from hadiths table
+  const { data: hadiths = [], isLoading, isError, refetch } = useQuery({
+    queryKey: ['book-hadiths', collectionSlug, bookNum, id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      if (collectionSlug && bookNum != null) {
+        // Query by collection_slug + book_number (primary path)
+        const { data, error } = await supabase
+          .from('hadiths')
+          .select('*')
+          .eq('collection_slug', collectionSlug)
+          .eq('book_number', bookNum)
+          .order('hadith_number', { ascending: true })
+          .limit(500)
+        if (error) throw error
+        return (data as Hadith[]) || []
+      }
+      // Fallback: try books table by id
+      const { data: bookRow } = await supabase
         .from('books')
-        .select('*')
+        .select('collection_slug, book_number')
         .eq('id', id)
-        .single()
-      if (error) throw error
-      return data as Book
-    },
-    enabled: !!id,
-  })
-
-  const { data: chapters, isLoading: chaptersLoading } = useQuery({
-    queryKey: ['chapters', id],
-    queryFn: async () => {
+        .maybeSingle()
+      if (!bookRow?.collection_slug) return []
       const { data, error } = await supabase
-        .from('chapters')
+        .from('hadiths')
         .select('*')
-        .eq('book_id', id)
-        .order('sort_order', { ascending: true })
-        .order('number', { ascending: true })
+        .eq('collection_slug', bookRow.collection_slug)
+        .eq('book_number', bookRow.book_number)
+        .order('hadith_number', { ascending: true })
+        .limit(500)
       if (error) throw error
-      return (data as Chapter[]) || []
+      return (data as Hadith[]) || []
     },
     enabled: !!id,
   })
-
-  const isLoading = bookLoading || chaptersLoading
 
   if (isLoading) {
     return <LoadingSpinner />
   }
 
-  if (!book) {
-    return (
-      <View style={styles.errorContainer}>
-        <Stack.Screen options={{ title: 'Book', headerShown: true }} />
-        <Text style={styles.errorText}>Book not found</Text>
-      </View>
-    )
-  }
-
-  const renderChapter = ({ item }: { item: Chapter }) => (
-    <Pressable onPress={() => router.push(`/chapter/${item.id}`)}>
-      <Card variant="elevated" style={styles.chapterCard}>
-        <View style={styles.chapterRow}>
-          <View style={styles.chapterNumberContainer}>
-            <Text style={styles.chapterNumber}>{item.number}</Text>
-          </View>
-          <View style={styles.chapterInfo}>
-            <Text style={styles.chapterLabel}>Chapter {item.number}</Text>
-            <Text style={styles.chapterNameEn} numberOfLines={2}>{item.name_en}</Text>
-            {item.name_ar && (
-              <Text style={styles.chapterNameAr} numberOfLines={1}>{item.name_ar}</Text>
-            )}
-            <Text style={styles.chapterHadithCount}>{item.total_hadiths} hadiths</Text>
-          </View>
-          <Text style={styles.chevron}>&rsaquo;</Text>
-        </View>
-      </Card>
-    </Pressable>
-  )
-
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen
         options={{
-          title: book.name_en,
+          title,
           headerShown: true,
         }}
       />
+      {isError && <QueryErrorBanner onRetry={refetch} />}
 
-      <FlatList
-        data={chapters}
-        keyExtractor={(item) => item.id}
-        renderItem={renderChapter}
-        contentContainerStyle={styles.listContent}
-        ListHeaderComponent={
-          <View style={styles.header}>
-            <Text style={styles.title}>{book.name_en}</Text>
-            <Text style={styles.subtitle}>
-              {chapters?.length || 0} chapters
-            </Text>
-          </View>
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No chapters found</Text>
-          </View>
-        }
+      <View style={styles.header}>
+        <Text style={[styles.title, { color: colors.bronzeText }]}>{title}</Text>
+        <Text style={[styles.subtitle, { color: colors.mutedText }]}>
+          {hadiths.length} hadiths
+        </Text>
+      </View>
+
+      <HadithList
+        hadiths={hadiths}
+        isLoading={isLoading}
+        onHadithPress={(hadith) => router.push(`/hadith/${hadith.id}`)}
+        emptyMessage="No hadiths found in this book."
       />
     </View>
   )
@@ -128,7 +90,6 @@ export default function BookDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   listContent: {
     padding: SPACING.md,
@@ -141,11 +102,9 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONT_SIZES.xxxl,
     fontWeight: '700',
-    color: COLORS.bronzeText,
   },
   subtitle: {
     fontSize: FONT_SIZES.base,
-    color: COLORS.mutedText,
     marginTop: SPACING.xs,
   },
   chapterCard: {
@@ -160,14 +119,12 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: COLORS.emeraldMid + '20',
     alignItems: 'center',
     justifyContent: 'center',
   },
   chapterNumber: {
     fontSize: FONT_SIZES.md,
     fontWeight: '700',
-    color: COLORS.emeraldMid,
   },
   chapterInfo: {
     flex: 1,
@@ -175,40 +132,33 @@ const styles = StyleSheet.create({
   chapterLabel: {
     fontSize: FONT_SIZES.xs,
     fontWeight: '600',
-    color: COLORS.emeraldMid,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   chapterNameEn: {
     fontSize: FONT_SIZES.md,
     fontWeight: '600',
-    color: COLORS.bronzeText,
     marginTop: 2,
   },
   chapterNameAr: {
     fontSize: FONT_SIZES.sm,
-    color: COLORS.goldMid,
     marginTop: 2,
   },
   chapterHadithCount: {
     fontSize: FONT_SIZES.xs,
-    color: COLORS.mutedText,
     marginTop: SPACING.xs,
   },
   chevron: {
     fontSize: 24,
-    color: COLORS.mutedText,
   },
   errorContainer: {
     flex: 1,
-    backgroundColor: COLORS.background,
     justifyContent: 'center',
     alignItems: 'center',
     padding: SPACING.xl,
   },
   errorText: {
     fontSize: FONT_SIZES.md,
-    color: COLORS.mutedText,
     textAlign: 'center',
   },
   emptyContainer: {
@@ -219,7 +169,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: FONT_SIZES.md,
-    color: COLORS.mutedText,
     textAlign: 'center',
   },
 })

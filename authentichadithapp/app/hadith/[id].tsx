@@ -12,7 +12,7 @@ import { useLocalSearchParams, Stack, useRouter } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
 import { useHadith } from '@/hooks/use-hadith'
-import { useAuth } from '@/hooks/use-auth'
+import { useAuth } from '@/lib/auth/AuthProvider'
 import { useTheme } from '@/lib/theme/ThemeProvider'
 import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS, SHADOWS, LAYOUT } from '@/lib/styles/colors'
 import { useDeviceLayout } from '@/lib/hooks/use-device-layout'
@@ -20,6 +20,19 @@ import { shareHadith } from '@/components/share/ShareSheet'
 import { SaveHadithModal } from '@/components/my-hadith/SaveHadithModal'
 import { sendChatMessage } from '@/lib/api/groq'
 import { supabase } from '@/lib/supabase/client'
+import {
+  formatHadithReference,
+  useCollectionDisplayNames,
+} from '@/lib/hadith/collectionDisplayName'
+
+// Key Teaching panel gating. The `enriched_hadiths` table holds optional
+// per-hadith insight rows whose authorial provenance has not been documented
+// in V1_SCHEMA_ALIGNMENT_AUDIT.md. Until that's resolved we do not render the
+// panel — better to hide unattributed religious content than to show it
+// without a source label. Flip to true when docs/ENRICHED_HADITHS_PROVENANCE.md
+// is populated and the panel has an appropriate "AI-generated insight" or
+// scholar-credited label.
+const ENRICHED_HADITHS_ENABLED = false
 
 type LanguageMode = 'arabic' | 'both' | 'english'
 
@@ -41,6 +54,7 @@ export default function HadithDetailScreen() {
   const [summaryError, setSummaryError] = useState<string | null>(null)
   const [isSummarizing, setIsSummarizing] = useState(false)
   const [languageMode, setLanguageMode] = useState<LanguageMode>('both')
+  const { data: collectionNames } = useCollectionDisplayNames()
 
   const SUMMARY_UNAVAILABLE = 'Summary is temporarily unavailable. Please try again later.'
 
@@ -84,7 +98,9 @@ export default function HadithDetailScreen() {
     enabled: !!id,
   })
 
-  // Fetch enriched data (key teaching)
+  // Fetch enriched data (key teaching).
+  // Provenance for `enriched_hadiths` is not yet documented; gated by
+  // ENRICHED_HADITHS_ENABLED until the provenance doc lands. See top of file.
   const { data: enriched } = useQuery({
     queryKey: ['enriched-hadith', id],
     queryFn: async () => {
@@ -96,7 +112,48 @@ export default function HadithDetailScreen() {
       if (error) return null
       return data as { key_teaching_en: string | null; summary_line: string | null }
     },
-    enabled: !!id,
+    enabled: ENRICHED_HADITHS_ENABLED && !!id,
+  })
+
+  // Friendly book name for the Reference table. Joins on collection_slug +
+  // book_number when both are present.
+  const { data: bookData } = useQuery({
+    queryKey: ['hadith-book', hadith?.collection_slug, hadith?.book_number],
+    queryFn: async () => {
+      if (!hadith?.collection_slug || hadith?.book_number == null) return null
+      const { data: collectionRow } = await supabase
+        .from('collections')
+        .select('id')
+        .eq('slug', hadith.collection_slug)
+        .maybeSingle()
+      if (!collectionRow) return null
+      const { data, error } = await supabase
+        .from('books')
+        .select('id, name')
+        .eq('collection_id', (collectionRow as any).id)
+        .eq('book_number', hadith.book_number)
+        .maybeSingle()
+      if (error) return null
+      return data as { id: string; name: string } | null
+    },
+    enabled: !!hadith?.collection_slug && hadith?.book_number != null,
+  })
+
+  // Friendly chapter name for the Reference table.
+  const { data: chapterData } = useQuery({
+    queryKey: ['hadith-chapter', bookData?.id, hadith?.chapter_number],
+    queryFn: async () => {
+      if (!bookData?.id || hadith?.chapter_number == null) return null
+      const { data, error } = await supabase
+        .from('chapters')
+        .select('name')
+        .eq('book_id', bookData.id)
+        .eq('chapter_number', hadith.chapter_number)
+        .maybeSingle()
+      if (error) return null
+      return data as { name: string } | null
+    },
+    enabled: !!bookData?.id && hadith?.chapter_number != null,
   })
 
   const handleSummarize = async () => {
@@ -114,7 +171,7 @@ export default function HadithDetailScreen() {
         {
           id: Date.now().toString(),
           role: 'user',
-          content: `Please provide a brief, clear summary of this hadith in 2-3 sentences. Focus on the key teaching or lesson:\n\n${hadith.english_text}`,
+          content: `Please provide a brief, clear summary of this hadith in 2-3 sentences. Focus on the key teaching or lesson. Do not issue any religious ruling, fatwa, or theological judgment. If the hadith requires scholarly interpretation, say so and recommend consulting a qualified scholar.\n\n${hadith.english_text}`,
           timestamp: new Date().toISOString(),
         },
       ])
@@ -357,9 +414,25 @@ export default function HadithDetailScreen() {
           <View style={styles.referenceRow}>
             <Text style={[styles.referenceLabel, { color: colors.mutedText }]}>Reference</Text>
             <Text style={[styles.referenceValue, { color: colors.bronzeText }]}>
-              {hadith.collection_slug} {hadith.hadith_number}
+              {formatHadithReference(hadith, collectionNames)}
             </Text>
           </View>
+          {bookData?.name ? (
+            <View style={styles.referenceRow}>
+              <Text style={[styles.referenceLabel, { color: colors.mutedText }]}>Book</Text>
+              <Text style={[styles.referenceValue, { color: colors.bronzeText }]}>
+                {bookData.name}
+              </Text>
+            </View>
+          ) : null}
+          {chapterData?.name ? (
+            <View style={styles.referenceRow}>
+              <Text style={[styles.referenceLabel, { color: colors.mutedText }]}>Chapter</Text>
+              <Text style={[styles.referenceValue, { color: colors.bronzeText }]}>
+                {chapterData.name}
+              </Text>
+            </View>
+          ) : null}
           {hadith.narrator ? (
             <View style={styles.referenceRow}>
               <Text style={[styles.referenceLabel, { color: colors.mutedText }]}>Narrator</Text>
@@ -460,8 +533,11 @@ export default function HadithDetailScreen() {
               isDark ? SHADOWS.cardDark : SHADOWS.subtle,
             ]}
           >
-            <Text style={[styles.sectionLabel, { color: colors.emeraldMid }]}>Summary</Text>
+            <Text style={[styles.sectionLabel, { color: colors.emeraldMid }]}>AI Summary</Text>
             <Text style={[styles.summaryText, { color: colors.bronzeText }]}>{summary}</Text>
+            <Text style={[styles.summaryDisclaimer, { color: colors.mutedText }]}>
+              AI-generated. Not a religious ruling.
+            </Text>
           </View>
         ) : null}
 
@@ -627,6 +703,11 @@ const styles = StyleSheet.create({
   summaryText: {
     fontSize: FONT_SIZES.base,
     lineHeight: 22,
+  },
+  summaryDisclaimer: {
+    fontSize: FONT_SIZES.xs,
+    fontStyle: 'italic',
+    marginTop: SPACING.xs,
   },
   actions: {
     flexDirection: 'row',
