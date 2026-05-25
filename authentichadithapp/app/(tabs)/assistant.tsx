@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors';
 import { useTheme } from '@/lib/theme/ThemeProvider';
 import { usePremiumStatus } from '@/hooks/usePremiumStatus';
-import { ChatMessage, sendChatMessage } from '@/lib/api/groq';
+import { ChatMessage, sendChatMessage, AI_REQUEST_FAILED } from '@/lib/api/groq';
 import { Ionicons } from '@expo/vector-icons';
 
 const MAX_INPUT_LENGTH = 500;
@@ -107,8 +107,8 @@ export default function AssistantScreen() {
         await persistQuota(freeUsed + 1);
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to get response. Please try again.';
-      setError(errorMessage);
+      if (__DEV__) console.error('[assistant] sendChatMessage failed', err);
+      setError(AI_REQUEST_FAILED);
     } finally {
       setIsLoading(false);
     }
@@ -138,7 +138,7 @@ export default function AssistantScreen() {
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
           <Text style={[styles.title, { color: colors.bronzeText }]}>{'✨'} AI Assistant</Text>
           <Text style={[styles.subtitle, { color: colors.mutedText }]}>
-            Ask questions about Islamic teachings and get answers backed by authentic hadiths
+            Ask questions about hadith. Answers are AI-generated context, not a fatwa.
           </Text>
         </View>
 
@@ -171,7 +171,7 @@ export default function AssistantScreen() {
               </View>
 
               <Text style={[styles.disclaimer, { color: colors.mutedText }]}>
-                I only answer using authenticated hadith. If none are found, I will say so.
+                AI guidance only. For religious rulings, consult a qualified scholar.
               </Text>
             </View>
           ) : (
@@ -218,6 +218,13 @@ export default function AssistantScreen() {
             </View>
           )}
         </ScrollView>
+
+        <View style={[styles.fatwaFooter, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
+          <Ionicons name="information-circle-outline" size={14} color={colors.mutedText} />
+          <Text style={[styles.fatwaText, { color: colors.mutedText }]}>
+            AI guidance only. For rulings, consult a qualified scholar.
+          </Text>
+        </View>
 
         <View style={[styles.quotaBanner, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
           <Ionicons name="sparkles-outline" size={14} color={colors.mutedText} />
@@ -429,5 +436,20 @@ const styles = StyleSheet.create({
   },
   quotaText: {
     fontSize: FONT_SIZES.xs,
+  },
+  fatwaFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.xs,
+    paddingVertical: SPACING.xs,
+    paddingHorizontal: SPACING.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  fatwaText: {
+    fontSize: FONT_SIZES.xs,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    flexShrink: 1,
   },
 });

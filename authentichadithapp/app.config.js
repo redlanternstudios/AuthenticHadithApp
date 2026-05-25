@@ -21,7 +21,7 @@ module.exports = ({ config }) => ({
     apiUrl:
       process.env.EXPO_PUBLIC_API_URL ??
       config.extra?.apiUrl ??
-      'https://authentichadith.app',
+      'https://www.authentichadith.app',
 
     // Environment marker
     appEnv: process.env.EXPO_PUBLIC_APP_ENV ?? 'development',
