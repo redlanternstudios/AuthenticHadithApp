@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import Purchases, { CustomerInfo, PurchasesOffering, LOG_LEVEL } from 'react-native-purchases'
 import { ENTITLEMENT_ID } from './config'
-import { configureRevenueCat, isRevenueCatConfigured } from '../purchases/revenuecat'
+import { configureRevenueCat, isRevenueCatConfigured, identifyUser, resetUser } from '../purchases/revenuecat'
+import { useAuth } from '../auth/AuthProvider'
 
 interface RevenueCatContextType {
   customerInfo: CustomerInfo | null
@@ -34,6 +35,7 @@ interface RevenueCatProviderProps {
 }
 
 export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
+  const { user } = useAuth()
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null)
   const [currentOffering, setCurrentOffering] = useState<PurchasesOffering | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -59,7 +61,7 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
         // Route through the helper so this module and lib/purchases/revenuecat.ts
         // share one isConfigured truth. Helper logs in DEV when no key is found
         // and returns false in degraded mode rather than throwing.
-        const ok = await configureRevenueCat()
+        const ok = await configureRevenueCat(user?.id)
         if (!ok || !isRevenueCatConfigured()) {
           // Degraded mode — no API key, configure failed, or SDK missing. Treat
           // user as non-premium; do NOT call any default-instance methods.
@@ -78,7 +80,7 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
           setCustomerInfo(info)
         } catch (err) {
           __DEV__ &&
-            console.warn(
+            console.warn( // __DEV__
               '[RevenueCat] getCustomerInfo failed (non-fatal):',
               err instanceof Error ? err.message : String(err)
             )
@@ -91,7 +93,7 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
           }
         } catch (err) {
           __DEV__ &&
-            console.warn(
+            console.warn( // __DEV__
               '[RevenueCat] getOfferings failed (non-fatal — expected on simulator without StoreKit Config or before App Store Connect product setup):',
               err instanceof Error ? err.message : String(err)
             )
@@ -133,6 +135,33 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
       if (!listenerAttached) return
     }
   }, [])
+
+  // Keep RevenueCat's App User ID in sync with the Supabase session. Init runs
+  // once on mount with the user at that instant; auth hydration is async, so
+  // this effect catches login, logout, and any later identity swap. Required
+  // so the demo reviewer's Supabase UUID can be located in the RC dashboard
+  // when granting Promotional Entitlements (Build #14 shipped without this).
+  useEffect(() => {
+    if (!isConfigured) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        if (user?.id) {
+          await identifyUser(user.id)
+        } else {
+          await resetUser()
+        }
+        if (cancelled) return
+        const info = await Purchases.getCustomerInfo()
+        if (!cancelled) setCustomerInfo(info)
+      } catch (err) {
+        __DEV__ && console.error('[RevenueCat] identity sync failed:', err)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [user?.id, isConfigured])
 
   const restorePurchases = useCallback(async (): Promise<CustomerInfo | null> => {
     if (!isConfigured) {

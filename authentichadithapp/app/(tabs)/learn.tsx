@@ -28,15 +28,14 @@ export default function LearnScreen() {
         .order('sort_order');
 
       if (error) {
-        // Unconditional log — surfaces in Metro AND iOS device console so
-        // production failures aren't silent. Includes every field PostgREST
-        // returns so we can pinpoint RLS / FK / network issues offline.
-        console.error('[Learn] learning_paths fetch failed:', {
-          code: (error as any).code,
-          message: error.message,
-          details: (error as any).details,
-          hint: (error as any).hint,
-        });
+        if (__DEV__) {
+          console.error('[Learn] learning_paths fetch failed:', { // __DEV__
+            code: (error as any).code,
+            message: error.message,
+            details: (error as any).details,
+            hint: (error as any).hint,
+          });
+        }
         throw error;
       }
       return data as LearningPath[];
@@ -54,12 +53,14 @@ export default function LearnScreen() {
         .from('path_lessons')
         .select('learning_path_id, lesson_id');
       if (error) {
-        console.error('[Learn] path_lessons fetch failed (non-fatal):', {
-          code: (error as any).code,
-          message: error.message,
-          details: (error as any).details,
-          hint: (error as any).hint,
-        });
+        if (__DEV__) {
+          console.error('[Learn] path_lessons fetch failed (non-fatal):', { // __DEV__
+            code: (error as any).code,
+            message: error.message,
+            details: (error as any).details,
+            hint: (error as any).hint,
+          });
+        }
         return null;
       }
       return data as PathLessonMap[];

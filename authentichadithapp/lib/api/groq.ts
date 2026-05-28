@@ -51,7 +51,7 @@ export async function sendChatMessage(messages: ChatMessage[]): Promise<string> 
   } catch (err) {
     if (__DEV__) {
       const aborted = (err as { name?: string })?.name === 'AbortError'
-      console.error(aborted ? '[groq] request timed out' : '[groq] network error', err)
+      console.error(aborted ? '[groq] request timed out' : '[groq] network error', err) // __DEV__
     }
     throw new Error(AI_REQUEST_FAILED)
   } finally {
@@ -61,7 +61,7 @@ export async function sendChatMessage(messages: ChatMessage[]): Promise<string> 
   if (!response.ok) {
     if (__DEV__) {
       const errorData = await response.clone().json().catch(() => ({}))
-      console.error('[groq] non-OK response', response.status, errorData)
+      console.error('[groq] non-OK response', response.status, errorData) // __DEV__
     }
     throw new Error(AI_REQUEST_FAILED)
   }

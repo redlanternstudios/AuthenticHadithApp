@@ -55,7 +55,7 @@ https://byredllc.com/privacy
 This app requires account creation to access features. Use the provided demo credentials. The AI assistant feature requires an internet connection. In-app purchases unlock premium features (unlimited AI chat, advanced learning paths). Subscription management is handled through the standard iOS subscription settings.
 
 ## Demo Account for Apple Review
-Email: applereview@byredllc.com
+Email: apple.reviewer@authentichadith.app
 Password: [stored privately by KP; enter only in App Store Connect Review Information]
 
 NOTE: Create this account in Supabase with premium entitlement before submitting. Rotate password after each review cycle.

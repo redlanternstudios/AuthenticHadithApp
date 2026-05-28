@@ -571,14 +571,14 @@ if (__DEV__) {
   const seen = new Set<string>()
   for (const p of FALLBACK_SUNNAH_PRACTICES) {
     if (seen.has(p.id)) {
-      console.warn(`[sunnahFallbackData] duplicate practice id: ${p.id}`)
+      console.warn(`[sunnahFallbackData] duplicate practice id: ${p.id}`) // __DEV__
     }
     seen.add(p.id)
   }
   const catIds = new Set(FALLBACK_SUNNAH_CATEGORIES.map((c) => c.id))
   for (const p of FALLBACK_SUNNAH_PRACTICES) {
     if (!catIds.has(p.category_id)) {
-      console.warn(
+      console.warn( // __DEV__
         `[sunnahFallbackData] practice ${p.id} references unknown category ${p.category_id}`
       )
     }

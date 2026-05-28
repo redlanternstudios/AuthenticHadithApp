@@ -105,7 +105,7 @@ async function loadStore(): Promise<ProgressStoreV1> {
         !Array.isArray(parsed.records)
       ) {
         __DEV__ &&
-          console.warn(
+          console.warn( // __DEV__
             '[progressService] Stored progress shape unexpected; resetting to empty.'
           )
         cachedStore = emptyStore()
@@ -207,7 +207,7 @@ async function syncCompletionToSupabase(
   } catch (err) {
     // Swallow — sync is best-effort. Local store is canonical.
     __DEV__ &&
-      console.warn(
+      console.warn( // __DEV__
         '[progressService] Supabase sync failed (non-fatal):',
         err instanceof Error ? err.message : String(err)
       )

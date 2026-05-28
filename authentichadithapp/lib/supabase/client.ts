@@ -20,7 +20,7 @@ const SUPABASE_ANON_KEY =
     : '')
 
 if ((!SUPABASE_URL || !SUPABASE_ANON_KEY) && __DEV__) {
-  console.warn(
+  console.warn( // __DEV__
     '[supabase] Missing EXPO_PUBLIC_SUPABASE_URL or EXPO_PUBLIC_SUPABASE_ANON_KEY in expoConfig.extra. Set these in .env.local for dev, or EAS secrets for production builds.'
   )
 }

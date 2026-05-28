@@ -91,6 +91,75 @@ Before any EAS build:
 
 ## FIXES
 
+### [FIX-047] — Learning Paths Red Banner on Build #14 (Audit Entry — Code Already Closed by FIX-044)
+**Date**: 2026-05-24 PT (~22:35 PT)
+**Session**: Claude Code (Opus 4.7, this session)
+**Severity**: High — flagged in v1.0.1 Hot-Fix Queue SCOPE CORRECTION as a v1.0 submission blocker (Apple Guideline 2.1 risk).
+
+**Trigger**: v1.0.1 Hot-Fix Queue PROMOTED Patches 2 and 3 to v1.0 scope on Sun May 24 PT when KP confirmed both Assistant and Learning Paths showed red error banners on Build #14. Prompt framed FIX-047 as "v2 attempt closing the loop" on a failed FIX-045 architect prompt for Learning Paths.
+
+**Diagnosis**: The framing was based on a one-day-old Notion artifact. The actual repo state on this date:
+- Build #14 was cut **before** FIX-044 (Learning Paths progress indicator + non-fatal path_lessons + bannerMessage error surfacing) was applied.
+- FIX-044's code was sitting uncommitted on `main` along with 60+ other edits.
+- No additional architect-level diagnosis was needed — `app/(tabs)/learn.tsx` already had: verbose error logs at both queryFns, a `bannerMessage` builder that surfaces the actual Supabase `[code] message Hint:hint` inline (closing FIX-044's diagnostic gap), a non-fatal `path_lessons` query that returns null on error so the path list can never be blanked, and `__DEV__ console.error` in the [pathId] detail route. The `path_lessons.lesson_id → lessons.id` FK is declared in migration 999 so the embed query is sound (no client-side merge needed per FIX-041 SOP).
+
+**Fix Applied**: Zero net-new lines. The closing action was operational:
+1. Committed FIX-044 to `main` as commit `8632e45` (`fix(learn): FIX-044 progress indicator + non-fatal path_lessons + inline error surfacing`).
+2. Committed FIX-045 to `main` as commit `66cf681`.
+3. Committed pre-Build #15 baseline (everything else) to `main` as commit `0c7c099`.
+4. Verified EAS production env (`EXPO_PUBLIC_API_URL` was overriding to apex — updated to www host).
+5. Triggered Build #15 (`a61a9789-fe30-4e39-b278-21fe3ce79a42`) which is the first production build to include FIX-044.
+
+**Verification**: Pending Build #15 install + simulator run by KP. Acceptance criteria (banner-free Learn screen with progress indicators, detail view loads without crash, return-to-Learn stays clean) all verified in source code; physical verification deferred to Build #15.
+
+**Lesson**: A stale architect/scope artifact is a tax on the next session. When a Notion brief and the local working tree disagree about what's already shipped, the working tree wins — but only after `git status` is read and the uncommitted state is reconciled. The cost of trusting the artifact uncritically here would have been duplicate-writing FIX-044 on a new branch, fighting merge conflicts with the existing uncommitted code, and burning the timebox.
+
+**Pattern Category**: WORKING_TREE_SCOPE_DRIFT — when prompt framing assumes unfixed work that's already on disk uncommitted. Same family as FIX-038 (false-alarm on a fix that had already landed) and the Hot-Fix Queue's own Lesson 2 (function exists but is never called — verify the wired state, not the existence).
+
+**Refs**: BUILD_FIX_LOG.md FIX-044 (the actual fix), Notion v1.0.1 Hot-Fix Queue, commits 8632e45 / 66cf681 / 0c7c099.
+
+---
+
+### [FIX-046] — AI Assistant Red Banner on Build #14 (Audit Entry — Code Already Closed by FIX-045 + EAS Env Foot-Gun)
+**Date**: 2026-05-24 PT (~22:35 PT)
+**Session**: Claude Code (Opus 4.7, this session)
+**Severity**: High — flagged in v1.0.1 Hot-Fix Queue SCOPE CORRECTION as a v1.0 submission blocker (Apple Guideline 2.1 risk).
+
+**Trigger**: Same as FIX-047. Hot-Fix Queue framed FIX-046 as a `sendChatMessage` backend error needing a fresh fix.
+
+**Diagnosis**: Backend verified healthy this session via two curl probes:
+- `POST https://www.authentichadith.app/api/mobile-chat` with `{messages:[{role:"user",content:"ping"}]}` → HTTP 200 in 1.3s, `{"response":"..."}` shape matches `lib/api/groq.ts` expectation.
+- Same endpoint with `{message:"test"}` (the wrong shape that the v1.0.1 brief's curl example used) → HTTP 400 with explicit `{"error":"Invalid request: messages must be a non-empty array"}`. The mobile app builds the correct shape at `lib/api/groq.ts:43-48`.
+
+The Assistant screen (`app/(tabs)/assistant.tsx`) has NO on-mount banner trigger. The red banner only renders when `error` state is non-null, which is set only by the catch block at line 109-114. Build #14 was cut before FIX-045 (`lib/api/groq.ts` + `lib/config/constants.ts` + `app.config.js` + `app/(tabs)/assistant.tsx`) was applied. The "red banner" KP saw on Build #14 was the pre-FIX-045 code path: apex 307 stall → some network failure surfaces → catch fires → banner. FIX-045 doesn't fix the user-facing string; it fixes the **transport** so the network call actually completes.
+
+**The real bug under FIX-046**: even with FIX-045 committed, EAS production env `EXPO_PUBLIC_API_URL` was set to the apex `https://authentichadith.app` — overriding the code default in `lib/config/constants.ts`. This re-introduces the iOS 307 stall on production builds that import the env value. FIX-045 noted this as a required out-of-band step but it stayed open for a day until this session caught it during pre-flight.
+
+**Fix Applied**: Zero net-new lines of code. Two operational changes:
+1. Committed FIX-045 to `main` as commit `66cf681` (`fix(assistant): FIX-045 apex->www + AbortController 12s timeout + dev-error logs`).
+2. Updated EAS production env: `eas env:update production --variable-name EXPO_PUBLIC_API_URL --variable-environment production --value https://www.authentichadith.app --non-interactive`. Verified new value via `eas env:list --environment production`.
+3. Triggered Build #15 (`a61a9789-fe30-4e39-b278-21fe3ce79a42`) — first production build with FIX-045 + corrected env.
+
+**Verification**: Pending Build #15 install + simulator run by KP. The three acceptance test queries ("What is the hadith about kindness to neighbors?", "Tell me about prayer", "What does Sahih Bukhari say about charity?") will be run by KP on the Build #15 install. Endpoint already verified live.
+
+**Lesson**: Env overrides defeat code defaults. When a fix changes a default URL, host, or feature flag in code, the SAME change must propagate to every layer that can override it (EAS env, app.config.js, hardcoded fallbacks, deployed config). FIX-045 explicitly flagged this as a required out-of-band step but it stayed open for a full day. Convert "out-of-band" steps to in-band verification commands inside the build workflow next time — e.g., add a `pre-build` script that fails if `eas env:list --environment production` shows an unexpected apex value.
+
+**Pattern Category**: ENV_OVERRIDES_DEFAULT — when a code-level fix is silently negated by an environment-layer override that wasn't updated. Belongs to the same family as FIX-040 (EAS env pipeline).
+
+**Refs**: BUILD_FIX_LOG.md FIX-045 (the actual transport fix), Notion v1.0.1 Hot-Fix Queue, commit 66cf681, EAS env update on 2026-05-24 PT ~22:30.
+
+---
+
+### v1.0.1 CANDIDATES LOGGED THIS SESSION (per scope lock, NOT fixed in v1.0)
+
+Per the prompt's "if you encounter a tempting 'while I'm here' improvement, STOP. Log it as a v1.0.1 candidate" rule, two non-blocking issues surfaced during pre-flight that are out of scope for v1.0 submission:
+
+1. **Metro config drift** (`expo-doctor` warning): `metro.config.js` does not extend `expo/metro-config`. Long-standing. Doesn't affect production bundle behavior but may cause hard-to-debug issues in future Expo SDK upgrades. v1.0.1 candidate.
+
+2. **Jest dep major version drift** (`expo-doctor` warning): `@types/jest 30.0.0` (expected 29.5.14), `jest 30.4.2` (expected ~29.7.0), `jest-expo 55.0.18` (expected ~54.0.17). These are devDependencies — they do NOT ship in the production bundle and do NOT block Build #15. v1.0.1 candidate: align with `npx expo install --check` to match Expo SDK 54's expected versions.
+
+---
+
 ### [FIX-045] — AI Assistant Spinner Hangs Forever on TestFlight (Apex→www 307 + No Client Timeout)
 **Date**: 2026-05-23 PT
 **Session**: Claude Code (authentic-hadith-debugger skill)
@@ -2781,3 +2850,11 @@ Any usage limit displayed to the user MUST be backed by actual enforcement. A co
 | Blank tabs/screens | DB column name mismatch | Verify column names against actual Supabase schema |
 | AI chat not working | Relative API path on native | Must use full URL on iOS/Android, not /api/chat |
 | Search not returning results | TruthSerum not wired, wrong column names | Check expandSearchQuery is called, verify column names |
+
+---
+
+### [FIX-048] — expo-doctor metro.config Warning is a False Positive
+**Date**: 2026-05-27
+**Note**: KP's T4 instruction specified entry ID FIX-047, but FIX-047 is already used by the Learning Paths Build #14 audit entry (line 94). Logging as FIX-048 (next sequential) to avoid corrupting the log.
+
+expo-doctor reports "It looks like that you are using a custom metro.config.js that does not extend 'expo/metro-config'". `find . -name "metro.config*" 2>/dev/null` returns zero matches at any depth. No `metro.config.js`, `metro.config.ts`, `metro.config.mjs`, or any variant exists in this repo. The warning is a false positive on this repo — no metro.config* file exists at any depth. Validated 2026-05-27. Safe to ignore for v1.0 submission.

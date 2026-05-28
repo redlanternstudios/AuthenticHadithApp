@@ -69,15 +69,16 @@ export default function CreditsScreen() {
         <SettingsSection title="English Translations">
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Text style={[styles.placeholderText, { color: colors.bronzeText }]}>
-              Translation source attribution is being finalized.
+              English translations and Arabic text are sourced from{' '}
+              <Pressable onPress={() => Linking.openURL('https://sunnah.com')}>
+                <Text style={[styles.link, { color: colors.emeraldMid }]}>sunnah.com</Text>
+              </Pressable>
+              {' '}under their public usage terms.
             </Text>
             <Text style={[styles.placeholderHint, { color: colors.mutedText }]}>
-              For citation details about specific translations, please contact{' '}
-              <Pressable onPress={() => Linking.openURL('mailto:support@authentichadith.app')}>
-                <Text style={[styles.link, { color: colors.emeraldMid }]}>support@authentichadith.app</Text>
-              </Pressable>
-              . Translations are interpretive by nature; for precise religious meaning, consult the
-              original Arabic and a qualified scholar.
+              Visit sunnah.com for the canonical text, grading methodology, and per-translator
+              attribution. Translations are interpretive by nature; for precise religious meaning,
+              consult the original Arabic and a qualified scholar.
             </Text>
           </View>
         </SettingsSection>

@@ -59,7 +59,9 @@ export async function POST(request: Request) {
     // Islamic safety filter
     const safetyResult = checkInputSafety(messages)
     if (!safetyResult.allowed) {
-      console.info(`[HadithChat Mobile] Blocked message (${safetyResult.category})`)
+      if (__DEV__) {
+        console.info(`[HadithChat Mobile] Blocked message (${safetyResult.category})`) // __DEV__
+      }
       return Response.json({ response: safetyResult.blockedResponse })
     }
 
@@ -75,7 +77,9 @@ export async function POST(request: Request) {
 
     return Response.json({ response: text })
   } catch (error) {
-    console.error('Error in chat API:', error)
+    if (__DEV__) {
+      console.error('Error in chat API:', error) // __DEV__
+    }
     return Response.json(
       {
         error: 'Failed to generate response',

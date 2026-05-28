@@ -70,7 +70,7 @@ export async function configureRevenueCat(supabaseUserId?: string): Promise<bool
 
   if (!apiKey) {
     __DEV__ &&
-      console.warn(
+      console.warn( // __DEV__
         '[RevenueCat] No API key found for platform:',
         Platform.OS,
         '— running in degraded mode (no IAP).'

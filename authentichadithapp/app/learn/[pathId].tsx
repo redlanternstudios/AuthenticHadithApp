@@ -29,15 +29,15 @@ export default function LearningPathDetailScreen() {
         .order('order_index');
 
       if (error) {
-        // Unconditional log — surfaces in iOS device console too. Includes
-        // PostgREST code/details/hint so an embed/FK regression is loud.
-        console.error('[Learn:pathId] lessons embed fetch failed:', {
-          pathId,
-          code: (error as any).code,
-          message: error.message,
-          details: (error as any).details,
-          hint: (error as any).hint,
-        });
+        if (__DEV__) {
+          console.error('[Learn:pathId] lessons embed fetch failed:', { // __DEV__
+            pathId,
+            code: (error as any).code,
+            message: error.message,
+            details: (error as any).details,
+            hint: (error as any).hint,
+          });
+        }
         throw error;
       }
       return data as Lesson[];
