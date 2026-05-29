@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { SPACING, FONT_SIZES , getColors } from '@/lib/styles/colors';
 import { useTheme } from '@/lib/theme/ThemeProvider';
@@ -13,6 +13,12 @@ import { SettingsItem } from '@/components/settings/SettingsItem';
 export default function SettingsScreen() {
   const { isDark } = useTheme();
   const colors = getColors(isDark);
+
+  // Build #17 visibility scaffold: hidden tap counter on the settings header
+  // reveals the RC Diagnostics row after 7 taps within a single screen visit.
+  // Resets on unmount. Strip in Build #18.
+  const [headerTaps, setHeaderTaps] = useState(0);
+  const diagnosticsUnlocked = headerTaps >= 7;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -33,7 +39,9 @@ export default function SettingsScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <Text style={[styles.headerTitle, { color: colors.bronzeText }]}>⚙️ Settings</Text>
+          <Pressable onPress={() => setHeaderTaps((n) => n + 1)}>
+            <Text style={[styles.headerTitle, { color: colors.bronzeText }]}>⚙️ Settings</Text>
+          </Pressable>
           <Text style={[styles.headerSubtitle, { color: colors.mutedText }]}>
             Manage your app preferences
           </Text>
@@ -102,6 +110,20 @@ export default function SettingsScreen() {
             isLast
           />
         </SettingsSection>
+
+        {diagnosticsUnlocked && (
+          <SettingsSection title="Diagnostics">
+            <SettingsItem
+              icon="bug"
+              title="RC Diagnostics"
+              subtitle="Build #17 visibility — internal only"
+              showArrow
+              onPress={() => router.push('/settings/rc-diagnostics')}
+              isFirst
+              isLast
+            />
+          </SettingsSection>
+        )}
       </ScrollView>
     </View>
   );

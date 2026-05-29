@@ -2858,3 +2858,41 @@ Any usage limit displayed to the user MUST be backed by actual enforcement. A co
 **Note**: KP's T4 instruction specified entry ID FIX-047, but FIX-047 is already used by the Learning Paths Build #14 audit entry (line 94). Logging as FIX-048 (next sequential) to avoid corrupting the log.
 
 expo-doctor reports "It looks like that you are using a custom metro.config.js that does not extend 'expo/metro-config'". `find . -name "metro.config*" 2>/dev/null` returns zero matches at any depth. No `metro.config.js`, `metro.config.ts`, `metro.config.mjs`, or any variant exists in this repo. The warning is a false positive on this repo — no metro.config* file exists at any depth. Validated 2026-05-27. Safe to ignore for v1.0 submission.
+
+---
+
+### [FIX-049] — Build #17 RevenueCat Visibility Scaffold (must be removed in Build #18)
+**Date**: 2026-05-28
+**Pattern category**: Observability / temporary diagnostic
+
+**Why**: Build #16 shipped the `Purchases.logIn(supabaseUserId)` wiring but on physical device the customer never appears in the RevenueCat dashboard. Every error path in `lib/purchases/revenuecat.ts` and `lib/revenuecat/RevenueCatProvider.tsx` was wrapped in `__DEV__ && console.error(...)`, so production/TestFlight builds emit zero RC failure signal. The root-cause tree has six branches (wrong project, wrong key, key not embedded in build, provider not mounted, guard skipping configure, configure throwing). We cannot resolve which branch fires without visibility from inside the binary.
+
+**Files added**:
+- `lib/revenuecat/diagnostics.ts` — singleton event log + `maskUserId` helper. 50-event ring buffer. No secrets, no full UUIDs.
+- `app/settings/rc-diagnostics.tsx` — read-only diagnostic screen.
+
+**Files modified**:
+- `lib/purchases/revenuecat.ts` (forbidden zone — KP-approved diff) — stripped `__DEV__` from 5 error logs, wired `rcDiag.record` at SDK_REQUIRE / CONFIGURE_ATTEMPT / CONFIGURE_SUCCESS / CONFIGURE_FAIL / CONFIGURE_ALREADY_CONFIGURED / CONFIGURE_RETRY_ATTEMPT / CONFIGURE_RETRY_SKIPPED / LOGIN_ATTEMPT / LOGIN_SUCCESS / LOGIN_FAIL / LOGIN_SKIPPED / LOGOUT / LOGOUT_SKIPPED. Moved `isConfigured = true` to fire immediately after `Purchases.configure()` succeeds, before `Purchases.logIn()`, so configure-vs-login states are diagnostically separable. Added bounded `attemptConfigureRetry()` (one retry per session). Wrapped previously-uncaught `identifyUser` and `resetUser` calls in try/catch with skip-reason events.
+- `lib/revenuecat/RevenueCatProvider.tsx` — moved `Purchases.setLogLevel` out of `__DEV__` block (now `WARN` in production, `DEBUG` in DEV) so native RC warnings surface in iOS Console.app. Stripped `__DEV__` from 7 error logs, wired `CUSTOMER_INFO_FETCH` / `OFFERINGS_FETCH` / `LISTENER_ATTACHED` / `CUSTOMER_INFO_UPDATE` / `IDENTITY_SYNC_FAIL` / `RESTORE_*` events. Extracted post-configure work into `runPostConfigure` `useCallback`. Added bounded retry `useEffect` watching `[user?.id]` so a failed initial configure can recover when auth hydrates. Added `listenerAttachedRef` / `listenerRef` to prevent double-attach on retry path. Unmount cleanup now uses the refs.
+- `app/settings/index.tsx` — added hidden tap-counter on `⚙️ Settings` header. 7 taps reveal a Diagnostics section with one row linking to `/settings/rc-diagnostics`. Counter resets on screen unmount. Default state hides the section entirely so an App Store reviewer cannot stumble into it.
+
+**Safety contract preserved**:
+- No product IDs changed (`PRODUCT_IDS` const untouched).
+- Entitlement ID unchanged (`ENTITLEMENT_ID = 'premium'`).
+- `Purchases.configure({ apiKey })` call shape unchanged.
+- Paywall UI, auth wiring, navigation structure all untouched.
+- No new dependencies added.
+- Diagnostic payloads carry only: `error.name`, `error.code`, `error.message`, key prefix (first 5 chars — public `appl_` marker), masked UUIDs (first 4 + last 4), structured booleans. Never full keys, JWTs, session objects, or raw error objects.
+- Lint touched-files: clean. Typecheck: clean. Secret-leak grep on touched files: clean.
+
+**Build #18 removal checklist (DO NOT FORGET)**:
+1. Delete `lib/revenuecat/diagnostics.ts`.
+2. Delete `app/settings/rc-diagnostics.tsx`.
+3. Remove `import { rcDiag, maskUserId } from '../revenuecat/diagnostics'` from `lib/purchases/revenuecat.ts` and remove every `rcDiag.record(...)` call. Restore `__DEV__ &&` guards on the remaining `console.warn` lines OR keep them production-visible per the lessons learned in Build #17 — KP decides.
+4. Remove `import { rcDiag } from './diagnostics'` from `lib/revenuecat/RevenueCatProvider.tsx` and remove every `rcDiag.record(...)` call. Restore `__DEV__ &&` guards. Decide whether to revert `Purchases.setLogLevel(LOG_LEVEL.WARN)` in production or keep it.
+5. Remove the tap-counter block and the conditional Diagnostics section from `app/settings/index.tsx`. Remove `useState` and `Pressable` imports if no other use exists.
+6. Keep `attemptConfigureRetry` and `runPostConfigure` — those are durable improvements, not scaffold.
+
+**Lesson learned**: `__DEV__ && console.*` everywhere is a one-line decision that creates an entire class of production-invisible failures. For client SDKs whose failure modes are silent by design (RC, Stripe, Sentry pre-init), surface critical lifecycle errors with `console.warn` unconditionally, and accept the small log noise in exchange for visibility on real user devices.
+
+**Pattern**: Observability-first repair. Before shipping a blind fix for an opaque production failure, ship a visibility build that exposes the failure mode, then ship the targeted fix in the next build.
