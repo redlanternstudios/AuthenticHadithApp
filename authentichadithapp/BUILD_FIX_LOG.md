@@ -2896,3 +2896,278 @@ expo-doctor reports "It looks like that you are using a custom metro.config.js t
 **Lesson learned**: `__DEV__ && console.*` everywhere is a one-line decision that creates an entire class of production-invisible failures. For client SDKs whose failure modes are silent by design (RC, Stripe, Sentry pre-init), surface critical lifecycle errors with `console.warn` unconditionally, and accept the small log noise in exchange for visibility on real user devices.
 
 **Pattern**: Observability-first repair. Before shipping a blind fix for an opaque production failure, ship a visibility build that exposes the failure mode, then ship the targeted fix in the next build.
+
+---
+
+### [FIX-050] — Build #18 RevenueCat Diagnostics Removal
+**Date**: 2026-05-28
+**Pattern category**: App Store release hardening / temporary diagnostic removal
+
+**Why**: FIX-049 intentionally shipped a temporary RevenueCat diagnostics screen and event recorder in Build #17. That scaffold was useful for real-device RevenueCat visibility, but it is not appropriate for a final App Store candidate. Build #18 must remove the hidden diagnostics route, tap-counter unlock path, and `rcDiag` event plumbing before submission.
+
+**Files deleted**:
+- `lib/revenuecat/diagnostics.ts`
+- `app/settings/rc-diagnostics.tsx`
+
+**Files modified**:
+- `lib/purchases/revenuecat.ts` — removed the diagnostics import and every `rcDiag.record(...)` / `maskUserId(...)` usage. Kept the durable configure-before-login state split, bounded retry helper, and guarded `identifyUser` / `resetUser` error handling.
+- `lib/revenuecat/RevenueCatProvider.tsx` — removed the diagnostics import and every diagnostics event write. Kept `runPostConfigure`, listener double-attach guards, bounded configure retry, and production `WARN` RevenueCat native log level for real-device visibility.
+- `app/settings/index.tsx` — removed the hidden 7-tap diagnostics unlock, the conditional Diagnostics section, and now-unused `useState` / `Pressable` imports.
+
+**Result target**: Build #18 should contain no in-app RC Diagnostics route or recorder while preserving the RevenueCat stability improvements from Build #17.
+
+---
+
+### [FIX-051] — RevenueCat Public SDK Key Fallback + Config Single Source
+**Date**: 2026-05-28
+**Pattern category**: RevenueCat / App Store release hardening
+
+**Why**: KP reported that RevenueCat was not showing up reliably on physical device/TestFlight and asked whether the configuration could be hardcoded at an enterprise-grade level. The correct boundary is: hardcode only the RevenueCat public SDK key if needed; never hardcode the private `sk_...` API key.
+
+**Files modified**:
+- `lib/revenuecat/config.ts` — now owns `PRODUCT_IDS`, `ENTITLEMENT_ID`, public SDK key resolution, and key-prefix validation. iOS resolution order is Expo `extra.revenueCatApiKeyIos`, then legacy `extra.revenueCatApiKey`, then hardcoded public iOS `appl_...` fallback. Validation rejects missing keys, `sk_...` secret keys, and wrong platform prefixes.
+- `lib/purchases/revenuecat.ts` — now calls `getRevenueCatApiKey()` instead of reading `Constants.expoConfig.extra` inline. Re-exports `PRODUCT_IDS` and `ENTITLEMENT_ID` for compatibility with existing imports.
+- `CODEX_APP_STORE_BUILD_LOG.md` — added reusable launch/build lessons for future Expo + RevenueCat apps.
+
+**Security boundary**:
+- Allowed in client bundle: RevenueCat public iOS SDK key (`appl_...`).
+- Forbidden in client bundle: RevenueCat secret API key (`sk_...`), Stripe secrets, Supabase service role key, or any server-only credential.
+
+**Result**: RevenueCat configure can no longer silently fail just because EAS public env injection drifts on iOS. Dashboard/product mapping and real-device customer visibility still require external verification in RevenueCat/App Store Connect/TestFlight.
+
+---
+
+### [FIX-052] — RevenueCat Offerings API Gate Added
+**Date**: 2026-05-28
+**Pattern category**: RevenueCat / pre-launch verification
+
+**Why**: RevenueCat app configuration can appear "configured" at the SDK-key level while still returning no sellable products. The current v1 offerings check proved that the public iOS SDK key reaches RevenueCat and returns current offering `default`, but that offering has zero packages. That means Gate G remains blocked until RevenueCat products/packages are attached.
+
+**Files modified**:
+- `scripts/verify-revenuecat-offerings.mjs` — new backend-style pre-launch verifier that uses only the public iOS RevenueCat SDK key, rejects secret `sk_...` keys, fetches `/v1/subscribers/{app_user_id}/offerings`, and fails if the current offering is missing or lacks the three canonical product IDs.
+- `package.json` — added `qa:revenuecat`.
+- `CODEX_APP_STORE_BUILD_LOG.md` — added the new RevenueCat gate and current failure receipt.
+
+**Current result**:
+- `npm run qa:revenuecat` is expected to FAIL until RevenueCat dashboard offering `default` contains packages for:
+  - `ah_monthly_premium`
+  - `ah_annual_premium`
+  - `ah_lifetime_premium`
+
+**Lesson learned**: A valid RevenueCat SDK key is not enough. Before TestFlight/App Review, verify the actual current offering returns the exact App Store product IDs the code expects.
+
+---
+
+### [FIX-053] — Remove Unused Expo Template Logo Assets
+**Date**: 2026-05-28
+**Pattern category**: App Store polish / template boilerplate cleanup
+
+**Why**: The repo's own Pattern Tracker calls out `react-logo` assets as template boilerplate that should not ship to production. `assetBundlePatterns` includes all assets, and the tracked React logo files were unused by live app code.
+
+**Files deleted**:
+- `assets/images/partial-react-logo.png`
+- `assets/images/react-logo.png`
+- `assets/images/react-logo@2x.png`
+- `assets/images/react-logo@3x.png`
+
+**Verification**:
+- `rg "react-logo|partial-react-logo"` returns only documentation references after deletion.
+- App icon remains `assets/images/icon.png`, 1024 x 1024, no alpha.
+
+**Lesson learned**: Before App Store submission, search for scaffold artifacts (`react-logo`, template screens, placeholder assets) because bundled template files make the app look unfinished to reviewers.
+
+---
+
+### [FIX-054] — Lint-Clean Launch Polish + Stale Blocker Re-Audit
+**Date**: 2026-05-28
+**Pattern category**: App Store release hardening / cross-agent documentation hygiene
+
+**Why**: The launch baseline had passing lint with 21 warnings, and `APP_STORE_RELEASE_BLOCKERS.md` still described several already-fixed issues as active blockers. That creates two launch risks: noisy verification handoff and future operators wasting time on stale blockers.
+
+**Files modified**:
+- `app/(tabs)/assistant.tsx` — uses `quotaLoaded` in send gating so free quota cannot be used before persisted quota state loads.
+- `app/(tabs)/index.tsx`, `app/book/[id].tsx`, `app/collection/[slug].tsx`, `app/my-hadith/folder/[id].tsx`, `app/progress.tsx`, `app/quiz.tsx`, `app/settings/appearance.tsx`, `app/stories/index.tsx`, `components/home/TodayFeaturedSection.tsx`, `components/premium/PaywallScreen.tsx`, `components/premium/PremiumGate.tsx`, `components/settings/SettingsItem.tsx`, `components/share/ShareSheet.tsx` — removed unused imports/variables.
+- `app/(tabs)/profile.tsx` — surfaces restore-in-progress state in the row value.
+- `app/onboarding.tsx` — removed unused catch binding.
+- `app/sunnah.tsx` — removed unused import and memoized effective practices to stabilize hook dependencies.
+- `APP_STORE_RELEASE_BLOCKERS.md` — marked already-resolved critical/medium/polish items with current receipts instead of stale fix instructions.
+- `CODEX_APP_STORE_BUILD_LOG.md` — updated the shared Codex/Claude launch memory with the clean verification baseline.
+
+**Verification**:
+- `npm run qa:lint` PASS with 0 warnings and 0 errors.
+- `npm run qa:types` PASS.
+- `npm test -- --runInBand` PASS, 6 suites / 48 tests.
+- `npx expo install --check` PASS.
+- `npm run qa:truthserum` PASS.
+
+**Lesson learned**: A blocker document can become a blocker itself if it is stale. Re-audit historical launch blockers against current code and mark resolved items with receipts before handing work between Claude/Codex.
+
+---
+
+### [FIX-055] — RevenueCat Offering API Gate Passed
+**Date**: 2026-05-28
+**Pattern category**: RevenueCat / pre-launch verification
+
+**Why**: FIX-052 added a verifier that previously failed because RevenueCat offering `default` returned zero packages. After dashboard/product configuration changed, the same verifier now proves that the public iOS SDK key can fetch the current offering and all three canonical App Store product IDs.
+
+**Files modified**:
+- `REVENUECAT_GATE_G_FIX.md` — changed the status from blocked to API verified / device pending and preserved the passing receipt.
+- `CODEX_LAUNCH_CONTROL.md` — moved the RevenueCat offering status from blocked to verified while keeping App Store Connect, entitlement, RoPhone, and restore-purchases gates separate.
+- `PRE_TESTFLIGHT_READINESS_GATE.md` — marked the offering package row as API-verified partial, not full Gate G PASS.
+- `CODEX_APP_STORE_BUILD_LOG.md` — updated the shared build log with the current RevenueCat gate status.
+
+**Verification**:
+- `npm run qa:revenuecat` PASS.
+- Current offering: `default`.
+- Current package count: `3`.
+- Actual product IDs returned:
+  - `ah_monthly_premium`
+  - `ah_annual_premium`
+  - `ah_lifetime_premium`
+- Missing product IDs: none.
+
+**Still not proven**:
+- App Store Connect product status is `Ready to Submit`.
+- RevenueCat entitlement `premium` has all three products attached.
+- RoPhone/TestFlight paywall renders packages from the bundled app.
+- Restore Purchases works on a real device.
+- A purchase attempt activates the expected entitlement.
+
+**Lesson learned**: Passing `qa:revenuecat` clears the no-packages offering blocker, but it is not the same as App Store revenue readiness. Keep API offering proof, dashboard entitlement proof, StoreKit purchase proof, and restore proof as separate gates.
+
+---
+
+### [FIX-056] — Supabase Env Hardening + Production appEnv Default
+**Date**: 2026-05-28
+**Pattern category**: App Store release hardening / environment safety
+
+**Why**: `APP_STORE_RELEASE_BLOCKERS.md` still tracked two release risks: a hardcoded Supabase anon-key fallback in source and an `appEnv` fallback to `development`. The Supabase anon key is client-safe, but source-level JWT fallbacks create scanner noise and can hide broken EAS env injection. A development fallback for `appEnv` can also silently ship the wrong runtime branch if EAS variables drift.
+
+**Files modified**:
+- `lib/supabase/client.ts` — removed the hardcoded Supabase project URL and anon JWT fallback. The client now reads `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY` or Expo config `extra`, then fails loudly if either is missing.
+- `app.config.js` — changed `appEnv` fallback from `development` to `config.extra?.appEnv ?? 'production'`.
+- `scripts/qa-audit-env.mjs` — release gate now fails unless `EXPO_PUBLIC_APP_ENV=production`.
+- `jest.setup.js` — added dummy public test env values so Jest module-load tests do not need production fallbacks in source.
+- `APP_STORE_RELEASE_BLOCKERS.md`, `CODEX_LAUNCH_CONTROL.md`, `CODEX_APP_STORE_BUILD_LOG.md` — updated release receipts and blocker status.
+
+**Verification**:
+- `rg "nqklipakrfuwebkdnhwg|eyJhbGciOiJIUzI1Ni|appEnv: process.env.EXPO_PUBLIC_APP_ENV \\?\\? 'development'|EXPO_PUBLIC_APP_ENV.*development" app lib components scripts app.config.js app.json` returns no matches.
+- `npm run qa:types` PASS.
+- `npm run qa:lint` PASS with 0 warnings and 0 errors.
+- `npm test -- --runInBand` PASS, 6 suites / 48 tests.
+- `npm run qa:truthserum` PASS.
+- `npx expo install --check` PASS.
+- `npm run qa:revenuecat` PASS.
+
+**Lesson learned**: Client-safe public keys can still be bad source hygiene. For App Store candidates, keep public runtime keys in EAS/Expo public env, fail release gates when env is missing or not production, and use test-only dummy values inside Jest setup instead of production fallbacks in app code.
+
+---
+
+### [FIX-057] — Today Save/Share Failure Handling
+**Date**: 2026-05-28
+**Pattern category**: App Store polish / user-facing error handling
+
+**Why**: `APP_STORE_RELEASE_BLOCKERS.md` still tracked Today screen silent failures. `handleSave` did not check the Supabase upsert error and could reject without user feedback. `handleShare` had an empty catch block around `Share.share()`, so native share failures disappeared completely.
+
+**Files modified**:
+- `app/(tabs)/today.tsx` — imports `Alert`, checks the Supabase save result, throws on save errors, shows a user-facing Save Failed alert, and keeps bookmark activity tracking failures non-fatal with dev-only warnings.
+- `app/(tabs)/today.tsx` — replaces the empty share catch with dev-only diagnostics plus a user-facing Share Failed alert. Share activity tracking now runs in a separate non-fatal block so a tracking failure does not make a successful share look failed.
+- `APP_STORE_RELEASE_BLOCKERS.md`, `CODEX_LAUNCH_CONTROL.md`, `CODEX_APP_STORE_BUILD_LOG.md` — updated release receipts.
+
+**Verification**:
+- `npm run qa:types` PASS.
+- `npm run qa:lint` PASS with 0 warnings and 0 errors.
+- `npm test -- --runInBand` PASS, 6 suites / 48 tests.
+
+**Lesson learned**: Share/save actions are App Review polish paths. Do not let user-triggered actions fail silently; surface the actual user-facing failure while keeping analytics/activity counters non-fatal.
+
+---
+
+### [FIX-058] — BUG-B Arabic backfill on Bukhari + Muslim + local Supabase wrong-project repoint
+**Date**: 2026-06-05
+**Pattern category**: Production data backfill / environment configuration
+
+**Why**: BUG-B — Bukhari (71/7277) and Muslim (22/7167) rows had empty `arabic_text` in production nq. The bulk seed loaded English but dropped Arabic, and `seed-from-cdn.mjs` only INSERTs missing rows so it never backfills existing ones. Separately, while sourcing the nq service-role key, found `.env.local` (local dev) pointed at the WRONG Supabase project `lwklogxdpjnvfxrlcnca` instead of production `nqklipakrfuwebkdnhwg`.
+
+**Files modified**:
+- `scripts/backfill-arabic.mjs` — added retry-with-backoff to `updateRow` (5 attempts, linear backoff, 30s AbortSignal timeout). The first write run died mid-Muslim on a transient `ECONNRESET` because a single failed PATCH threw and killed the whole sequential run.
+- `authentichadithapp/.env.local` (gitignored, not committed) — repointed `EXPO_PUBLIC_SUPABASE_URL` + `EXPO_PUBLIC_SUPABASE_ANON_KEY` from lwk → nq; commented out the stale lwk `sb_publishable_` key (unused by the mobile client; nq is a legacy JWT project); set `SUPABASE_SERVICE_ROLE_KEY` + `NQ_SERVICE_ROLE_KEY` to the nq service-role key (entered via hidden getpass, never exposed).
+
+**Exact fix applied**: `NQ_URL=… NQ_ANON=… NQ_SERVICE_ROLE_KEY=… node scripts/backfill-arabic.mjs --write` — UPDATEs only rows where `arabic_text` is empty, keyed by `hadith_number` against the `fastly.jsdelivr.net` mirror of `ara-bukhari` / `ara-muslim` (main jsDelivr host 403s the 150MB repo).
+
+**Verification (runtime, live REST against nq)**:
+- Bukhari: `UPDATED 7173`; live missing now `33` (all no-source-match).
+- Muslim: `UPDATED 6942` (1,088 first pass + 5,854 after retry fix); live missing now `203` (all no-source-match).
+- Total 14,115 rows — exact match to the dry-run prediction.
+- Alignment spot-check Muslim #1234: Arabic script present, corresponds to English by hadith_number.
+- EAS production env verified already on nq (URL + anon decode to ref=nqklipakrfuwebkdnhwg) → no mobile rebuild required.
+
+**Lesson learned**: (1) Any long sequential write loop against a remote API needs per-item retry/backoff — one transient ECONNRESET should never kill 14k rows of work (Nuclear Option reliability standard). (2) The wrong-project bug was local-only because the mobile client reads creds from env (`.env.local` for dev, EAS for builds); always verify EAS production env separately before assuming a shipped binary is affected — here it was already correct. (3) Backfills that fill only-empty columns are idempotent and safe to re-run after a partial failure.
+
+---
+
+### [FIX-059] — AI summaries 100% write-failure to a non-updatable VIEW + Rule 033 preflight guard
+**Date**: 2026-06-05
+**Pattern category**: Batch/paid-operation safety / write-target validation
+
+**Why**: The AI-summary enrichment script (`scripts/enrich-summaries.mjs --write`) generated Groq output for 31,476 hadiths and PATCHed each into `enriched_hadiths` — which is a **non-updatable VIEW**, not a table. Every write returned HTTP 500 `55000 "cannot update view"`. Zero rows landed (`ai_generated` count stayed 0). Hundreds of paid Groq calls were spent on output with nowhere to go, and the script ground through the batch logging per-row FAIL instead of stopping. Two compounding defects: (a) the 12-row pilot "passed" but pilot mode only PRINTS — it never exercised the write path; (b) an earlier run had silently no-op'd on a transient that made `fetchBatch` return 0 rows, and exited 0 — looking like success.
+
+**Root cause**: `enriched_hadiths` is a multi-table VIEW. PostgREST `select` works on it, but `PATCH`/`POST` are rejected by Postgres because the view has no INSTEAD OF trigger. The script never verified the write target before spending on generation, and ordered the expensive step (Groq inference) before proving the cheap step (target writability).
+
+**Files modified**:
+- `scripts/lib/preflight.mjs` (NEW) — reusable Rule 033 guards: `assertWritableTarget()` (zero-row canary PATCH that proves a target accepts writes without mutating data; throws a specific error on view/404/RLS), `CircuitBreaker` (trips after N consecutive failures), `assertNonEmpty()` (rejects silent 0-row batches).
+- `scripts/enrich-summaries.mjs` — imports the guards; runs `assertWritableTarget('enriched_hadiths')` BEFORE any Groq call in WRITE mode; `assertNonEmpty` after fetch; `CircuitBreaker(15)` around the generate/write loop. Also hardened `fetchBatch` with retry + loud-throw on non-array body (was the silent-0-row cause).
+- `SYSTEM_RULES.md` — added **Rule 033: Prove the Pipe Before You Fill It**.
+
+**Exact fix applied**: `node scripts/enrich-summaries.mjs --write` now aborts at preflight with `PREFLIGHT FAILED: "enriched_hadiths" is a NON-UPDATABLE VIEW` and exits non-zero **before making a single Groq call**.
+
+**Verification (live REST against nq)**:
+- Meta-test of the guard: view `enriched_hadiths` → correctly REJECTED; table `hadiths` → correctly PASSED (writable); missing `bogus_table_xyz` → correctly REJECTED (404).
+- Wired script run in `--write`: self-aborts at preflight, 0 Groq calls, 0 rows attempted. Confirmed.
+
+**Lesson learned**: (1) A PostgREST object that reads fine can still reject every write — always confirm TABLE vs VIEW before a batch write. (2) A pilot/dry-run that skips the write path proves quality, not pipeline integrity — they are different verifications. (3) Order cheap-before-expensive: prove the target accepts writes before paying for generation. (4) Exit 0 + "fetched 0 rows" is a silent no-op; verify against a ground-truth count, never the script's own counter. (5) Broken pipelines fail identically on every item — a circuit breaker stops the burn after a handful, not after the whole batch.
+
+**Open follow-up (not a code bug — governance)**: The summaries themselves are blocked by **CTB-01** (`enriched_hadiths` provenance unresolved; `ENRICHED_HADITHS_ENABLED = false`). Before any AI summary can ship, KP/Rory must choose Path A (scholar-reviewed) or Path B (AI-generated, relabeled "AI-generated insight" + "Not a religious ruling" footnote) per `docs/ENRICHED_HADITHS_PROVENANCE.md`, AND a real writable base table must be identified to replace the view as the write target.
+
+---
+
+### [FIX-060] — Complete the Musnad Ahmad hide path across ALL content surfaces (V1 decision)
+**Date**: 2026-06-07
+**Pattern category**: Release scoping / content visibility
+**Decision**: BUG-A resolved for V1 by HIDING Musnad Ahmad (393 of ~28k seeded) instead of sourcing it. sunnah.com source was blocked (API key 403 Forbidden, all auth variants incl. no-key control). Re-add in v1.1 once a full, authoritative corpus exists.
+
+**Why**: A prior session created `lib/hadith/visibleCollections.ts` (HIDDEN_COLLECTION_SLUGS=['musnad-ahmad'], VISIBLE_COLLECTION_COUNT=7, VISIBLE_HADITH_TOTAL=31_493) and wired it into ONLY 4 spots (collections tab grid, /collection/[slug] deep-link guard, home copy, search collection-chip list). Six reviewer-reachable surfaces still leaked the thin collection.
+
+**Files modified** (all app-layer; no DB write, no forbidden zones):
+- `lib/hadith/visibleCollections.ts` — added `HIDDEN_COLLECTION_FILTER` (PostgREST `in`-list, null when nothing hidden so callers no-op cleanly in v1.1).
+- `hooks/use-hadiths.ts` — `useCollections()` now `filterVisibleCollections(...)`; `useHadiths()` excludes hidden when no collectionId.
+- `app/(tabs)/index.tsx` — home "Hadith of the Moment" excludes hidden (count + fetch).
+- `app/(tabs)/today.tsx` — daily hadith excludes hidden (count + fetch).
+- `app/(tabs)/search.tsx` — hadith results query excludes hidden (was: only the chip list filtered).
+- `app/quiz.tsx` — random pull excludes hidden; decoy collection options exclude hidden names.
+- `app/progress.tsx` — per-collection progress list filtered.
+- `app/topics/[slug].tsx` — tagged-hadith fetch excludes hidden.
+- `app/hadith/[id].tsx` — defense-in-depth: not-found if `isHiddenCollection(collection_slug)`.
+
+**Verification**: `npx tsc --noEmit` → exit 0. Live nq counts (retried) confirm 7 visible = 31,493 unique-ish rows, matching the helper constants. Tirmidhi confirmed healthy (3,241) after a single-read false-zero scare (FIX-058 lesson: retried the count).
+
+**Lesson learned**: A "hide a collection" change is N surfaces, not one (list, search, daily, home headline, quiz, progress, topics, deep-link, detail). Centralize the switch (one slug list) and wire every read. v1.1 re-enable = delete the slug, every site goes live automatically.
+
+**Residual (low risk)**: `/chapter/[id]` and `/book/[id]` reached by directly guessing a hidden book/chapter UUID would still list its hadiths. Not linked from any visible surface; not closed.
+
+---
+
+### [AUDIT-061] — Content integrity audit of the 7 shipping collections (NOT a fix — findings for KP)
+**Date**: 2026-06-07
+**Pattern category**: Content trust / authenticity (app ships to the Ummah; name is "Authentic Hadith")
+**Status**: 🔴 OPEN — decision required. See `ERROR_REPORT.md` CONTENT-INTEGRITY section.
+
+**Method**: read-only, retried exact-counts against nq production. Findings are internal-data facts; grade *interpretation* is flagged as a concern, not a scholarly ruling (I am not a scholar).
+
+**Findings (7 visible collections, 31,493 rows)**:
+1. **Grade reliability (CRITICAL)** — distribution is 29,879 sahih / 1,610 hasan / **4 daif**. Near-zero daif across Sunan collections (Abu Dawud, Ibn Majah, Nasai, Tirmidhi) that are KNOWN to contain many weak narrations is implausible. Grades came from a heuristic (`determineGrade` in seed-from-cdn.mjs: forces sahih for Bukhari/Muslim — defensible; first-match "sahih" else default "hasan" for the rest — unreliable). The ~1,610 "hasan" are likely unknown-grade defaults. Presenting these as authoritative gradings overstates authenticity. Bukhari + Muslim (14,444) are sound on consensus grounds.
+2. **Empty rows counted as hadiths** — 369 rows with empty english_text (Muslim 203 fully blank: no English AND no Arabic), 387 with empty arabic_text. Inflates the 31,493 claim and renders blank cards on any unfiltered surface.
+3. **Duplicates** — 169 duplicate `hadith_number` rows (Tirmidhi 77, Bukhari 36, Ibn Majah 31, Malik 12, Abu Dawud 7, Muslim 6). Inflates counts; shows repeats. (Bukhari dupes were flagged back in Build #19 and persist.)
+4. **Narrator extraction unreliable** — empty for 14,016 / 31,493 (44%; Muslim 99%). Field is regex-extracted from English, not sourced. Empty is honest; any shown value is heuristic.
+
+**Recommended decisions** (KP/Rory): (A) grades — source authoritative gradings (al-Albani/Darussalam), OR stop showing grade labels we can't stand behind, OR ship Bukhari+Muslim only for V1 (the two universally-accepted Sahihayn) and add graded Sunan in v1.x; (B) purge/repair the 203 blank Muslim rows + remaining empties; (C) dedupe the 169 rows; (D) treat narrator as best-effort, never authoritative. None are code bugs — all are content-sourcing / governance calls with religious weight.

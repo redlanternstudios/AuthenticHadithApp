@@ -11,6 +11,7 @@ import { Card } from '@/components/ui/Card'
 import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
 import { trackActivity } from '@/lib/gamification/track-activity'
 import { Hadith } from '@/types/hadith'
+import { isHiddenCollection, HIDDEN_COLLECTION_FILTER } from '@/lib/hadith/visibleCollections'
 import { QueryErrorBanner } from '@/components/common/QueryErrorBanner'
 
 interface QuizQuestion {
@@ -35,7 +36,6 @@ const COLLECTION_DISPLAY: Record<string, string> = {
 
 function generateQuestions(hadiths: Hadith[]): QuizQuestion[] {
   const questions: QuizQuestion[] = []
-  const collections = Object.keys(COLLECTION_DISPLAY)
 
   for (const hadith of hadiths.slice(0, 10)) {
     // FIX-038 defense-in-depth: even though the query already filters out empty
@@ -60,8 +60,11 @@ function generateQuestions(hadiths: Hadith[]): QuizQuestion[] {
     } else if (type === 1) {
       // Collection question
       const correct = COLLECTION_DISPLAY[hadith.collection_slug] || hadith.collection_slug
-      const wrongCollections = Object.values(COLLECTION_DISPLAY)
-        .filter((c) => c !== correct)
+      // Exclude release-hidden collections from the decoys so a hidden
+      // collection name (e.g. "Musnad Ahmad") never shows as a quiz option.
+      const wrongCollections = Object.entries(COLLECTION_DISPLAY)
+        .filter(([slug, name]) => !isHiddenCollection(slug) && name !== correct)
+        .map(([, name]) => name)
         .sort(() => Math.random() - 0.5)
         .slice(0, 3)
       const options = [...wrongCollections, correct].sort(() => Math.random() - 0.5)
@@ -111,15 +114,18 @@ export default function QuizScreen() {
       const offsets = Array.from({ length: 10 }, () => Math.floor(Math.random() * 5000))
       const results: Hadith[] = []
       for (const offset of offsets) {
-        const { data } = await supabase
+        let q = supabase
           .from('hadiths')
           .select('*')
           .not('english_text', 'is', null)
           .neq('english_text', '')
           .not('narrator', 'is', null)
           .neq('narrator', '')
-          .range(offset, offset)
-          .single()
+        // Never build quiz questions from release-hidden collections.
+        if (HIDDEN_COLLECTION_FILTER) {
+          q = q.not('collection_slug', 'in', HIDDEN_COLLECTION_FILTER)
+        }
+        const { data } = await q.range(offset, offset).single()
         if (data) results.push(data as Hadith)
       }
       return results

@@ -126,7 +126,9 @@ After fixing any bug, Claude Code must:
 
 6. If new operational guidance is discovered, update `CLAUDE.md` onboarding instructions only if necessary.
 
-7. Never complete a debugging task without updating project memory.
+7. **Mirror the fix into the Notion Knowledge Hub with precision** (KP directive). Create or update a receipt page under **Authentic Hadith - Project Knowledge Hub** (page ID `66db3f5e-ef38-824c-8641-013bea219a7f`): one child page per build or fix batch, mirroring the exact FIX ID, root cause, files changed, row counts, and verification numbers from `BUILD_FIX_LOG.md` (mirror, do not paraphrase from memory). Server-side / data-only work that ships no new binary gets a dated non-build receipt. Then refresh the Hub's **Current State**, **Next KP Action**, and **Index** blocks so the top never goes stale. Hub operating rule: NO secrets — project refs and table names only, never service-role keys, JWTs, or full user UUIDs.
+
+8. Never complete a debugging task without updating project memory.
 
 The system must improve after every fix. No exceptions.
 

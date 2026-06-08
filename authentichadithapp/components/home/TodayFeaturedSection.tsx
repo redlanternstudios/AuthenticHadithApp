@@ -2,7 +2,7 @@ import React from 'react'
 import { View, Text, Pressable, StyleSheet } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useTheme } from '@/lib/theme/ThemeProvider'
-import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
+import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors'
 import { Card } from '@/components/ui/Card'
 
 // Curated daily content. Keep in sync with app/(tabs)/today.tsx until a future
@@ -73,7 +73,7 @@ export function TodayFeaturedSection() {
         variant="elevated"
         style={[styles.sunnahCard, { borderLeftColor: colors.goldMid }]}
       >
-        <Text style={[styles.cardEyebrow, { color: colors.goldMid }]}>☀️ TODAY'S SUNNAH</Text>
+        <Text style={[styles.cardEyebrow, { color: colors.goldMid }]}>{"☀️ TODAY'S SUNNAH"}</Text>
         <Text style={[styles.sunnahAction, { color: colors.bronzeText }]}>
           {todayAction.action}
         </Text>

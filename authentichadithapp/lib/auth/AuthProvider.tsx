@@ -70,18 +70,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
     if (error) throw error
 
-    // Create profile if signup successful
+    // Keep this aligned with the live Supabase `profiles` schema.
     if (data.user) {
-      try {
-        await supabase.from('profiles').insert({
-          id: data.user.id,
-          email: email,
-          full_name: fullName,
-          is_premium: false,
-        })
-      } catch (profileErr) {
-        if (__DEV__) console.warn('[auth] profile insert failed', profileErr)
-      }
+      const { error: profileError } = await supabase.from('profiles').insert({
+        id: data.user.id,
+        username: fullName?.trim() || email.split('@')[0],
+        avatar_url: null,
+        role: 'user',
+      })
+
+      if (profileError) throw profileError
     }
   }
 

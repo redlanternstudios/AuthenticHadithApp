@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { StyleSheet, View, Text, FlatList, Pressable, Share, Alert } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useFolderHadiths, useUpdateFolder } from '@/hooks/useMyHadith'
+import { useFolderHadiths } from '@/hooks/useMyHadith'
 import { useQuery } from '@tanstack/react-query'
 import { generateShareToken } from '@/lib/api/my-hadith'
 import { supabase } from '@/lib/supabase/client'

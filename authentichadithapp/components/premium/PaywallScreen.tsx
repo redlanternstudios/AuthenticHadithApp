@@ -1,7 +1,7 @@
 import React from 'react'
 import { View, StyleSheet } from 'react-native'
 import RevenueCatUI from 'react-native-purchases-ui'
-import { COLORS, SPACING } from '../../lib/styles/colors'
+import { COLORS } from '../../lib/styles/colors'
 
 interface PaywallScreenProps {
   onDismiss?: () => void
@@ -18,10 +18,10 @@ export function PaywallScreen({ onDismiss, onPurchaseCompleted, onRestoreComplet
     <View style={styles.container}>
       <RevenueCatUI.Paywall
         onDismiss={onDismiss}
-        onPurchaseCompleted={({ customerInfo }) => {
+        onPurchaseCompleted={() => {
           onPurchaseCompleted?.()
         }}
-        onRestoreCompleted={({ customerInfo }) => {
+        onRestoreCompleted={() => {
           onRestoreCompleted?.()
         }}
       />

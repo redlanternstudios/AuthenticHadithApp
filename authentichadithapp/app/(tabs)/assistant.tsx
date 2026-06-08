@@ -131,7 +131,7 @@ export default function AssistantScreen() {
   };
 
   const remaining = Math.max(FREE_DAILY_LIMIT - freeUsed, 0);
-  const canSend = input.trim() && !isLoading && !isAtLimit;
+  const canSend = !!input.trim() && quotaLoaded && !isLoading && !isAtLimit;
 
   return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>

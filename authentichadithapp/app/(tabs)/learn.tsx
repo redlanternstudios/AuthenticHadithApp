@@ -11,6 +11,10 @@ import { useTheme } from '@/lib/theme/ThemeProvider';
 import { LearningPath } from '@/types/hadith';
 import { QueryErrorBanner } from '@/components/common/QueryErrorBanner';
 import { useCompletedItems } from '@/hooks/useProgress';
+import {
+  STATIC_LEARNING_PATHS,
+  STATIC_PATH_LESSON_MAP,
+} from '@/lib/learning/staticLearningContent';
 
 type PathLessonMap = { learning_path_id: string; lesson_id: string };
 
@@ -36,9 +40,9 @@ export default function LearnScreen() {
             hint: (error as any).hint,
           });
         }
-        throw error;
+        return STATIC_LEARNING_PATHS;
       }
-      return data as LearningPath[];
+      return (data?.length ? data : STATIC_LEARNING_PATHS) as LearningPath[];
     },
     retry: 1,
   });
@@ -61,9 +65,9 @@ export default function LearnScreen() {
             hint: (error as any).hint,
           });
         }
-        return null;
+        return STATIC_PATH_LESSON_MAP;
       }
-      return data as PathLessonMap[];
+      return (data?.length ? data : STATIC_PATH_LESSON_MAP) as PathLessonMap[];
     },
     retry: 1,
   });

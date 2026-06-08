@@ -1,4 +1,3 @@
-import React from 'react'
 import { Share, Alert, Platform } from 'react-native'
 import * as Sharing from 'expo-sharing'
 import { Hadith } from '../../types/hadith'

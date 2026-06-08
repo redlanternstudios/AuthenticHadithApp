@@ -3,31 +3,29 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { createClient } from '@supabase/supabase-js'
 import * as SecureStore from 'expo-secure-store'
 import Constants from 'expo-constants'
-import { PRODUCTION_API_URL } from '@/lib/config/constants'
+import { normalizeApiBaseUrl } from '@/lib/config/constants'
 
-// Dev-only fallbacks let a fresh clone run without a populated .env.local. In
-// production builds Metro replaces __DEV__ with false and minifies the ternary
-// to the empty-string branch, so the anon JWT is stripped from the bundle and
-// scanners won't flag a hardcoded credential. Missing env in prod surfaces as
-// failing Supabase calls, not a silently-working app pointed at the wrong DB.
+// Supabase client config must come from Expo public env / config only.
+// Do not keep project URLs or anon JWT fallbacks in source; even client-safe
+// keys create scanner noise and can hide broken EAS environment injection.
 const SUPABASE_URL =
   process.env.EXPO_PUBLIC_SUPABASE_URL ??
-  (__DEV__ ? 'https://nqklipakrfuwebkdnhwg.supabase.co' : '')
+  Constants.expoConfig?.extra?.supabaseUrl ??
+  ''
 const SUPABASE_ANON_KEY =
   process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ??
-  (__DEV__
-    ? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xa2xpcGFrcmZ1d2Via2RuaHdnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyODA3NDUsImV4cCI6MjA4Mzg1Njc0NX0.yhIe3hqiLlyF8atvSmNOL3HBq91V9Frw5jYcat-sZxY'
-    : '')
+  Constants.expoConfig?.extra?.supabaseAnonKey ??
+  ''
 
-if ((!SUPABASE_URL || !SUPABASE_ANON_KEY) && __DEV__) {
-  console.warn( // __DEV__
-    '[supabase] Missing EXPO_PUBLIC_SUPABASE_URL or EXPO_PUBLIC_SUPABASE_ANON_KEY in expoConfig.extra. Set these in .env.local for dev, or EAS secrets for production builds.'
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  throw new Error(
+    '[supabase] Missing EXPO_PUBLIC_SUPABASE_URL or EXPO_PUBLIC_SUPABASE_ANON_KEY. Set them in .env.local for dev and EAS production env before building.'
   )
 }
 
 // API Configuration
 export const API_CONFIG = {
-  baseUrl: Constants.expoConfig?.extra?.apiUrl || PRODUCTION_API_URL,
+  baseUrl: normalizeApiBaseUrl(Constants.expoConfig?.extra?.apiUrl),
 }
 
 const ExpoSecureStoreAdapter = {

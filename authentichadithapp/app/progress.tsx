@@ -9,9 +9,10 @@ import { LevelProgressBar } from '@/components/gamification/LevelProgressBar'
 import { StatCard } from '@/components/gamification/StatCard'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Card } from '@/components/ui/Card'
-import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
+import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors'
 import { useTheme } from '@/lib/theme/ThemeProvider'
 import { getLevelInfo } from '@/lib/gamification/level-calculator'
+import { filterVisibleCollections } from '@/lib/hadith/visibleCollections'
 import { QueryErrorBanner } from '@/components/common/QueryErrorBanner'
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -54,12 +55,18 @@ export default function ProgressScreen() {
     queryFn: async () => {
       if (!user) return []
       // Get collections with their total counts and user's read counts
-      const { data: collections } = await supabase
+      const { data: collectionsRaw } = await supabase
         .from('collections')
         .select('id, slug, name_en, total_hadiths')
         .order('name_en')
 
-      if (!collections) return []
+      // Drop release-hidden collections so they don't show as a 0% progress row.
+      const collections = filterVisibleCollections(
+        collectionsRaw as
+          | { id: string; slug: string; name_en: string; total_hadiths: number }[]
+          | null,
+      )
+      if (!collections.length) return []
 
       const { data: readCounts } = await supabase
         .from('hadith_views')

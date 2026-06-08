@@ -36,12 +36,13 @@ export default function DeleteAccountScreen() {
               }
 
               // Call the server endpoint
-              const res = await fetch(`${API_URL}/api/delete-account`, {
+              const res = await fetch(`${API_URL}/api/auth/delete-account`, {
                 method: 'POST',
                 headers: {
                   'Authorization': `Bearer ${session.access_token}`,
                   'Content-Type': 'application/json',
                 },
+                body: JSON.stringify({ confirmation: confirmText }),
               });
 
               const body = await res.json();

@@ -105,7 +105,7 @@ export default function OnboardingScreen() {
 
       await AsyncStorage.setItem('onboarded', '1')
       router.replace('/(tabs)')
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Something went wrong. Please try again.')
     } finally {
       setLoading(false)

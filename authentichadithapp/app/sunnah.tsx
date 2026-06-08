@@ -4,7 +4,6 @@ import { Stack } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
-import { Card } from '@/components/ui/Card'
 import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
 import { useTheme } from '@/lib/theme/ThemeProvider'
 import {
@@ -84,9 +83,10 @@ export default function SunnahScreen() {
   const liveCategoriesCount = dbCategories?.length ?? 0
   const usingFallback = !categoriesLoading && liveCategoriesCount === 0
   const categories = usingFallback ? FALLBACK_SUNNAH_CATEGORIES : (dbCategories || [])
-  const effectivePractices: any[] = usingFallback
-    ? FALLBACK_SUNNAH_PRACTICES
-    : (dbPractices || [])
+  const effectivePractices = useMemo(
+    () => (usingFallback ? FALLBACK_SUNNAH_PRACTICES : (dbPractices || [])),
+    [usingFallback, dbPractices]
+  )
   const isLoading = categoriesLoading || practicesLoading
 
   // Today's sunnah practice — use whichever dataset the screen is rendering
@@ -132,7 +132,7 @@ export default function SunnahScreen() {
       {todaysPractice && (
         <View style={[styles.todayCard, { backgroundColor: colors.card, borderColor: colors.goldMid }]}>
           <View style={styles.todayHeader}>
-            <Text style={[styles.todayLabel, { color: colors.goldMid }]}>Today's Sunnah</Text>
+            <Text style={[styles.todayLabel, { color: colors.goldMid }]}>{"Today's Sunnah"}</Text>
             <Text style={[styles.todayDay, { color: colors.mutedText }]}>Day {dayOfYear}</Text>
           </View>
           <Text style={[styles.todayTitle, { color: colors.bronzeText }]}>{todaysPractice.title}</Text>

@@ -6,6 +6,16 @@
 // server-only secrets here (service role keys, Stripe secret keys, etc.).
 // Use those only in app/api/* server routes via process.env directly.
 
+const PRODUCTION_API_URL = 'https://www.authentichadith.app'
+
+function normalizeApiBaseUrl(value) {
+  const trimmed = value?.trim().replace(/\/+$/, '')
+  if (!trimmed || trimmed === 'https://authentichadith.app') {
+    return PRODUCTION_API_URL
+  }
+  return trimmed
+}
+
 module.exports = ({ config }) => ({
   ...config,
   extra: {
@@ -18,13 +28,15 @@ module.exports = ({ config }) => ({
       process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? config.extra?.supabaseAnonKey,
 
     // API base URL (web backend the mobile app calls)
-    apiUrl:
+    apiUrl: normalizeApiBaseUrl(
       process.env.EXPO_PUBLIC_API_URL ??
       config.extra?.apiUrl ??
-      'https://www.authentichadith.app',
+      PRODUCTION_API_URL
+    ),
 
-    // Environment marker
-    appEnv: process.env.EXPO_PUBLIC_APP_ENV ?? 'development',
+    // Environment marker. Default to production so a missing EAS var cannot
+    // silently ship a production binary in development mode.
+    appEnv: process.env.EXPO_PUBLIC_APP_ENV ?? config.extra?.appEnv ?? 'production',
 
     // RevenueCat (client-safe iOS / Android keys)
     // Both naming patterns are populated because two files in the codebase

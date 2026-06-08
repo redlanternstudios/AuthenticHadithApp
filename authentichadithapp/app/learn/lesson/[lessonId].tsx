@@ -12,6 +12,7 @@ import { Lesson } from '@/types/hadith';
 import { useCompletionStatus } from '@/hooks/useProgress';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import { trackActivity } from '@/lib/gamification/track-activity';
+import { getStaticLesson } from '@/lib/learning/staticLearningContent';
 
 export default function LessonDetailScreen() {
   const { lessonId } = useLocalSearchParams<{ lessonId: string }>();
@@ -34,9 +35,9 @@ export default function LessonDetailScreen() {
 
       if (error) {
         __DEV__ && console.warn('[Lesson] lookup failed (non-fatal):', error.message);
-        return null;
+        return getStaticLesson(lessonId);
       }
-      return data as Lesson | null;
+      return (data || getStaticLesson(lessonId)) as Lesson | null;
     },
     enabled: !!lessonId,
   });

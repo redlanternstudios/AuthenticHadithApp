@@ -53,6 +53,11 @@ for (const key of CLIENT_REQUIRED) {
   }
 }
 
+if (process.env.EXPO_PUBLIC_APP_ENV !== 'production') {
+  console.error(`[CRITICAL] EXPO_PUBLIC_APP_ENV must be production for release gates, got: ${process.env.EXPO_PUBLIC_APP_ENV || '(empty)'}`);
+  hardFault = true;
+}
+
 for (const key of SERVER_ONLY) {
   if (!process.env[key]) {
     if (isEasBuild) {

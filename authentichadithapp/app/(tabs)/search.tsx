@@ -21,6 +21,7 @@ import {
 import { useTheme } from '@/lib/theme/ThemeProvider';
 import { Hadith } from '@/types/hadith';
 import { useRouter } from 'expo-router';
+import { filterVisibleCollections, HIDDEN_COLLECTION_FILTER } from '@/lib/hadith/visibleCollections';
 import { QueryErrorBanner } from '@/components/common/QueryErrorBanner';
 
 const GRADE_OPTIONS = ['All', 'Sahih', 'Hasan', "Da'if"] as const;
@@ -43,7 +44,7 @@ export default function SearchScreen() {
         .order('name_en');
 
       if (error) throw error;
-      return data as { name_en: string; slug: string }[];
+      return filterVisibleCollections(data as { name_en: string; slug: string }[]);
     },
   });
 
@@ -61,19 +62,29 @@ export default function SearchScreen() {
 
       const sanitized = debouncedQuery.replace(/[%_]/g, '\\$&').trim();
       const terms = getSearchTerms(sanitized);
+      const numericQuery = sanitized.match(/^\d+$/) ? Number(sanitized) : null;
 
       const orFilter = terms
         .flatMap((term) => [
           `english_text.ilike.%${term}%`,
           `narrator.ilike.%${term}%`,
           `arabic_text.ilike.%${term}%`,
+          `reference.ilike.%${term}%`,
         ])
+        .concat(Number.isFinite(numericQuery) ? [`hadith_number.eq.${numericQuery}`] : [])
         .join(',');
 
       let query = supabase
         .from('hadiths')
         .select('*')
         .or(orFilter);
+
+      // Exclude release-hidden collections so the default "All Collections"
+      // search never surfaces a thin-collection hadith (which would deep-link
+      // into a hidden collection via /hadith/[id]).
+      if (HIDDEN_COLLECTION_FILTER) {
+        query = query.not('collection_slug', 'in', HIDDEN_COLLECTION_FILTER);
+      }
 
       if (gradeFilter !== 'All') {
         const gradeValue = gradeFilter === "Da'if" ? 'daif' : gradeFilter.toLowerCase();

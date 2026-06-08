@@ -16,30 +16,40 @@ The app is functional and the core user journey works. But there are 4 items tha
 These will cause App Store rejection, crashes, or broken revenue.
 
 ### CB-01: Delete Account Screen Unreachable
+**Status**: RESOLVED by FIX-017. Re-verified by Codex 2026-05-28 20:05 PDT.
+**Receipt**: `app/(tabs)/profile.tsx` has a "Delete Account" row that calls `router.push('/settings/delete-account')`.
 **Risk**: APP STORE REJECTION
 **File**: `settings/delete-account.tsx` exists but ZERO navigation links point to it
 **Why it matters**: Apple requires apps with account creation to offer account deletion (App Store Review Guideline 5.1.1). The screen exists and works, but users cannot reach it. No button in settings or profile navigates here.
 **Fix**: Add a "Delete Account" row in the profile or settings screen that calls `router.push('/settings/delete-account')`.
 
 ### CB-02: Subscription Screen Unreachable
+**Status**: RESOLVED by FIX-017. Re-verified by Codex 2026-05-28 20:05 PDT.
+**Receipt**: `app/(tabs)/profile.tsx` has a "Subscription" row that calls `router.push('/settings/subscription')`; non-premium users also see an "Upgrade to Pro" paywall CTA.
 **Risk**: REVENUE BLOCKED
 **File**: `settings/subscription.tsx` exists but ZERO navigation links point to it
 **Why it matters**: Users cannot access the paywall or manage subscriptions. RevenueCat is configured but the purchase flow is a dead end. This directly blocks monetization.
 **Fix**: Add subscription management link in profile screen. Also wire up any "Upgrade" or "Premium" CTAs to this route.
 
 ### CB-03: Bookmarks Screen Unreachable
+**Status**: RESOLVED by FIX-017. Re-verified by Codex 2026-05-28 20:05 PDT.
+**Receipt**: `app/(tabs)/profile.tsx` has a "Saved Hadiths" row that calls `router.push('/bookmarks')`.
 **Risk**: BROKEN FEATURE
 **File**: `bookmarks/index.tsx` exists but ZERO navigation links point to it
 **Why it matters**: Users can save hadiths via bookmark buttons throughout the app, but they cannot view their saved bookmarks anywhere. The feature is half-built.
 **Fix**: Add a bookmarks link in the profile screen or my-hadith tab.
 
 ### CB-04: Subscription Screen Crash on RevenueCat Failure
+**Status**: RESOLVED by FIX-019 and hardened again by the current RevenueCat launch work. Re-verified by Codex 2026-05-28 20:05 PDT.
+**Receipt**: `app/settings/subscription.tsx` wraps initial offering/status load in `try/catch/finally`, sets `initError`, and always clears `loading`.
 **Risk**: CRASH
 **File**: `settings/subscription.tsx` lines 25-30
 **Why it matters**: The `useEffect` async IIFE has no `.catch()`. If RevenueCat fails to initialize (network error, wrong API key, first-time cold start), the Promise rejects unhandled. Loading state never resolves, user sees infinite spinner or crash.
 **Fix**: Add `.catch()` to the async IIFE. Set `loading` to false and show error state on failure.
 
 ### CB-05: modal.tsx is Expo Template Boilerplate
+**Status**: RESOLVED by FIX-018. Re-verified by Codex 2026-05-28 20:05 PDT.
+**Receipt**: `app/modal.tsx` is absent and `app/_layout.tsx` has no `Stack.Screen` entry for `modal`.
 **Risk**: APP STORE REJECTION (unprofessional)
 **File**: `modal.tsx` — displays "This is a modal" with a link back to home
 **Why it matters**: If an Apple reviewer navigates to this screen, it signals an unfinished app. It is registered in `_layout.tsx` line 48 and technically reachable.
@@ -52,6 +62,8 @@ These will cause App Store rejection, crashes, or broken revenue.
 These cause degraded UX, visual bugs, or silent data loss.
 
 ### MI-01: Dark Mode Broken on 6 Screens
+**Status**: RESOLVED. Re-verified by Codex 2026-05-28 20:20 PDT.
+**Receipt**: `rg "import .*COLORS|\\bCOLORS\\."` returns no matches in `collections.tsx`, `search.tsx`, `learn.tsx`, `my-hadith.tsx`, `assistant.tsx`, or `bookmarks/index.tsx`.
 **Screens affected**: `collections.tsx`, `search.tsx`, `learn.tsx`, `my-hadith.tsx`, `assistant.tsx`, `bookmarks/index.tsx`
 **Root cause**: These screens import the static `COLORS` object (always light mode) instead of calling `getColors(isDark)` like `profile.tsx` and `hadith/[id].tsx` do correctly.
 **Impact**: If a user has dark mode enabled on their device, these 6 screens render with incorrect color contrast. Text may be invisible or backgrounds may clash.
@@ -68,39 +80,53 @@ These cause degraded UX, visual bugs, or silent data loss.
 **Fix**: Add error UI with retry button to each screen's query result handling.
 
 ### MI-04: AI Assistant Daily Quota Not Enforced
+**Status**: RESOLVED by current assistant quota implementation. Re-verified by Codex 2026-05-28 20:20 PDT.
+**Receipt**: `app/(tabs)/assistant.tsx` persists `ai_assistant_quota` in AsyncStorage, computes `isAtLimit`, blocks `sendMessage` at the limit, and disables input/send when the daily limit is reached.
 **File**: `assistant.tsx` lines 9, 28
 **Root cause**: `FREE_DAILY_LIMIT = 3` is defined and the quota banner displays a countdown, but the send button is never disabled when the limit is reached. `freeUsed` resets to 0 on every component mount (not persisted to AsyncStorage).
 **Impact**: The quota is purely cosmetic. Free users get unlimited AI queries. This burns Groq API tokens with no revenue gate.
 **Fix**: Persist `freeUsed` to AsyncStorage with a date key. Check `freeUsed >= FREE_DAILY_LIMIT` in `sendMessage` and disable the send button.
 
 ### MI-05: Hardcoded Supabase Anon Key in Source
+**Status**: RESOLVED by FIX-056. Re-verified by Codex 2026-05-28 20:20 PDT.
+**Receipt**: `lib/supabase/client.ts` no longer contains a Supabase project URL or anon JWT fallback; `rg "nqklipakrfuwebkdnhwg|eyJhbGciOiJIUzI1Ni"` returns no matches in `app`, `lib`, `components`, `scripts`, `app.config.js`, or `app.json`.
 **File**: `lib/supabase/client.ts` lines 8-9
 **Content**: Full Supabase URL and anon JWT hardcoded as fallback values
 **Impact**: The anon key is a client-side key (not a server secret), so this is not a credential leak. But it means the app silently connects to production Supabase even if env config is broken, masking misconfiguration. Security scanners also flag hardcoded JWTs.
 **Fix**: Gate the fallback behind `__DEV__` or remove it entirely and throw if env vars are missing.
 
 ### MI-06: Duplicate QueryClientProvider Wrapping
+**Status**: RESOLVED by FIX-020. Re-verified by Codex 2026-05-28 20:05 PDT.
+**Receipt**: `app/_layout.tsx` uses `ReactQueryProvider` only; there is no nested direct `QueryClientProvider` wrapper.
 **File**: `_layout.tsx` lines 59 and 64
 **Impact**: Both `QueryClientProvider` and `ReactQueryProvider` wrap the app. One creates its own client, potentially shadowing the other. This can cause cache inconsistencies where queries in some components use a different cache than others.
 **Fix**: Remove one of the two providers. Keep whichever one all existing hooks reference.
 
 ### MI-07: appEnv Defaults to "development"
+**Status**: RESOLVED by FIX-056. Re-verified by Codex 2026-05-28 20:20 PDT.
+**Receipt**: `app.config.js` now falls back to `config.extra?.appEnv ?? 'production'`, and `scripts/qa-audit-env.mjs` fails release gates unless `EXPO_PUBLIC_APP_ENV=production`.
 **Files**: `app.json` line 55, `app.config.js` line 27
 **Impact**: If `EXPO_PUBLIC_APP_ENV` is not set in EAS build secrets, the production app ships with `appEnv: "development"`. Any code branching on this value will take the dev path.
 **Fix**: Verify `EXPO_PUBLIC_APP_ENV=production` is set in EAS production environment secrets. Or change the default to `'production'`.
 
 ### MI-08: 4 Routes Missing from Root Stack Configuration
+**Status**: RESOLVED by FIX-020. Re-verified by Codex 2026-05-28 20:05 PDT.
+**Receipt**: `app/_layout.tsx` registers `topics`, `bookmarks`, `book`, and `chapter` with `headerShown: false`.
 **Routes**: `topics/`, `bookmarks/`, `book/`, `chapter/`
 **Impact**: These screens work via Expo Router auto-discovery, but they lack the `headerShown: false` setting that every other route gets. Users see the default Expo header on these 4 screens while all others have custom headers. Visual inconsistency.
 **Fix**: Add Stack.Screen entries for these routes in `_layout.tsx` with `headerShown: false`.
 
 ### MI-09: today.tsx Unhandled Promise Rejection
+**Status**: RESOLVED by FIX-057. Re-verified by Codex 2026-05-28 20:26 PDT.
+**Receipt**: `app/(tabs)/today.tsx` now checks the Supabase upsert result, throws on save errors, shows `Alert.alert('Save Failed', ...)`, and keeps activity tracking failures non-fatal with dev-only warnings.
 **File**: `today.tsx` lines 123-130
 **Root cause**: `handleSave` has no try/catch. If the Supabase upsert fails, the promise rejects unhandled.
 **Impact**: On some React Native builds, unhandled promise rejections cause a yellow box warning or crash.
 **Fix**: Wrap in try/catch with error feedback to user.
 
 ### MI-10: Home Screen Random Offset Crash Risk
+**Status**: RESOLVED by current Home query implementation. Re-verified by Codex 2026-05-28 20:20 PDT.
+**Receipt**: `app/(tabs)/index.tsx` queries the filtered hadith count, derives the random offset from that count, and uses `.maybeSingle()` instead of `.single()`.
 **File**: `index.tsx` line 50
 **Root cause**: `Math.floor(Math.random() * 1000)` generates an offset. If the hadiths table has fewer than 1000 rows, `.range(offset, offset).single()` returns no rows and throws.
 **Impact**: The "Hadith of the Moment" section crashes silently and shows blank content.
@@ -117,6 +143,8 @@ These cause degraded UX, visual bugs, or silent data loss.
 **Fix**: Check error return and handle (retry or show error).
 
 ### MI-13: 8 Tabs in Tab Bar
+**Status**: RESOLVED in current tab layout. Re-verified by Codex 2026-05-28 20:05 PDT.
+**Receipt**: `app/(tabs)/_layout.tsx` exposes five visible tabs: Home, Search, Collections, My Hadith, More. Today, Learn, Assistant, and Profile are hidden from the bar with `href: null` and reachable through More/Profile flows.
 **Impact**: Apple's HIG recommends a maximum of 5 tabs. 8 tabs crowds the tab bar, especially on smaller devices (iPhone SE). Apple reviewers may flag this.
 **Fix**: Consider consolidating to 5 tabs. Move Learn, Assistant, and My Hadith behind a "More" tab or integrate them into existing tabs.
 
@@ -128,8 +156,9 @@ These are not blockers but improve the professional quality of the app.
 
 ### PI-01: Template Leftover Images in Bundle
 **Files**: `assets/images/react-logo.png`, `react-logo@2x.png`, `react-logo@3x.png`, `partial-react-logo.png`
-**Impact**: Dead weight in the app bundle. No code references them.
-**Fix**: Delete all 4 files.
+**Status**: RESOLVED by FIX-053 in `BUILD_FIX_LOG.md`.
+**Receipt**: All 4 files were deleted; `rg "react-logo|partial-react-logo"` now returns documentation references only.
+**Lesson**: Before App Store submission, search for scaffold assets because Expo template leftovers signal unfinished polish to Apple review.
 
 ### PI-02: Bookmarks Show "Unknown" for Collection Name
 **File**: `bookmarks/index.tsx` line 56
@@ -154,6 +183,8 @@ These are not blockers but improve the professional quality of the app.
 **Fix**: Implement `lesson_progress` table write, or remove the button for v1.
 
 ### PI-06: today.tsx Share Error Swallowed
+**Status**: RESOLVED by FIX-057. Re-verified by Codex 2026-05-28 20:26 PDT.
+**Receipt**: `app/(tabs)/today.tsx` now shows `Alert.alert('Share Failed', ...)` when the native share sheet fails and tracks share activity in a separate non-fatal block.
 **File**: `today.tsx` line 120
 **Root cause**: Empty catch block `} catch {}` on Share.share().
 **Fix**: At minimum log to error boundary. Or just let it propagate.
@@ -164,6 +195,8 @@ These are not blockers but improve the professional quality of the app.
 **Fix**: Either hide these routes for v1 or add a cleaner "planned feature" UI.
 
 ### PI-08: Duplicate RevenueCat Entitlement Definition
+**Status**: RESOLVED by FIX-051. Re-verified by Codex 2026-05-28 20:05 PDT.
+**Receipt**: `lib/revenuecat/config.ts` owns `ENTITLEMENT_ID`; `lib/purchases/revenuecat.ts` imports and re-exports it from config.
 **Files**: `lib/revenuecat/config.ts` line 1, `lib/purchases/revenuecat.ts` line 40
 **Impact**: Two definitions of the same constant. Risk of drift if one is updated without the other.
 **Fix**: Single source of truth in config.ts, import everywhere else.
@@ -206,42 +239,42 @@ These areas passed audit with no issues.
 
 | Risk | Guideline | Likelihood | Mitigation |
 |------|-----------|-----------|------------|
-| No account deletion accessible | 5.1.1 (Account Deletion) | **HIGH** | Wire delete-account screen to settings/profile nav |
-| Boilerplate modal screen | 2.1 (App Completeness) | **MEDIUM** | Delete modal.tsx and Stack entry |
-| 8 tabs in tab bar | HIG (Tab Bar) | **LOW-MEDIUM** | Consolidate to 5 or justify in App Review notes |
+| App Store Connect / RevenueCat purchase proof missing | 2.1 / IAP | **HIGH** | Verify IAP product status, entitlement mapping, RoPhone paywall, purchase, and restore |
+| Apple Review demo account unverified | 2.1 / Sign-in review | **HIGH** | Create/verify demo account, profile row, premium entitlement, and private App Review credentials |
+| Privacy/App Privacy declarations unverified | 5.1.1 / privacy labels | **HIGH** | Verify privacy policy content and App Store Connect data declarations |
 | "Coming soon" stub screens | 2.1 (App Completeness) | **LOW** | Hide or improve the messaging |
-| Unreachable bookmarks/subscription | 2.1 (App Completeness) | **LOW** | Wire navigation paths |
+| Real-device QA incomplete | 2.1 (App Completeness) | **MEDIUM** | Complete RoPhone cold/warm launch and core-path test grid |
 
 ---
 
 ## HIGHEST-RISK AREAS
 
-1. **Orphan screens** — 4 functional screens with zero navigation paths. The delete-account one is a potential rejection.
-2. **Dark mode inconsistency** — 6 of 8 tab screens break in dark mode. If a reviewer tests with dark mode on, the app looks broken.
-3. **Revenue flow dead** — Subscription screen exists but nothing navigates to it. RevenueCat is configured but users cannot buy.
-4. **Silent failures** — Gamification, profile creation, and activity tracking all silently swallow errors. Users think their data saved when it did not.
+1. **External Apple/IAP proof** — RevenueCat offerings API is green, but App Store Connect product status, entitlement mapping, purchase, and restore still need proof.
+2. **Real-device confidence** — RoPhone/TestFlight QA is still the only proof that the bundled app opens, renders, calls AI, and reaches the paywall correctly.
+3. **Review account and privacy** — Apple Review demo credentials, profile row, premium entitlement, privacy policy content, and App Privacy labels still need receipts.
+4. **Silent failures** — Gamification, profile creation, and activity tracking still need deeper follow-up so user progress failures are not invisible.
 
 ---
 
 ## FINAL STABILIZATION RECOMMENDATIONS
 
 ### Before submission (do these now):
-1. Wire navigation to delete-account, subscription, and bookmarks screens
-2. Delete modal.tsx and its Stack.Screen entry
-3. Add .catch() to subscription.tsx useEffect
-4. Fix random offset crash risk on home screen
+1. Verify App Store Connect IAP product statuses are `Ready to Submit`
+2. Verify RevenueCat entitlement `premium` has all three products attached
+3. Complete RoPhone/TestFlight paywall, purchase-attempt, and restore-purchases QA
+4. Verify Apple Review demo account, profile row, and private review credentials
+5. Complete privacy declarations and screenshot capture after device QA
 
 ### Before wide launch (do within 48 hours):
-5. Fix dark mode on 6 screens (swap COLORS for getColors pattern)
-6. Add error states with retry buttons to tab screens
-7. Enforce AI assistant daily quota with AsyncStorage persistence
-8. Remove or gate console.log statements behind __DEV__
+6. Add/verify error states with retry buttons on remaining data-heavy screens
+7. Remove or gate remaining non-critical production logs behind `__DEV__`
+8. Harden gamification/profile/activity write failures so progress issues are visible
 
 ### v1.1 priorities:
-9. Consolidate to 5 tabs
-10. Implement lesson completion tracking
-11. Fix bookmarks collection name display
-12. Clean up template leftover assets
+9. Implement lesson completion tracking
+10. Fix bookmarks collection name display
+11. Replace or hide Notifications and Sync stubs if not shipping in v1
+12. Add stronger automated RoPhone/screenshot capture workflow
 
 ---
 

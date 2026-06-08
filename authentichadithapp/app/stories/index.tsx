@@ -1,5 +1,5 @@
 import React from 'react'
-import { StyleSheet, View, ScrollView, Text, Pressable, Image } from 'react-native'
+import { StyleSheet, View, ScrollView, Text, Pressable } from 'react-native'
 import { Stack, useRouter } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'

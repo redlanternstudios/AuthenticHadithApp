@@ -14,7 +14,7 @@ export default function NotFoundScreen() {
         <Text style={styles.emoji}>📖</Text>
         <Text style={[styles.title, { color: colors.bronzeText }]}>This hadith cannot be found</Text>
         <Text style={[styles.message, { color: colors.mutedText }]}>
-          The page you're looking for doesn't exist.
+          {"The page you're looking for doesn't exist."}
         </Text>
         <Link href="/" style={[styles.link, { backgroundColor: colors.emeraldMid }]}>
           <Text style={[styles.linkText, { color: colors.white }]}>Go to home screen</Text>

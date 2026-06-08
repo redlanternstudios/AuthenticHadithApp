@@ -102,12 +102,12 @@ export default function ReflectionsScreen() {
 
       <Text style={[styles.title, { color: colors.bronzeText }]}>My Reflections</Text>
       <Text style={[styles.subtitle, { color: colors.mutedText }]}>
-        Personal notes and thoughts on the hadiths you've read
+        {"Personal notes and thoughts on the hadiths you've read"}
       </Text>
 
       {/* Write New Reflection */}
       <Card variant="elevated" style={styles.writeCard}>
-        <Text style={[styles.writeLabel, { color: colors.bronzeText }]}>Write a reflection on today's hadith</Text>
+        <Text style={[styles.writeLabel, { color: colors.bronzeText }]}>{"Write a reflection on today's hadith"}</Text>
         <TextInput
           style={[styles.textArea, { backgroundColor: colors.background, borderColor: colors.border, color: colors.bronzeText }]}
           placeholder="What did this hadith teach you today?"
@@ -135,7 +135,7 @@ export default function ReflectionsScreen() {
             <Text style={[styles.reflectionNote, { color: colors.bronzeText }]}>{r.notes}</Text>
             {r.hadith && (
               <Text style={[styles.reflectionRef, { color: colors.mutedText }]} numberOfLines={2}>
-                On: "{(r.hadith.english_text || '').slice(0, 80)}..."
+                {`On: "${(r.hadith.english_text || '').slice(0, 80)}..."`}
               </Text>
             )}
             <Text style={[styles.reflectionDate, { color: colors.mutedText }]}>

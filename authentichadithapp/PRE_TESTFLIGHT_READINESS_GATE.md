@@ -147,18 +147,18 @@ App Store Connect IDs are immutable once approved, so the dashboard MUST use the
 
 ## GATE G — RevenueCat Mapping
 
-**Status**: ⏳ **PENDING** (KP verification in RevenueCat dashboard)
+**Status**: 🟨 **PARTIAL** (`qa:revenuecat` API PASS; KP dashboard + RoPhone verification still pending)
 
 | Check | Confirmed |
 |-------|-----------|
 | Entitlement `premium` exists | [ ] |
 | All three iOS products attached to the `premium` entitlement | [ ] |
-| Offering configured (default offering with the three products as packages) | [ ] |
+| Offering configured (default offering with the three products as packages) | [x] API verified by `npm run qa:revenuecat` |
 | Subscription / paywall screen can fetch offerings on RoPhone (no "no offerings configured" error) | [ ] |
 | Restore Purchases path reachable from Profile / Settings | [ ] |
 | StoreKit configuration file (`Configuration.storekit`) present in `ios/` for sandbox testing (if used) | [ ] |
 
-**Blocker?**: Yes. RevenueCat misconfiguration is the #3 recurring pattern in BUILD_FIX_LOG (FIX-004, 006, 007). Verify before submission, not after.
+**Blocker?**: Partial. The previous zero-package offering blocker is cleared by API verification, but dashboard entitlement proof and RoPhone/TestFlight purchase-path proof still block App Store submission.
 
 ---
 

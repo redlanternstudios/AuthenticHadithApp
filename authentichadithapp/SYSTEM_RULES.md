@@ -898,6 +898,54 @@ Update this list when a new alias is identified.
 
 ---
 
+## Rule 033: Prove the Pipe Before You Fill It — Canary-Verify Every Batch / Paid Operation End-to-End
+
+Before any at-scale or paid operation — mass DB writes, LLM/AI inference loops, paid-API fan-out — you MUST prove the entire pipeline works on ONE item, including the actual WRITE and a read-back against ground truth, before spending money or tokens at scale. Order operations so the cheap validation runs before the expensive generation. Never pay for output that has nowhere to land.
+
+This caused FIX-059 (2026-06-05): the AI-summary script generated Groq output for 31,476 hadiths and PATCHed each into `enriched_hadiths` — which is a **non-updatable VIEW**. Every write returned HTTP 500 "cannot update view." Zero rows landed. Hundreds of paid Groq calls were spent on output with nowhere to go. The 12-row pilot "passed" because pilot mode only PRINTS — it never exercised the write path. The broken pipe was invisible until the real run, and even then the script logged `FAIL` per row and ground through the whole batch instead of stopping.
+
+### The four failures this rule kills
+
+1. **Writing to a target that can't be written** (view, missing table, RLS-blocked). A PostgREST view is not a table — `select` works, `PATCH`/`POST` 500s.
+2. **Validating the wrong thing.** A dry-run / pilot that skips the write path proves nothing about whether output lands. Quality review ≠ pipeline verification.
+3. **Trusting exit codes.** Exit 0 with `fetched 0 candidate hadiths` is a silent no-op, not a success. Verify against a live count from ground truth.
+4. **Grinding a broken batch.** When the pipeline is structurally broken, every item fails identically. Stop after a handful, do not burn the whole run.
+
+### Mandatory pre-flight before any batch write or paid loop
+
+Use `scripts/lib/preflight.mjs`. It is not optional for production-scale operations.
+
+1. **Prove the target accepts writes** — `assertWritableTarget()` runs a zero-row canary PATCH (matches an impossible key, mutates nothing) and throws on a view / 404 / RLS block. Run it BEFORE any generation.
+   ```js
+   import { assertWritableTarget, assertNonEmpty, CircuitBreaker } from './lib/preflight.mjs'
+   if (WRITE) await assertWritableTarget({ urlBase, target: 'enriched_hadiths', headers: writeHeaders })
+   ```
+2. **Prove the input is non-empty** — `assertNonEmpty(rows)` refuses to "succeed" on a 0-row fetch.
+3. **Trip on repeated failure** — wrap the loop in a `CircuitBreaker` (default trip after ~15 consecutive failures) and abort the batch when it trips.
+4. **Confirm landing against ground truth** — after the run, re-query a live `count=exact` and assert it climbed by the expected delta. Never report success from the script's own counter alone.
+
+### The cheap-before-expensive ordering rule
+
+In any generate-then-write loop, the write target must be proven writable BEFORE the first generation call. Inference is the expensive step; target validation is free. If you cannot write, you must not generate.
+
+### Forbidden
+
+- Running a paid/at-scale loop whose write target has not been canary-verified in the same run
+- Treating a pilot/dry-run that skips the write as proof the pipeline works
+- Reporting "done" from an exit code or an in-script counter without a ground-truth re-count
+- Letting a batch continue past a wall of identical failures (no circuit breaker)
+- PATCHing a Supabase object without first confirming it is a TABLE, not a VIEW
+
+### Verification that this rule is wired
+
+```bash
+# The summary script must self-abort at preflight when the target is a view:
+node scripts/enrich-summaries.mjs --write 2>&1 | head -2
+# Expect: "PREFLIGHT FAILED: ... NON-UPDATABLE VIEW" and a non-zero exit, with NO Groq calls made.
+```
+
+---
+
 # Required File System
 
 Every serious app build must include:

@@ -1,0 +1,17 @@
+# OS
+.DS_Store
+# Node / Expo / RN
+node_modules/
+**/node_modules/
+.expo/
+**/.expo/
+*.log
+# iOS build artifacts
+**/ios/build/
+**/ios/Pods/
+**/ios/DerivedData/
+# Supabase local temp
+**/supabase/.temp/
+# Local Claude settings
+.claude/
+**/.claude/

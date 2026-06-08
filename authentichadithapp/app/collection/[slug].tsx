@@ -16,9 +16,9 @@ import {
   SPACING,
   FONT_SIZES,
   BORDER_RADIUS,
-  SHADOWS,
 } from '@/lib/styles/colors';
 import { useTheme } from '@/lib/theme/ThemeProvider';
+import { isHiddenCollection } from '@/lib/hadith/visibleCollections';
 
 interface Collection {
   id: string;
@@ -42,12 +42,6 @@ interface Book {
   book_name: string | null;
   collection_name: string | null;
   hadith_count: number | null;
-}
-
-// Derived from hadiths table when books table has no granular rows
-interface DerivedBook {
-  book_number: number;
-  hadith_count: number;
 }
 
 function getGradeColors(colors: ReturnType<typeof getColors>): Record<string, string> {
@@ -186,7 +180,7 @@ export default function CollectionDetailScreen() {
     );
   }
 
-  if (collectionError || !collection) {
+  if (collectionError || !collection || isHiddenCollection(slug)) {
     return (
       <>
         <Stack.Screen options={{ title: 'Collection', headerShown: true }} />

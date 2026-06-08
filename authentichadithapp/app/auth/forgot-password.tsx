@@ -41,7 +41,7 @@ export default function ForgotPasswordScreen() {
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.bronzeText }]}>Reset Password</Text>
         <Text style={[styles.subtitle, { color: colors.mutedText }]}>
-          Enter your email and we'll send you a reset link
+          {"Enter your email and we'll send you a reset link"}
         </Text>
       </View>
 

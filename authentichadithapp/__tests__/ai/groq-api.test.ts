@@ -21,6 +21,27 @@ describe('Groq API Module', () => {
   });
 });
 
+describe('Groq API URL hardening', () => {
+  it('rewrites the redirecting apex host to www', () => {
+    const { normalizeApiBaseUrl } = require('@/lib/config/constants');
+    expect(normalizeApiBaseUrl('https://authentichadith.app')).toBe(
+      'https://www.authentichadith.app'
+    );
+  });
+
+  it('removes trailing slashes before mobile-chat is appended', () => {
+    const { normalizeApiBaseUrl } = require('@/lib/config/constants');
+    expect(normalizeApiBaseUrl('https://www.authentichadith.app///')).toBe(
+      'https://www.authentichadith.app'
+    );
+  });
+
+  it('uses the production www host when config is missing', () => {
+    const { normalizeApiBaseUrl } = require('@/lib/config/constants');
+    expect(normalizeApiBaseUrl()).toBe('https://www.authentichadith.app');
+  });
+});
+
 describe('Islamic Safety Filter', () => {
   it('exports checkInputSafety function', () => {
     const { checkInputSafety } = require('@/lib/islamic-safety-filter');

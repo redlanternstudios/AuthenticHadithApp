@@ -7,7 +7,55 @@
 
 ## CURRENT ERROR
 
-**Status**: 🟢 No active errors
+**Status**: 🔴 ACTIVE — CONTENT INTEGRITY review open (see top section). BUG-A resolved-by-hide for V1 (FIX-060); BUG-B resolved 2026-06-05; BUG-C still open (backend deploy).
+
+---
+
+## 🔴 CONTENT INTEGRITY — open, decision required (2026-06-07)
+
+> App ships to the Ummah and is named "Authentic Hadith." KP directive: do not exaggerate or misrepresent. Read-only retried audit of the 7 shipping collections (31,493 rows). Full detail in `BUILD_FIX_LOG.md` AUDIT-061.
+
+1. **Grades unreliable (CRITICAL)** — 29,879 sahih / 1,610 hasan / **4 daif**. Near-zero daif across the Sunan (which contain many weak narrations) is implausible → grade labels are heuristic, not scholar-verified. Bukhari+Muslim (14,444) are sound on consensus; the other 5 collections' grades cannot be stood behind as-is. Decision: source authoritative gradings, OR hide grade labels, OR ship Bukhari+Muslim only for V1.
+2. **Empty rows as hadiths** — 369 empty english_text (Muslim 203 fully blank), 387 empty arabic_text. Inflates the count; blank cards on unfiltered surfaces.
+3. **Duplicates** — 169 dup `hadith_number` rows (Tirmidhi 77, Bukhari 36, Ibn Majah 31, Malik 12, Abu Dawud 7, Muslim 6).
+4. **Narrator** — empty 44% (Muslim 99%); regex-extracted, best-effort only, never authoritative.
+
+Until (1)–(3) are resolved, the displayed total (31,493) is mildly overstated and grade labels on the 5 non-Sahihayn collections overstate authenticity. These are content/governance calls, not code bugs.
+
+---
+
+> Diagnosed 2026-06-04. All three are server-side. Build 20 reads live data from Supabase `nqklipakrfuwebkdnhwg` (nq) and live AI from `https://www.authentichadith.app`. Fixing the backend fixes Build 20 with NO new build required. Production writes + deploy are GATED (see .claude/rules) — awaiting KP approval.
+>
+> **2026-06-05 update:** BUG-B closed (Arabic backfilled, 14,115 rows). Also discovered + fixed a local-only Supabase misconfig: `.env.local` (dev) pointed at the wrong stray project `lwklogxdpjnvfxrlcnca`; repointed to `nq`. EAS production env was already `nq` (verified), so no rebuild needed. See `BUILD_FIX_LOG.md` FIX-058.
+
+### BUG-A — Musnad Ahmad only 393 hadiths (missing ~28k) ✅ RESOLVED-BY-HIDE 2026-06-07 (V1)
+- Resolution: HIDDEN for V1 across all surfaces (FIX-060). sunnah.com source blocked (key 403). Re-seed + unhide in v1.1.
+- Evidence: nq `hadiths` per-collection counts — bukhari 7277, muslim 7167, nasai 5045, ... musnad-ahmad **393**. nq `collections.total_hadiths` for musnad-ahmad = 393, total_books = 10. Other 7 collections complete (31,886 total).
+- Root cause: Musnad Ahmad only partially seeded into nq. Source `fawazahmed0/hadith-api` CDN (`eng-ahmad` / `ara-ahmad`) has the full corpus.
+- Fix: re-seed musnad-ahmad into nq via `external/v0-authentic-hadith/scripts/seed-from-cdn.mjs` (or `/api/seed-full`). Needs nq SUPABASE_SERVICE_ROLE_KEY. Recompute collection totals after.
+
+### BUG-B — Arabic text missing on Bukhari + Muslim ✅ RESOLVED 2026-06-05
+- Evidence (nq rows with non-empty arabic_text): bukhari **71 / 7277**, muslim **22 / 7167**, nasai 4970/5045, musnad-ahmad 393/393.
+- Root cause: bulk seed loaded English but not Arabic for bukhari/muslim. App code correct (`HadithCard` renders `arabic_text`); column empty in nq.
+- Fix APPLIED: ran `scripts/backfill-arabic.mjs --write` against nq with the service-role key. UPDATED bukhari **7,173** + muslim **6,942** = **14,115** rows. Remaining empty: bukhari 33, muslim 203 — these have no match in the Arabic source (`ara-bukhari`/`ara-muslim`) and are empty by design. First run died mid-Muslim on a transient ECONNRESET; added retry-with-backoff to the script and re-ran idempotently to finish. Verified via live REST reads + mid-collection alignment spot-check (Muslim #1234). No rebuild needed — data served live from nq.
+
+### BUG-C — AI summary 404 (recurring: FIX-037 / FIX-038 / FIX-045)
+- Evidence: app posts `POST https://www.authentichadith.app/api/mobile-chat` → **HTTP 404**. Site root 200, `/api/chat` 401. Route file EXISTS locally at `external/v0-authentic-hadith/app/api/mobile-chat/route.ts` but is not served in production.
+- Root cause: deployed Vercel backend is out of sync with local web repo and missing the mobile-chat route. Mobile code correct.
+- Fix: redeploy `external/v0-authentic-hadith` to production Vercel. PATTERN ALERT — endpoint has dropped 2+ times; deploy drift is systemic.
+
+### DIAGNOSIS UPDATE (execution attempt 2026-06-04)
+- Column safety CONFIRMED: nq `hadiths` has both legacy (`collection`,`english_translation`) and current (`collection_slug`,`english_text`) columns, kept in sync by a trigger. Zero rows with null `collection_slug`. So seed/insert paths are visible to the app.
+- BUG-A BLOCKED ON DATA SOURCE: the seed source `fawazahmed0/hadith-api` contains 10 books (abudawud, bukhari, dehlawi, ibnmajah, malik, muslim, nasai, nawawi, qudsi, tirmidhi) — **NO Musnad Ahmad**. The 393 rows came from another source. Full Musnad Ahmad (~28k, Arabic + grading) must be sourced elsewhere (e.g. sunnah.com via SUNNAH_API_KEY). seed-full ran but got HTTP 403 on every CDN fetch (jsDelivr 150MB repo block) and `eng-ahmad` does not exist anyway. ZERO rows written.
+- BUG-B READY: jsDelivr main host 403s (150MB), but `fastly.jsdelivr.net` / `gcore.jsdelivr.net` mirrors serve the editions (ara-bukhari 9.4MB, HTTP 200). Wrote `scripts/backfill-arabic.mjs` (dependency-free, dry-run default, updates only empty arabic_text). DRY RUN proved: bukhari 7173/7206 matchable, muslim 6942/7145 matchable (~14,100 rows fixable). BLOCKED only on nq service-role key for the write.
+- BUG-C ROOT CAUSE: production deploys from `origin/main` (github.com/rsemeah/AuthenticHadithApp) which is MISSING `app/api/mobile-chat/route.ts`. Local tree has it; local main is 7 commits ahead of origin/main. Fix = get the route onto the deployed branch + Vercel redeploy (Rory's infra, gated; pushing local main carries 7 other commits).
+
+### Inputs/decisions needed (cannot proceed safely without)
+1. BUG-B: nq SUPABASE_SERVICE_ROLE_KEY (or KP runs `scripts/backfill-arabic.mjs --write`). Then ~14,100 Arabic rows fixed in minutes.
+2. BUG-A: content-sourcing decision — source full Musnad Ahmad elsewhere, OR hide/flag the incomplete collection so it does not read as broken to users/reviewers.
+3. BUG-C: authorization to redeploy Rory's web backend with the mobile-chat route (and how — avoid pushing 7 unreviewed commits to his main).
+
+---
 
 ### Latest fix: FIX-045 (AI Assistant spinner hang) — code complete, device verification PENDING
 KP reported "the AI Assistant is currently not working correctly" on a TestFlight build. AskUserQuestion narrowed it to: spinner shows after send, never returns, no red error banner appears. Live probe of `https://www.authentichadith.app/api/mobile-chat` returned HTTP 200 in 2.84s with the correct `{response: string}` shape — backend healthy. cURL also handled the apex 307→www redirect cleanly in 2.37s.

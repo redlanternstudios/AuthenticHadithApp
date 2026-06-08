@@ -9,6 +9,7 @@ import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors';
 import { useTheme } from '@/lib/theme/ThemeProvider';
 import { Collection } from '@/types/hadith';
 import { QueryErrorBanner } from '@/components/common/QueryErrorBanner';
+import { filterVisibleCollections, VISIBLE_COLLECTION_COUNT } from '@/lib/hadith/visibleCollections';
 
 export default function CollectionsScreen() {
   const router = useRouter();
@@ -24,7 +25,7 @@ export default function CollectionsScreen() {
         .order('name_en');
 
       if (error) throw error;
-      return data as Collection[];
+      return filterVisibleCollections(data as Collection[]);
     },
   });
 
@@ -38,7 +39,7 @@ export default function CollectionsScreen() {
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.bronzeText }]}>{'\u{1F4DA}'} Hadith Collections</Text>
         <Text style={[styles.subtitle, { color: colors.mutedText }]}>
-          Browse hadiths from 8 major authentic collections
+          Browse hadiths from {VISIBLE_COLLECTION_COUNT} major authentic collections
         </Text>
       </View>
 

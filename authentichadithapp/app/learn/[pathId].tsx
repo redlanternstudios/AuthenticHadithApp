@@ -9,6 +9,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors';
 import { useTheme } from '@/lib/theme/ThemeProvider';
 import { Lesson } from '@/types/hadith';
+import { getStaticLessonsForPath } from '@/lib/learning/staticLearningContent';
 
 export default function LearningPathDetailScreen() {
   const { pathId } = useLocalSearchParams<{ pathId: string }>();
@@ -38,9 +39,9 @@ export default function LearningPathDetailScreen() {
             hint: (error as any).hint,
           });
         }
-        throw error;
+        return getStaticLessonsForPath(pathId);
       }
-      return data as Lesson[];
+      return (data?.length ? data : getStaticLessonsForPath(pathId)) as Lesson[];
     },
   });
 

@@ -75,7 +75,7 @@ export default function PrivacyScreen() {
             • Your saved hadiths and notes are stored securely{'\n'}
             • We use encryption for sensitive data{'\n'}
             • You can export or delete your data anytime{'\n'}
-            • We don't sell your information to third parties{'\n'}
+            {"• We don't sell your information to third parties"}{'\n'}
             • Offline data is stored locally on your device
           </Text>
         </View>

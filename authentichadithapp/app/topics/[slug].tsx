@@ -8,6 +8,7 @@ import { HadithList } from '@/components/hadith/HadithList'
 import { Hadith } from '@/types/hadith'
 import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors'
 import { useTheme } from '@/lib/theme/ThemeProvider'
+import { HIDDEN_COLLECTION_FILTER } from '@/lib/hadith/visibleCollections'
 
 export default function TopicHadithsScreen() {
   const { isDark } = useTheme()
@@ -43,11 +44,16 @@ export default function TopicHadithsScreen() {
 
       const hadithIds = hadithTags.map((ht) => ht.hadith_id)
 
-      // Step 2: fetch hadiths by ids
-      const { data, error } = await supabase
+      // Step 2: fetch hadiths by ids, excluding release-hidden collections so a
+      // tagged hidden-collection hadith never surfaces under a topic.
+      let q = supabase
         .from('hadiths')
         .select('*')
         .in('id', hadithIds)
+      if (HIDDEN_COLLECTION_FILTER) {
+        q = q.not('collection_slug', 'in', HIDDEN_COLLECTION_FILTER)
+      }
+      const { data, error } = await q
       if (error) throw error
       return (data as Hadith[]) || []
     },

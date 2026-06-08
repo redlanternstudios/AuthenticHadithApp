@@ -196,11 +196,12 @@ export default function ProfileScreen() {
           onPress={() => router.push('/settings/subscription')}
         />
         {!isPremium && (
-          <SettingsRow
-            icon="refresh-outline"
-            label="Restore Purchases"
-            onPress={handleRestore}
-          />
+        <SettingsRow
+          icon="refresh-outline"
+          label="Restore Purchases"
+          value={restoring ? 'Restoring...' : undefined}
+          onPress={handleRestore}
+        />
         )}
         <SettingsRow
           icon="gift-outline"

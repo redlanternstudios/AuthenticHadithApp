@@ -9,7 +9,6 @@ import {
   attemptConfigureRetry,
 } from '../purchases/revenuecat'
 import { useAuth } from '../auth/AuthProvider'
-import { rcDiag } from './diagnostics'
 
 interface RevenueCatContextType {
   customerInfo: CustomerInfo | null
@@ -66,19 +65,9 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
     try {
       const info = await Purchases.getCustomerInfo()
       setCustomerInfo(info)
-      rcDiag.record('CUSTOMER_INFO_FETCH', 'ok', {
-        entitlementActive: info.entitlements.active[ENTITLEMENT_ID]?.isActive === true,
-        context: 'post-configure',
-      })
     } catch (err) {
       const e = err as { name?: string; code?: string | number; message?: string }
       console.warn('[RC] getCustomerInfo failed (non-fatal):', e?.message)
-      rcDiag.record('CUSTOMER_INFO_FETCH', 'fail', {
-        name: e?.name,
-        code: e?.code,
-        message: e?.message,
-        context: 'post-configure',
-      })
     }
 
     try {
@@ -86,32 +75,18 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
       if (offerings.current) {
         setCurrentOffering(offerings.current)
       }
-      rcDiag.record('OFFERINGS_FETCH', 'ok', {
-        hasCurrent: !!offerings.current,
-        packageCount: offerings.current?.availablePackages.length ?? 0,
-      })
     } catch (err) {
       const e = err as { name?: string; code?: string | number; message?: string }
       console.warn('[RC] getOfferings failed (non-fatal):', e?.message)
-      rcDiag.record('OFFERINGS_FETCH', 'fail', {
-        name: e?.name,
-        code: e?.code,
-        message: e?.message,
-      })
     }
 
     if (!listenerAttachedRef.current) {
       const listener = (newInfo: CustomerInfo) => {
         setCustomerInfo(newInfo)
-        rcDiag.record('CUSTOMER_INFO_UPDATE', 'ok', {
-          entitlementActive: newInfo.entitlements.active[ENTITLEMENT_ID]?.isActive === true,
-          context: 'listener',
-        })
       }
       Purchases.addCustomerInfoUpdateListener(listener)
       listenerRef.current = listener
       listenerAttachedRef.current = true
-      rcDiag.record('LISTENER_ATTACHED', 'ok', {})
     }
   }, [])
 
@@ -124,13 +99,12 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
         Purchases.setLogLevel(__DEV__ ? LOG_LEVEL.DEBUG : LOG_LEVEL.WARN)
 
         // Route through the helper so this module and lib/purchases/revenuecat.ts
-        // share one isConfigured truth. Helper records every lifecycle event in
-        // rcDiag and returns false in degraded mode rather than throwing.
+        // share one isConfigured truth and returns false in degraded mode
+        // rather than throwing.
         const ok = await configureRevenueCat(user?.id)
         if (!ok || !isRevenueCatConfigured()) {
-          // Degraded mode — rcDiag has already captured the failure reason.
-          // The retry useEffect below may attempt one bounded recovery when
-          // user?.id transitions.
+          // Degraded mode. The retry useEffect below may attempt one bounded
+          // recovery when user?.id transitions.
           return
         }
         setIsConfigured(true)
@@ -138,10 +112,6 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
       } catch (err) {
         const e = err instanceof Error ? err : new Error(String(err))
         console.warn('[RC] Configure error:', e.message)
-        rcDiag.record('CONFIGURE_FAIL', 'fail', {
-          message: e.message,
-          context: 'mount-init-outer-catch',
-        })
         setError(e)
       } finally {
         setIsLoading(false)
@@ -201,19 +171,10 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
         const info = await Purchases.getCustomerInfo()
         if (!cancelled) {
           setCustomerInfo(info)
-          rcDiag.record('CUSTOMER_INFO_FETCH', 'ok', {
-            entitlementActive: info.entitlements.active[ENTITLEMENT_ID]?.isActive === true,
-            context: 'identity-sync',
-          })
         }
       } catch (err) {
         const e = err as { name?: string; code?: string | number; message?: string }
         console.warn('[RC] identity sync failed:', e?.message)
-        rcDiag.record('IDENTITY_SYNC_FAIL', 'fail', {
-          name: e?.name,
-          code: e?.code,
-          message: e?.message,
-        })
       }
     })()
     return () => {
@@ -224,25 +185,15 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
   const restorePurchases = useCallback(async (): Promise<CustomerInfo | null> => {
     if (!isConfigured) {
       console.warn('[RC] restorePurchases called in degraded mode; no-op.')
-      rcDiag.record('RESTORE_SKIPPED', 'info', { reason: 'not-configured' })
       return null
     }
-    rcDiag.record('RESTORE_ATTEMPT', 'info', {})
     try {
       const info = await Purchases.restorePurchases()
       setCustomerInfo(info)
-      rcDiag.record('RESTORE_SUCCESS', 'ok', {
-        entitlementActive: info.entitlements.active[ENTITLEMENT_ID]?.isActive === true,
-      })
       return info
     } catch (err) {
       const e = err as { name?: string; code?: string | number; message?: string }
       console.warn('[RC] Restore error:', e?.message)
-      rcDiag.record('RESTORE_FAIL', 'fail', {
-        name: e?.name,
-        code: e?.code,
-        message: e?.message,
-      })
       return null
     }
   }, [isConfigured])
@@ -252,19 +203,9 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
     try {
       const info = await Purchases.getCustomerInfo()
       setCustomerInfo(info)
-      rcDiag.record('CUSTOMER_INFO_FETCH', 'ok', {
-        entitlementActive: info.entitlements.active[ENTITLEMENT_ID]?.isActive === true,
-        context: 'refresh',
-      })
     } catch (err) {
       const e = err as { name?: string; code?: string | number; message?: string }
       console.warn('[RC] Error refreshing customer info:', e?.message)
-      rcDiag.record('CUSTOMER_INFO_FETCH', 'fail', {
-        name: e?.name,
-        code: e?.code,
-        message: e?.message,
-        context: 'refresh',
-      })
     }
   }, [isConfigured])
 

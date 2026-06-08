@@ -1,5 +1,5 @@
 import React from 'react'
-import { View, Text, StyleSheet, Modal, Pressable } from 'react-native'
+import { Text, StyleSheet, Modal, Pressable } from 'react-native'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
 import { COLORS, SPACING, FONT_SIZES } from '../../lib/styles/colors'

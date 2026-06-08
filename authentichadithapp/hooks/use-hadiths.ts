@@ -1,5 +1,15 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase/client'
+import { filterVisibleCollections, HIDDEN_COLLECTION_FILTER } from '../lib/hadith/visibleCollections'
+
+type CollectionRow = {
+  id: string
+  slug: string
+  name_en: string
+  name_ar: string | null
+  description_en: string | null
+  total_hadiths: number | null
+}
 
 export function useCollections() {
   return useQuery({
@@ -9,9 +19,11 @@ export function useCollections() {
         .from('collections')
         .select('*')
         .order('name_en', { ascending: true })
-      
+
       if (error) throw error
-      return data
+      // Drop release-hidden collections (e.g. the thin Musnad Ahmad seed) so no
+      // consumer of this hook ever lists or links to them.
+      return filterVisibleCollections(data as CollectionRow[] | null)
     },
   })
 }
@@ -51,6 +63,9 @@ export function useHadiths(filters?: {
 
       if (filters?.collectionId) {
         query = query.eq('collection_slug', filters.collectionId)
+      } else if (HIDDEN_COLLECTION_FILTER) {
+        // No specific collection requested → exclude release-hidden collections.
+        query = query.not('collection_slug', 'in', HIDDEN_COLLECTION_FILTER)
       }
 
       if (filters?.bookId) {

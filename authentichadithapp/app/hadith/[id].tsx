@@ -24,6 +24,7 @@ import {
   formatHadithReference,
   useCollectionDisplayNames,
 } from '@/lib/hadith/collectionDisplayName'
+import { isHiddenCollection } from '@/lib/hadith/visibleCollections'
 
 // Key Teaching panel gating. The `enriched_hadiths` table holds optional
 // per-hadith insight rows whose authorial provenance has not been documented
@@ -198,7 +199,10 @@ export default function HadithDetailScreen() {
     )
   }
 
-  if (!hadith) {
+  // Defense-in-depth: even if a direct /hadith/[id] is reached for a row in a
+  // release-hidden collection (bypassing the filtered lists), treat it as not
+  // found so no hidden-collection content ever renders.
+  if (!hadith || isHiddenCollection(hadith.collection_slug)) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
         <Text style={[styles.errorText, { color: colors.mutedText }]}>Hadith not found</Text>

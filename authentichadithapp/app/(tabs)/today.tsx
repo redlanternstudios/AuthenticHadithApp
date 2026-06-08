@@ -7,6 +7,7 @@ import {
   Pressable,
   Share,
   RefreshControl,
+  Alert,
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
@@ -23,6 +24,7 @@ import { useDeviceLayout } from '@/lib/hooks/use-device-layout'
 import { trackActivity } from '@/lib/gamification/track-activity'
 import { Hadith } from '@/types/hadith'
 import { getCollectionDisplayName } from '@/lib/hadith/collectionDisplayName'
+import { HIDDEN_COLLECTION_FILTER } from '@/lib/hadith/visibleCollections'
 import { QueryErrorBanner } from '@/components/common/QueryErrorBanner'
 
 const DAILY_ACTIONS = [
@@ -83,23 +85,32 @@ export default function TodayScreen() {
       // UX hardening (FIX-038): only pick rows with non-empty english_text so
       // the Daily Hadith card always renders real text, not the empty-row
       // placeholder. UI guard only; content backfill is a separate ops task.
-      const { count } = await supabase
+      // Exclude release-hidden collections from BOTH the count and the fetch so
+      // the daily card never lands on a hidden-collection hadith and the seeded
+      // offset stays consistent between the two queries.
+      let countQuery = supabase
         .from('hadiths')
         .select('id', { count: 'exact', head: true })
         .eq('grade', 'sahih')
         .not('english_text', 'is', null)
         .neq('english_text', '')
+      if (HIDDEN_COLLECTION_FILTER) {
+        countQuery = countQuery.not('collection_slug', 'in', HIDDEN_COLLECTION_FILTER)
+      }
+      const { count } = await countQuery
       if (!count) return null
 
       const offset = seed % count
-      const { data } = await supabase
+      let rowQuery = supabase
         .from('hadiths')
         .select('*')
         .eq('grade', 'sahih')
         .not('english_text', 'is', null)
         .neq('english_text', '')
-        .range(offset, offset)
-        .single()
+      if (HIDDEN_COLLECTION_FILTER) {
+        rowQuery = rowQuery.not('collection_slug', 'in', HIDDEN_COLLECTION_FILTER)
+      }
+      const { data } = await rowQuery.range(offset, offset).single()
       return data as Hadith | null
     },
   })
@@ -126,17 +137,37 @@ export default function TodayScreen() {
       await Share.share({
         message: `Daily Hadith:\n\n${text}\n\n— ${reference}\n\nShared from Authentic Hadith`,
       })
-      if (user) trackActivity(user.id, 'share')
-    } catch {}
+      if (user) {
+        try {
+          await trackActivity(user.id, 'share')
+        } catch (activityError) {
+          __DEV__ && console.warn('[Today] share activity tracking failed:', activityError)
+        }
+      }
+    } catch (error) {
+      __DEV__ && console.warn('[Today] share failed:', error)
+      Alert.alert('Share Failed', 'Could not open the share sheet. Please try again.')
+    }
   }, [dailyHadith, user])
 
   const handleSave = useCallback(async () => {
     if (!dailyHadith || !user) return
-    await supabase.from('saved_hadiths').upsert({
-      user_id: user.id,
-      hadith_id: dailyHadith.id,
-    })
-    trackActivity(user.id, 'bookmark')
+    try {
+      const { error } = await supabase.from('saved_hadiths').upsert({
+        user_id: user.id,
+        hadith_id: dailyHadith.id,
+      })
+      if (error) throw error
+
+      try {
+        await trackActivity(user.id, 'bookmark')
+      } catch (activityError) {
+        __DEV__ && console.warn('[Today] bookmark activity tracking failed:', activityError)
+      }
+    } catch (error) {
+      __DEV__ && console.warn('[Today] save failed:', error)
+      Alert.alert('Save Failed', 'Could not save this hadith. Please check your connection and try again.')
+    }
   }, [dailyHadith, user])
 
   if (isLoading) return <LoadingSpinner />
@@ -236,7 +267,7 @@ export default function TodayScreen() {
         variant="elevated"
         style={[styles.sunnahCard, { borderLeftColor: colors.goldMid }]}
       >
-        <Text style={[styles.cardEyebrow, { color: colors.goldMid }]}>☀️ TODAY'S SUNNAH</Text>
+        <Text style={[styles.cardEyebrow, { color: colors.goldMid }]}>{"☀️ TODAY'S SUNNAH"}</Text>
         <Text style={[styles.sunnahAction, { color: colors.bronzeText }]}>
           {todayAction.action}
         </Text>

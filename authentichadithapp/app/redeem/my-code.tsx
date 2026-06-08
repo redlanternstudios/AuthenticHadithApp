@@ -82,7 +82,7 @@ export default function MyCodeScreen() {
             </>
           ) : (
             <Text style={[styles.noCode, { color: colors.mutedText }]}>
-              You don't have a referral code yet. Contact support to get one.
+              {"You don't have a referral code yet. Contact support to get one."}
             </Text>
           )}
         </Card>

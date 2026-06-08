@@ -20,11 +20,12 @@ import { LevelProgressBar } from '@/components/gamification/LevelProgressBar';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors';
+import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors';
 import { getLevelInfo } from '@/lib/gamification/level-calculator';
 import { TodayFeaturedSection } from '@/components/home/TodayFeaturedSection';
 import { Hadith } from '@/types/hadith';
 import { QueryErrorBanner } from '@/components/common/QueryErrorBanner';
+import { VISIBLE_COLLECTION_COUNT, VISIBLE_HADITH_TOTAL, HIDDEN_COLLECTION_FILTER } from '@/lib/hadith/visibleCollections';
 
 const QUICK_ACTIONS = [
   { icon: '☀️', label: 'Today', route: '/(tabs)/today' },
@@ -54,20 +55,31 @@ export default function HomeScreen() {
       // Home must not surface a hasan or daif hadith, matching the Daily Hadith
       // filter on Today so both "of the day"/"of the moment" surfaces hold to the
       // authenticity bar the app's name implies.
-      const { count } = await supabase
+      // Exclude release-hidden collections from BOTH the count and the fetch so
+      // the headline "Hadith of the Moment" never surfaces a hidden-collection
+      // hadith and the random offset stays in range.
+      let countQuery = supabase
         .from('hadiths')
         .select('*', { count: 'exact', head: true })
         .eq('grade', 'sahih')
         .not('english_text', 'is', null)
         .neq('english_text', '');
+      if (HIDDEN_COLLECTION_FILTER) {
+        countQuery = countQuery.not('collection_slug', 'in', HIDDEN_COLLECTION_FILTER);
+      }
+      const { count } = await countQuery;
       const total = count || 100;
       const offset = Math.floor(Math.random() * total);
-      const { data, error } = await supabase
+      let rowQuery = supabase
         .from('hadiths')
         .select('*')
         .eq('grade', 'sahih')
         .not('english_text', 'is', null)
-        .neq('english_text', '')
+        .neq('english_text', '');
+      if (HIDDEN_COLLECTION_FILTER) {
+        rowQuery = rowQuery.not('collection_slug', 'in', HIDDEN_COLLECTION_FILTER);
+      }
+      const { data, error } = await rowQuery
         .limit(1)
         .order('id', { ascending: false })
         .range(offset, offset)
@@ -147,7 +159,7 @@ export default function HomeScreen() {
         </Text>
         <Text style={[styles.title, { color: colors.bronzeText }]}>Authentic Hadith</Text>
         <Text style={[styles.subtitle, { color: colors.mutedText }]}>
-          31,886 hadiths from 8 major collections
+          {VISIBLE_HADITH_TOTAL.toLocaleString()} hadiths from {VISIBLE_COLLECTION_COUNT} major collections
         </Text>
       </View>
 
