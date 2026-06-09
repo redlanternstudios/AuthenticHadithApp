@@ -18,6 +18,39 @@
 
 import { createClient } from '@supabase/supabase-js'
 
+// ── In-memory rate limiter ───────────────────────────────────────────────────
+// Max 3 attempts per IP per 15-minute window. Stored in process memory so it
+// resets on server restart (acceptable — this is a last-ditch DoS guard, not
+// a billing control). A distributed store (Redis/Upstash) is the right call
+// if this ever moves to a multi-instance deployment.
+const RATE_LIMIT_MAX = 3
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000 // 15 minutes
+
+interface RateLimitEntry {
+  count: number
+  windowStart: number
+}
+
+const rateLimitMap = new Map<string, RateLimitEntry>()
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now()
+  const entry = rateLimitMap.get(ip)
+
+  if (!entry || now - entry.windowStart > RATE_LIMIT_WINDOW_MS) {
+    // New window
+    rateLimitMap.set(ip, { count: 1, windowStart: now })
+    return false
+  }
+
+  if (entry.count >= RATE_LIMIT_MAX) {
+    return true
+  }
+
+  entry.count += 1
+  return false
+}
+
 // Build a one-off admin client per request — service role key stays server-side only.
 function makeAdminClient() {
   const url = process.env.SUPABASE_URL
@@ -37,6 +70,21 @@ function makeAdminClient() {
 
 export async function POST(request: Request) {
   try {
+    // ── 0. Rate limit check ──────────────────────────────────────────────────
+    // Use X-Forwarded-For when behind a proxy/CDN; fall back to a sentinel so
+    // the limiter still works in local dev even without a real IP header.
+    const ip =
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+      request.headers.get('x-real-ip') ??
+      'unknown'
+
+    if (isRateLimited(ip)) {
+      return Response.json(
+        { error: 'Too many requests. Please wait 15 minutes before trying again.' },
+        { status: 429 },
+      )
+    }
+
     // ── 1. Extract Bearer token ──────────────────────────────────────────────
     const authHeader = request.headers.get('Authorization') ?? ''
     const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null
