@@ -152,6 +152,15 @@ These cannot be automated. Each must be completed before `eas submit` is run.
 
 ---
 
+## Reviewer Enablement
+
+| Item | Status | Notes |
+|---|---|---|
+| `docs/appstore/DEMO_ACCOUNT.sql` created | [HUMAN-ONLY] | KP must run in Supabase SQL Editor. Must also grant "premium" Promotional Entitlement in RevenueCat dashboard to App User ID `00000000-0000-0000-0000-000000000001` before review opens. |
+| `docs/appstore/REVIEW_NOTES.md` created | [DONE-CODE] | Contains demo credentials, paywall navigation steps, AI model details, safeguards, disclaimer locations, and reviewer notes. |
+
+---
+
 ## Reference
 
 - Bundle ID: `com.byred.authentichadith`
