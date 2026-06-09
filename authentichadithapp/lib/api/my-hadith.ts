@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase/client'
-import type { HadithFolder, SavedHadithWithNotes, FolderCollaborator } from '@/types/my-hadith'
+import type { HadithFolder, SavedHadithWithNotes } from '@/types/my-hadith'
 
 // Folders
 export async function getUserFolders(userId: string) {

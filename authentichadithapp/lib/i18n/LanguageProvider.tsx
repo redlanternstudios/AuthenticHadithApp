@@ -1,8 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { I18nManager } from 'react-native'
 import { loadLanguagePreference, saveLanguagePreference, LanguageCode } from '../storage/language-storage'
-import { initI18n } from './i18n'
-import i18n from './i18n'
+import i18n, { initI18n } from './i18n'
 
 interface LanguageContextType {
   language: LanguageCode

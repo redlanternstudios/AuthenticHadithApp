@@ -2,7 +2,7 @@ import { Dimensions, Platform } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { BREAKPOINTS, LAYOUT } from '@/lib/styles/colors'
 
-const { width: INITIAL_WIDTH } = Dimensions.get('window')
+Dimensions.get('window') // pre-warm the measurement cache for layout hooks below
 
 /**
  * Centralised layout hook — use this in every screen instead of

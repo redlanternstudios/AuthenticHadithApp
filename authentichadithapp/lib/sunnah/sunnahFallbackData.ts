@@ -21,8 +21,6 @@
  * deployed app's own Hadith collection lookup.
  */
 
-import type { ComponentProps } from 'react'
-
 export interface FallbackSunnahCategory {
   id: string
   title: string

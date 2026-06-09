@@ -10,14 +10,14 @@ import { ENTITLEMENT_ID, PRODUCT_IDS, getRevenueCatApiKey } from '../revenuecat/
 
 export { ENTITLEMENT_ID, PRODUCT_IDS } from '../revenuecat/config'
 
-// Lazy import — will fail gracefully if SDK not installed yet
+// Lazy import — will fail gracefully if SDK not installed yet.
+// require() inside try/catch is the only way to conditionally load a native module.
 let Purchases: typeof import('react-native-purchases').default | null = null
-let PurchasesPackageType: any = null
 
 try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const mod = require('react-native-purchases')
   Purchases = mod.default
-  PurchasesPackageType = mod.PACKAGE_TYPE
 } catch {
   // SDK not installed — all functions below will return safe defaults.
   __DEV__ && console.warn('[RC] react-native-purchases not installed. IAP disabled.')

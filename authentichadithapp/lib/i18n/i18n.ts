@@ -17,11 +17,13 @@ export function initI18n(initialLanguage: 'en' | 'ar' = 'en') {
   if (i18n.isInitialized) {
     // Already initialized — just change language
     if (i18n.language !== initialLanguage) {
+      // eslint-disable-next-line import/no-named-as-default-member
       i18n.changeLanguage(initialLanguage)
     }
     return
   }
 
+  // eslint-disable-next-line import/no-named-as-default-member
   i18n
     .use(initReactI18next)
     .init({

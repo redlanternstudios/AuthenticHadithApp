@@ -129,6 +129,9 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
         }
       }
     }
+    // Intentionally omits user?.id — mount-once init; the retry useEffect below
+    // handles user?.id transitions with bounded retry logic.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runPostConfigure])
 
   // Bounded retry: if the mount-time configure failed (e.g. user?.id was not
