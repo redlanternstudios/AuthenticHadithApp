@@ -9,6 +9,10 @@ import { SettingsItem } from '@/components/settings/SettingsItem';
 /**
  * Main settings screen
  * Navigation hub for all app settings and preferences
+ *
+ * v1.0 note: Language (Arabic/i18n) row is intentionally hidden.
+ * Full i18n is deferred to v1.1 — the settings/language screen and
+ * LanguageProvider remain in the codebase for future use.
  */
 export default function SettingsScreen() {
   const { isDark } = useTheme();
@@ -47,15 +51,11 @@ export default function SettingsScreen() {
             showArrow
             onPress={() => router.push('/settings/appearance')}
             isFirst
-          />
-          <SettingsItem
-            icon="language"
-            title="Language"
-            subtitle="App language and translations"
-            showArrow
-            onPress={() => router.push('/settings/language')}
             isLast
           />
+          {/* Language row hidden for v1.0 — Arabic/RTL i18n deferred to v1.1.
+              Remove this comment and restore the SettingsItem when wiring t()
+              across all screens in a future release. */}
         </SettingsSection>
 
         <SettingsSection title="Data & Sync">
