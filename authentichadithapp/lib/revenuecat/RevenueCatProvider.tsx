@@ -67,7 +67,7 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
       setCustomerInfo(info)
     } catch (err) {
       const e = err as { name?: string; code?: string | number; message?: string }
-      console.warn('[RC] getCustomerInfo failed (non-fatal):', e?.message)
+      __DEV__ && console.warn('[RC] getCustomerInfo failed (non-fatal):', e?.message)
     }
 
     try {
@@ -77,7 +77,7 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
       }
     } catch (err) {
       const e = err as { name?: string; code?: string | number; message?: string }
-      console.warn('[RC] getOfferings failed (non-fatal):', e?.message)
+      __DEV__ && console.warn('[RC] getOfferings failed (non-fatal):', e?.message)
     }
 
     if (!listenerAttachedRef.current) {
@@ -111,7 +111,7 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
         await runPostConfigure()
       } catch (err) {
         const e = err instanceof Error ? err : new Error(String(err))
-        console.warn('[RC] Configure error:', e.message)
+        __DEV__ && console.warn('[RC] Configure error:', e.message)
         setError(e)
       } finally {
         setIsLoading(false)
@@ -174,7 +174,7 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
         }
       } catch (err) {
         const e = err as { name?: string; code?: string | number; message?: string }
-        console.warn('[RC] identity sync failed:', e?.message)
+        __DEV__ && console.warn('[RC] identity sync failed:', e?.message)
       }
     })()
     return () => {
@@ -184,7 +184,7 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
 
   const restorePurchases = useCallback(async (): Promise<CustomerInfo | null> => {
     if (!isConfigured) {
-      console.warn('[RC] restorePurchases called in degraded mode; no-op.')
+      __DEV__ && console.warn('[RC] restorePurchases called in degraded mode; no-op.')
       return null
     }
     try {
@@ -193,7 +193,7 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
       return info
     } catch (err) {
       const e = err as { name?: string; code?: string | number; message?: string }
-      console.warn('[RC] Restore error:', e?.message)
+      __DEV__ && console.warn('[RC] Restore error:', e?.message)
       return null
     }
   }, [isConfigured])
@@ -205,7 +205,7 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
       setCustomerInfo(info)
     } catch (err) {
       const e = err as { name?: string; code?: string | number; message?: string }
-      console.warn('[RC] Error refreshing customer info:', e?.message)
+      __DEV__ && console.warn('[RC] Error refreshing customer info:', e?.message)
     }
   }, [isConfigured])
 
