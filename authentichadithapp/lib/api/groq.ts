@@ -1,4 +1,3 @@
-import Constants from 'expo-constants'
 import { API_CONFIG } from '@/lib/supabase/client'
 import { checkInputSafety } from '@/lib/islamic-safety-filter'
 

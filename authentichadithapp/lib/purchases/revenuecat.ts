@@ -10,17 +10,17 @@ import { ENTITLEMENT_ID, PRODUCT_IDS, getRevenueCatApiKey } from '../revenuecat/
 
 export { ENTITLEMENT_ID, PRODUCT_IDS } from '../revenuecat/config'
 
-// Lazy import — will fail gracefully if SDK not installed yet
+// Lazy import — will fail gracefully if SDK not installed yet.
+// require() inside try/catch is the only way to conditionally load a native module.
 let Purchases: typeof import('react-native-purchases').default | null = null
-let PurchasesPackageType: any = null
 
 try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const mod = require('react-native-purchases')
   Purchases = mod.default
-  PurchasesPackageType = mod.PACKAGE_TYPE
 } catch {
   // SDK not installed — all functions below will return safe defaults.
-  console.warn('[RC] react-native-purchases not installed. IAP disabled.')
+  __DEV__ && console.warn('[RC] react-native-purchases not installed. IAP disabled.')
 }
 
 // ─── Types ───
@@ -66,7 +66,7 @@ export async function configureRevenueCat(supabaseUserId?: string): Promise<bool
         await Purchases.logIn(supabaseUserId)
       } catch (err) {
         const e = err as { name?: string; code?: string | number; message?: string }
-        console.warn('[RC] logIn failed (already-configured):', e?.message)
+        __DEV__ && console.warn('[RC] logIn failed (already-configured):', e?.message)
       }
     }
     return true
@@ -75,21 +75,21 @@ export async function configureRevenueCat(supabaseUserId?: string): Promise<bool
   const { apiKey, source } = getRevenueCatApiKey()
 
   if (!apiKey) {
-    console.warn('[RC] No public SDK key for this platform; degraded mode.')
+    __DEV__ && console.warn('[RC] No public SDK key for this platform; degraded mode.')
     return false
   }
 
   try {
     Purchases.configure({ apiKey })
     if (source === 'hardcoded-ios-public-fallback') {
-      console.warn('[RC] Using hardcoded iOS public SDK key fallback.')
+      __DEV__ && console.warn('[RC] Using hardcoded iOS public SDK key fallback.')
     }
     // Per Build #17 design: flip isConfigured immediately after configure() succeeds,
     // BEFORE logIn(). If logIn fails, identifyUser() can still run later.
     isConfigured = true
   } catch (err) {
     const e = err as { name?: string; code?: string | number; message?: string }
-    console.warn('[RC] configure() threw:', e?.message)
+    __DEV__ && console.warn('[RC] configure() threw:', e?.message)
     return false
   }
 
@@ -98,7 +98,7 @@ export async function configureRevenueCat(supabaseUserId?: string): Promise<bool
       await Purchases.logIn(supabaseUserId)
     } catch (err) {
       const e = err as { name?: string; code?: string | number; message?: string }
-      console.warn('[RC] logIn failed (post-configure):', e?.message)
+      __DEV__ && console.warn('[RC] logIn failed (post-configure):', e?.message)
     }
   }
 
@@ -117,7 +117,7 @@ export async function identifyUser(supabaseUserId: string): Promise<void> {
     await Purchases.logIn(supabaseUserId)
   } catch (err) {
     const e = err as { name?: string; code?: string | number; message?: string }
-    console.warn('[RC] identifyUser logIn failed:', e?.message)
+    __DEV__ && console.warn('[RC] identifyUser logIn failed:', e?.message)
   }
 }
 
@@ -133,7 +133,7 @@ export async function resetUser(): Promise<void> {
     await Purchases.logOut()
   } catch (err) {
     const e = err as { name?: string; code?: string | number; message?: string }
-    console.warn('[RC] resetUser logOut failed:', e?.message)
+    __DEV__ && console.warn('[RC] resetUser logOut failed:', e?.message)
   }
 }
 

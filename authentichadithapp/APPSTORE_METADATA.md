@@ -16,7 +16,7 @@ hadith,islam,quran,sunnah,bukhari,muslim,islamic,learn,arabic,daily,prayer,dua,p
 Discover and study authentic hadiths from the most trusted collections in Islamic scholarship.
 
 WHAT YOU GET:
-- Browse hadiths from Sahih al-Bukhari, Sahih Muslim, and other major collections with full Arabic text and English translations
+- Browse hadiths from the Sahihayn — Sahih al-Bukhari and Sahih Muslim, the two most rigorously authenticated collections in Islamic scholarship — with full Arabic text and English translations
 - AI-powered hadith assistant that answers your questions with scholarly context
 - Daily hadith readings to build a consistent learning habit
 - Save, organize, and annotate hadiths in personal folders
@@ -26,7 +26,7 @@ WHAT YOU GET:
 - Dark mode, light mode, and multiple language preferences
 
 WHY AUTHENTIC HADITH:
-Hadiths in the app are sourced from established scholarly collections including Sahih al-Bukhari, Sahih Muslim, and other recognized compilations. Our grading system helps you understand the authenticity level of each hadith at a glance.
+Hadiths in the app are sourced exclusively from the Sahihayn — Sahih al-Bukhari and Sahih Muslim. These are the two most rigorously authenticated hadith collections in Islamic scholarship, agreed upon by the Ummah for over 1,000 years. No grading ambiguity. No disputed chains. Only the most authentic.
 
 The AI assistant provides context and background, not religious rulings (fatwa). It helps you explore hadith meaning, historical context, and connections between narrations while encouraging you to consult qualified scholars for matters of jurisprudence.
 

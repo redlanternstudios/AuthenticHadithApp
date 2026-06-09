@@ -11,6 +11,7 @@ import {
   isRevenueCatConfigured,
   type SubscriptionStatus,
 } from '@/lib/purchases/revenuecat';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 
 // RevenueCat purchase errors expose richer fields than `.message`. Prefer them
 // so users see something actionable instead of a catch-all fallback.
@@ -27,7 +28,7 @@ function extractPurchaseError(err: any, fallback: string): string {
   return fallback;
 }
 
-export default function SubscriptionScreen() {
+function SubscriptionScreenInner() {
   const { isDark } = useTheme();
   const colors = getColors(isDark);
   const [offerings, setOfferings] = useState<any>(null);
@@ -237,3 +238,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
   },
 });
+
+export default function SubscriptionScreen() {
+  return (
+    <ErrorBoundary>
+      <SubscriptionScreenInner />
+    </ErrorBoundary>
+  );
+}

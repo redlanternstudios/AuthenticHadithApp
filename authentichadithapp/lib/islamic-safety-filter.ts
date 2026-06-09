@@ -124,14 +124,14 @@ const RULING_REQUEST_PATTERNS: RegExp[] = [
 ]
 
 export function checkInputSafety(
-  messages: Array<{ role: string; content: string }>,
+  messages: { role: string; content: string }[],
 ): SafetyCheckResult {
   const userMessages = messages.filter((m) => m.role === "user")
   if (userMessages.length === 0) return { allowed: true }
 
   const latestContent = userMessages[userMessages.length - 1].content
 
-  const checks: Array<[RegExp[], SafetyCategory]> = [
+  const checks: [RegExp[], SafetyCategory][] = [
     [PROMPT_INJECTION_PATTERNS, "prompt_injection"],
     [BLASPHEMY_PATTERNS, "blasphemy"],
     [EXTREMISM_PATTERNS, "extremism"],

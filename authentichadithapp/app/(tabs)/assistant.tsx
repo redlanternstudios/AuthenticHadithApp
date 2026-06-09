@@ -6,6 +6,7 @@ import { useTheme } from '@/lib/theme/ThemeProvider';
 import { usePremiumStatus } from '@/hooks/usePremiumStatus';
 import { ChatMessage, sendChatMessage, AI_REQUEST_FAILED } from '@/lib/api/groq';
 import { Ionicons } from '@expo/vector-icons';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 
 const MAX_INPUT_LENGTH = 500;
 const FREE_DAILY_LIMIT = 3;
@@ -26,7 +27,7 @@ function getTodayKey() {
   return new Date().toISOString().split('T')[0];
 }
 
-export default function AssistantScreen() {
+function AssistantScreenInner() {
   const { isDark } = useTheme();
   const colors = getColors(isDark);
   const { isPremium } = usePremiumStatus();
@@ -453,3 +454,11 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
 });
+
+export default function AssistantScreen() {
+  return (
+    <ErrorBoundary>
+      <AssistantScreenInner />
+    </ErrorBoundary>
+  );
+}
