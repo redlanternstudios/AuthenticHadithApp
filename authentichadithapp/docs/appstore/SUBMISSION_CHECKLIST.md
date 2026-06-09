@@ -1,6 +1,8 @@
 # Submission Checklist — Authentic Hadith v1.0
 
-Generated: 2026-06-09 | Branch: release/appstore-ready-v1.0
+Generated: 2026-06-09 | Branch: release/appstore-ready-v1.0 | Last updated: 2026-06-09 (GAP 1+2 closed)
+
+**CODE VERDICT: GO. All automated gates closed. PR #28 holds for KP human-only review and merge.**
 
 ---
 
@@ -28,6 +30,12 @@ Current manifest in `app.json:26-48` covers all required-reason APIs for this de
 **ATT (App Tracking Transparency):** No `requestTrackingAuthorization` or `ATTrackingManager` calls found in codebase (grep confirmed zero matches). `NSPrivacyTracking: false` in app.json is correct. No ATT prompt, no NSUserTrackingUsageDescription needed.
 
 Receipt: `app.json:26-48` read and verified 2026-06-09.
+
+**Physical file receipt (2026-06-09):**
+- File present: `authentichadithapp/ios/AuthenticHadith/PrivacyInfo.xcprivacy` (48 lines, plist format, all 4 API categories + NSPrivacyTracking=false + NSPrivacyCollectedDataTypes=[])
+- pbxproj file reference: `14BBB2C22DA81FCE83797FA4 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = AuthenticHadith/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };`
+- pbxproj build file (Copy Bundle Resources): `D11106C3C2017F5EB59D161B /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 14BBB2C22DA81FCE83797FA4 /* PrivacyInfo.xcprivacy */; };`
+- Build type: **CNG/Expo prebuild** — `ios.privacyManifests` in `app.json:26-48` drives generation; `ios/` directory is a committed prebuild output. Both the source config and the emitted file are present and consistent.
 
 ---
 
@@ -127,6 +135,39 @@ eas submit --platform ios --profile production
 The `--profile production` flag ensures EAS uses the ascAppId `6764673665` from `eas.json:33` for auto-submission routing.
 
 Receipt: `eas.json:1-36` and `app.json:85-92` read and verified 2026-06-09.
+
+---
+
+### C6 — Test Suite (all 4 required suites + full regression)
+
+**Status: Verified — 82/82 tests passing.**
+
+Runner: `npm test -- --watchAll=false --forceExit` executed 2026-06-09 from `authentichadithapp/`.
+
+| Suite | File | Result |
+|---|---|---|
+| delete-account | `__tests__/delete-account.test.ts` | PASS |
+| mobile-chat | `__tests__/mobile-chat.test.ts` | PASS |
+| revenuecat | `__tests__/revenuecat.test.ts` | PASS |
+| ai-safeguards | `__tests__/ai-safeguards.test.ts` | PASS |
+| navigation | `__tests__/navigation/route-integrity.test.ts` | PASS |
+| groq-api | `__tests__/ai/groq-api.test.ts` | PASS |
+| supabase client | `__tests__/supabase/client.test.ts` | PASS |
+| login-screen | `__tests__/auth/login-screen.test.tsx` | PASS |
+| error-boundary | `__tests__/ui/error-boundary.test.tsx` | PASS |
+| auth-provider | `__tests__/auth/auth-provider.test.tsx` | PASS |
+
+**Runner summary (verbatim):**
+```
+Test Suites: 10 passed, 10 total
+Tests:       82 passed, 82 total
+Snapshots:   0 total
+Time:        3.612 s
+```
+
+No skipped tests. No mocks missing. console.error/info lines are expected log output from the route logic under test, not failures.
+
+Receipt: terminal output 2026-06-09, `npm test -- --watchAll=false --forceExit`.
 
 ---
 
