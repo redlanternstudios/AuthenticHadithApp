@@ -53,10 +53,11 @@ VALUES (
   'authenticated',
   'authenticated',
   'apple.reviewer@authentichadith.app',
-  -- bcrypt hash of 'AppleReview2026!'
-  -- KP: generate via: SELECT crypt('AppleReview2026!', gen_salt('bf'));
-  -- and replace the placeholder below with the real hash before running.
-  '$2a$10$PLACEHOLDER_REPLACE_WITH_REAL_BCRYPT_HASH_OF_AppleReview2026',
+  -- Password hashed inline via pgcrypto. No placeholder, no two-step.
+  -- Supabase ships pgcrypto enabled; crypt()+gen_salt('bf') = bcrypt hash GoTrue accepts.
+  -- If you hit "function crypt does not exist", prefix with the schema: extensions.crypt(...).
+  -- Rotate this password after each review cycle.
+  crypt('AppleReview2026!', gen_salt('bf')),
   now(),
   now(),
   now(),

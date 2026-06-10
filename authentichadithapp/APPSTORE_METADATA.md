@@ -4,7 +4,7 @@
 Authentic Hadith
 
 ## Subtitle (max 30 chars)
-Daily Hadith & AI Scholar Guide
+Daily Hadith, AI Scholar Guide
 
 ## Promotional Text (max 170 chars, can change anytime without review)
 Explore authentic hadiths with AI-powered guidance, daily readings, structured learning paths, and gamified progress tracking. Start your journey today.

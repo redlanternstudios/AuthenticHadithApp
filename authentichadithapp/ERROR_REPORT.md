@@ -7,7 +7,7 @@
 
 ## CURRENT ERROR
 
-**Status**: 🔴 ACTIVE — CONTENT INTEGRITY review open (see top section). BUG-A resolved-by-hide for V1 (FIX-060); BUG-B resolved 2026-06-05; BUG-C still open (backend deploy).
+**Status**: 🔴 ACTIVE — CONTENT INTEGRITY review open (see top section). BUG-A resolved-by-hide for V1 (FIX-060); BUG-B resolved 2026-06-05; BUG-C RESOLVED 2026-06-09 (FIX-062 — AI route deployed to prod, verified HTTP 200 + real response).
 
 ---
 

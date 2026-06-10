@@ -1,0 +1,77 @@
+{
+  "generatedAt": "2026-06-09T02:35:49.097Z",
+  "overall": "NO-GO",
+  "automated": {
+    "checks": [
+      {
+        "name": "app.json has expo.ios.buildNumber",
+        "pass": true,
+        "blocking": true,
+        "evidence": "buildNumber=5"
+      },
+      {
+        "name": "eas.json has production autoIncrement enabled",
+        "pass": true,
+        "blocking": true,
+        "evidence": "autoIncrement=true"
+      },
+      {
+        "name": "eas.json has submit.production.ios.ascAppId",
+        "pass": true,
+        "blocking": true,
+        "evidence": "ascAppId=6764673665"
+      },
+      {
+        "name": "ios Info.plist contains CFBundleVersion",
+        "pass": true,
+        "blocking": true,
+        "evidence": "CFBundleVersion=5"
+      },
+      {
+        "name": "build number aligned between app.json and Info.plist",
+        "pass": true,
+        "blocking": true,
+        "evidence": "app.json=5 vs Info.plist=5"
+      }
+    ],
+    "failureCount": 0
+  },
+  "manualSignals": {
+    "findings": [
+      {
+        "name": "Gate F Ready to Submit line remains unchecked",
+        "blocking": true,
+        "pending": true,
+        "evidence": "PRE_TESTFLIGHT_READINESS_GATE.md still contains: | All three products status = Ready to Submit (not Missing Metadata) | [ ] |"
+      },
+      {
+        "name": "Gate G RoPhone paywall proof remains unchecked",
+        "blocking": true,
+        "pending": true,
+        "evidence": "PRE_TESTFLIGHT_READINESS_GATE.md still contains: | Subscription / paywall screen can fetch offerings on RoPhone (no \"no offerings configured\" error) | [ ] |"
+      },
+      {
+        "name": "Gate G restore purchases proof remains unchecked",
+        "blocking": true,
+        "pending": true,
+        "evidence": "PRE_TESTFLIGHT_READINESS_GATE.md still contains: | Restore Purchases path reachable from Profile / Settings | [ ] |"
+      },
+      {
+        "name": "Go or no-go doc still marked NO-GO",
+        "blocking": true,
+        "pending": true,
+        "evidence": "IOS_SUBMISSION_GO_NO_GO.md still contains: NO-GO for App Store submission."
+      }
+    ],
+    "pendingCount": 4
+  },
+  "summary": {
+    "automatedBlockingFailures": [],
+    "manualBlockingPending": [
+      "Gate F Ready to Submit line remains unchecked",
+      "Gate G RoPhone paywall proof remains unchecked",
+      "Gate G restore purchases proof remains unchecked",
+      "Go or no-go doc still marked NO-GO"
+    ]
+  }
+}

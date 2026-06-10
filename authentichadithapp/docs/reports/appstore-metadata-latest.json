@@ -1,0 +1,52 @@
+{
+  "generatedAt": "2026-06-09T02:35:42.518Z",
+  "overall": "PASS",
+  "checks": [
+    {
+      "name": "App Name <= 30 chars",
+      "pass": true,
+      "evidence": "len=16"
+    },
+    {
+      "name": "Subtitle <= 30 chars",
+      "pass": true,
+      "evidence": "len=30"
+    },
+    {
+      "name": "Promotional Text <= 170 chars",
+      "pass": true,
+      "evidence": "len=152"
+    },
+    {
+      "name": "Keywords <= 100 chars",
+      "pass": true,
+      "evidence": "len=96"
+    },
+    {
+      "name": "Keywords contain no spaces after commas",
+      "pass": true,
+      "evidence": "pattern=comma_no_space"
+    },
+    {
+      "name": "Support URL starts with https://",
+      "pass": true,
+      "evidence": "https://byredllc.com"
+    },
+    {
+      "name": "Marketing URL starts with https://",
+      "pass": true,
+      "evidence": "https://byredllc.com"
+    },
+    {
+      "name": "Privacy Policy URL starts with https://",
+      "pass": true,
+      "evidence": "https://byredllc.com/privacy"
+    },
+    {
+      "name": "RevenueCat product IDs present in metadata",
+      "pass": true,
+      "evidence": "missing=none"
+    }
+  ],
+  "failedChecks": []
+}
