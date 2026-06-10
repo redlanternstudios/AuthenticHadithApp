@@ -34,6 +34,18 @@ const COLLECTION_DISPLAY: Record<string, string> = {
   'musnad-ahmad': 'Musnad Ahmad',
 }
 
+// Narrator names arrive from the DB with transliteration marks ("Ibn `Umar",
+// "Abu Hurayrah's") while the decoy list is plain ASCII. Compare on a
+// normalized form so the same companion never appears twice as an option.
+function normalizeNarratorName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[`'’‘ʿʾ.]/g, '')
+    .replace(/[-_]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 function generateQuestions(hadiths: Hadith[]): QuizQuestion[] {
   const questions: QuizQuestion[] = []
 
@@ -47,8 +59,9 @@ function generateQuestions(hadiths: Hadith[]): QuizQuestion[] {
 
     if (type === 0 && hadith.narrator && hadith.narrator.trim().length > 0) {
       // Narrator question
+      const correctNarrator = normalizeNarratorName(hadith.narrator)
       const wrongNarrators = ['Abu Hurairah', 'Aisha', 'Ibn Umar', 'Anas bin Malik', 'Jabir', 'Ibn Abbas']
-        .filter((n) => n !== hadith.narrator)
+        .filter((n) => normalizeNarratorName(n) !== correctNarrator)
       const shuffled = wrongNarrators.sort(() => Math.random() - 0.5).slice(0, 3)
       const options = [...shuffled, hadith.narrator].sort(() => Math.random() - 0.5)
       questions.push({
@@ -307,7 +320,7 @@ export default function QuizScreen() {
                 <Text style={styles.resultIcon}>
                   {answers[i] === q.correctIndex ? '✅' : '❌'}
                 </Text>
-                <Text style={[styles.resultQuestion, { color: colors.bronzeText }]} numberOfLines={1}>
+                <Text style={[styles.resultQuestion, { color: colors.bronzeText }]}>
                   Q{i + 1}: {q.question.split('\n')[0]}
                 </Text>
               </View>
