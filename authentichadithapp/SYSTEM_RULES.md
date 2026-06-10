@@ -898,6 +898,53 @@ Update this list when a new alias is identified.
 
 ---
 
+## Rule 034: Verify Reviewer & Gated-Feature Readiness Against PRODUCTION — Never Trust a Readiness Doc
+
+A "GO" in a checklist, audit, or readiness doc is a CLAIM, not a receipt. Before declaring the app submittable — and specifically before trusting that the Apple reviewer can log in and see premium — you MUST prove the live, production state of every gated path with a real network call. Docs drift from reality; reality is the only source of truth.
+
+This rule was born 2026-06-09 (FIX-063). Every readiness doc said the reviewer enablement was "DONE-CODE" with the demo account and entitlement listed as human-only follow-ups. In production, NEITHER existed: the demo account login returned `Invalid login credentials` (the SQL was written but never run) and the RevenueCat `premium` entitlement was never granted (zero entitlements on the user). The bug "couldn't be fixed for weeks" because everyone trusted the doc that said the path was ready — nobody hit the live endpoints to confirm. The fix took minutes once the live probe exposed the truth.
+
+### The reviewer-readiness verification loop (run before EVERY submission)
+
+Run these against production. PASS means a real receipt, not a checkbox.
+
+1. **Login works** — POST the demo credentials to GoTrue and confirm a token is issued:
+   ```
+   POST {SUPABASE_URL}/auth/v1/token?grant_type=password
+   headers: apikey: {ANON}
+   body:    {"email":"apple.reviewer@authentichadith.app","password":"<current>"}
+   PASS = response has access_token (+ note email_confirmed). FAIL = account missing / unconfirmed / wrong password.
+   ```
+2. **Premium is granted** — GET the reviewer's RevenueCat subscriber and confirm the `premium` entitlement is active:
+   ```
+   GET https://api.revenuecat.com/v1/subscribers/{reviewer_app_user_id}
+   headers: Authorization: Bearer {RC_SECRET}   (public SDK key also works for read)
+   PASS = subscriber.entitlements.premium present & active. FAIL = entitlements empty.
+   ```
+   The `reviewer_app_user_id` is the Supabase auth UUID — the app links them via `Purchases.logIn(supabaseUserId)` in `RevenueCatProvider`. Grant the entitlement to the SAME uuid the account actually has, not a hardcoded placeholder UUID from a doc.
+3. **AI / backend path answers** — probe the deployed endpoint, not the local file:
+   ```
+   POST https://www.authentichadith.app/api/mobile-chat  -> must NOT be 404 (see FIX-062)
+   ```
+4. **Profile row exists with the REAL schema** — `profiles` uses `name` + `user_id`, NOT `username`. Confirm the row is present (service-role read).
+
+### Fixing readiness, not just diagnosing it
+
+When a probe FAILS, fix the live state with the supported admin path, then RE-RUN the same probe to prove green:
+- Create / repair the reviewer auth user: GoTrue admin API `POST|PUT {SUPABASE_URL}/auth/v1/admin/users[/{id}]` with the service-role key (`email_confirm:true`, set password). This beats raw `auth.users` SQL — it hashes the password and confirms email correctly.
+- Grant premium: `POST https://api.revenuecat.com/v1/subscribers/{uuid}/entitlements/premium/promotional` with `{"duration":"lifetime"}` and the RC secret key.
+
+### Forbidden
+
+- Declaring "reviewer can log in" / "premium shows" / "ready to submit" without a live token-issued + entitlement-active receipt from THIS run.
+- Trusting a readiness/audit doc's "DONE" or "GO" over a production probe. The doc is a hypothesis; the probe is the test.
+- Granting an entitlement to a placeholder UUID from a doc without confirming it matches the account's actual auth UUID.
+- Assuming a route file in the repo is deployed. Different repo (web vs Expo) and unmerged branches mean the file can exist locally and 404 in prod (FIX-062).
+
+This rule is the generalization of Rule 033 (prove the pipe before you fill it) applied to release gating: prove the gate is open against production before you tell anyone it is.
+
+---
+
 ## Rule 033: Prove the Pipe Before You Fill It — Canary-Verify Every Batch / Paid Operation End-to-End
 
 Before any at-scale or paid operation — mass DB writes, LLM/AI inference loops, paid-API fan-out — you MUST prove the entire pipeline works on ONE item, including the actual WRITE and a read-back against ground truth, before spending money or tokens at scale. Order operations so the cheap validation runs before the expensive generation. Never pay for output that has nowhere to land.

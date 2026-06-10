@@ -70,11 +70,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
     if (error) throw error
 
-    // Keep this aligned with the live Supabase `profiles` schema.
+    // Live `profiles` schema (verified 2026-06-09, see SCHEMA_PROFILES.md + Golden Rule #2):
+    // columns are `name` (NOT username/full_name) and `user_id` is NOT NULL.
+    // The app reads/writes a profile by `user_id` (see revenuecat.ts), so it MUST
+    // equal the auth uid. FIX-064 — wrong columns here previously broke all signup.
     if (data.user) {
       const { error: profileError } = await supabase.from('profiles').insert({
         id: data.user.id,
-        username: fullName?.trim() || email.split('@')[0],
+        user_id: data.user.id,
+        name: fullName?.trim() || email.split('@')[0],
         avatar_url: null,
         role: 'user',
       })

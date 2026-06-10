@@ -85,13 +85,16 @@ export default function OnboardingScreen() {
 
     setLoading(true)
     try {
+      // Live `profiles` schema: `name` (NOT full_name), `user_id` NOT NULL and is the
+      // key the app reads by. FIX-064 — full_name/missing user_id broke onboarding save.
       await supabase
         .from('profiles')
         .upsert({
           id: user.id,
-          full_name: data.name,
+          user_id: user.id,
+          name: data.name,
           school_of_thought: data.schoolOfThought || null,
-        })
+        }, { onConflict: 'user_id' })
 
       await supabase
         .from('user_preferences')

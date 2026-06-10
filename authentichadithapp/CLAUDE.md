@@ -245,3 +245,17 @@ Never run these without KP approval:
 - Any version upgrade of React, React Native, or Expo
 - Any command that deletes generated native folders
 - Any command that rewrites native project structure
+
+---
+
+## Release Gating: Verify Reviewer Readiness Against Production (NON-NEGOTIABLE)
+
+Before telling KP the app is submittable — or that the Apple reviewer can log in and see premium — you MUST prove it against PRODUCTION with live network calls. A readiness doc that says "GO" is a claim, not a receipt. See `SYSTEM_RULES.md` **Rule 034** for the full loop and the exact admin/grant commands.
+
+The minimum live receipts before any "ready to submit" statement:
+
+1. **Reviewer login** — `POST {SUPABASE_URL}/auth/v1/token?grant_type=password` with the demo credentials returns an `access_token`. FAIL = account never created.
+2. **Premium entitlement** — `GET https://api.revenuecat.com/v1/subscribers/{auth_uuid}` shows the `premium` entitlement active. FAIL = never granted in RevenueCat.
+3. **Deployed backend** — `POST https://www.authentichadith.app/api/mobile-chat` is NOT 404 (the AI backend lives in the SEPARATE `v0-authentic-hadith` web repo, deploys from its `main`; a route file in THIS repo proves nothing — see `BUILD_FIX_LOG.md` FIX-062).
+
+If a probe fails, fix the live state (GoTrue admin API / RevenueCat promotional grant), then re-run the same probe to prove green. Never trust the doc over the probe.

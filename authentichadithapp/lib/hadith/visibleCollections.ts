@@ -7,9 +7,13 @@ export const HIDDEN_COLLECTION_SLUGS: readonly string[] = [
   "muwatta-malik",
 ];
 
-// Sahihayn only: Sahih al-Bukhari (7,277) + Sahih al-Muslim (7,167) = 14,444
+// Sahihayn only: Sahih al-Bukhari + Sahih Muslim.
+// Headline reflects ACTUAL VIEWABLE hadiths (non-blank english_text), not raw row
+// count. Raw rows = 14,444; 212 are blank and filtered from every surface, so the
+// honest user-facing total is 14,232. Verified via service-role count 2026-06-09
+// (see SYSTEM_RULES Rule 034 — the claim must match production; app is "Authentic Hadith").
 export const VISIBLE_COLLECTION_COUNT = 2;
-export const VISIBLE_HADITH_TOTAL = 14_444;
+export const VISIBLE_HADITH_TOTAL = 14_232;
 
 export function isHiddenCollection(slug: string | null | undefined): boolean {
   return !!slug && HIDDEN_COLLECTION_SLUGS.includes(slug);

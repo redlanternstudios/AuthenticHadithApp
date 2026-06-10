@@ -29,6 +29,7 @@ The #1 recurring bug (6 occurrences). Code was written against an ASSUMED schema
 - Text columns: `english_text`, `arabic_text` (NOT english_translation, text_en, text_ar)
 - Name columns: `name_en`, `name_ar` (NOT name)
 - Grade column: `grade` (NOT grading)
+- **`profiles` columns: `name` (NOT `username`, NOT `full_name`) + `user_id` is NOT NULL and is the read key (NOT `id`).** Broke all signup/onboarding in FIX-064 — full map in `docs/SCHEMA_PROFILES.md`.
 - Alias columns exist on: achievements (name, description), user_stats (xp, hadiths_read, quizzes_completed, lessons_completed, sunnah_streak, perfect_quizzes), user_streaks (active_days)
 - PostgREST does NOT error on non-existent filter columns. It silently returns zero results.
 
@@ -90,6 +91,52 @@ Before any EAS build:
 -->
 
 ## FIXES
+
+### [FIX-064] — New-user signup + onboarding broke: `profiles` writes used non-existent columns + omitted NOT-NULL `user_id`
+**Date**: 2026-06-09 PT
+**Pattern category**: Column Names — Trust the DB, Not the Code (Golden Rule #2, 7th occurrence → see canonical `docs/SCHEMA_PROFILES.md`)
+**Root cause**: App code drifted from the live `profiles` schema. `AuthProvider.signUp` inserted `username` and `app/onboarding.tsx` upserted `full_name` — NEITHER column exists (real column is `name`) — and both omitted `user_id`, which is **NOT NULL** and is the column the app reads by (`revenuecat.ts` does `.eq('user_id', authUid)`). Result: every real signup threw `PGRST204 could not find 'username'` / onboarding threw on `full_name`; even past that, `23502` NOT-NULL on `user_id`. The Apple reviewer was unaffected (existing account), so it hid behind the reviewer path — but real users could not register or finish onboarding.
+**Files changed**:
+- `lib/auth/AuthProvider.tsx` — insert `{ id, user_id: data.user.id, name, avatar_url, role }` (was `username`, no `user_id`).
+- `app/onboarding.tsx` — upsert `{ id, user_id, name, school_of_thought }` with `{ onConflict: 'user_id' }` (was `full_name`, no `user_id`).
+- `docs/SCHEMA_PROFILES.md` — NEW canonical live-schema reference (read before any profile code).
+**Verification (receipts, 2026-06-09)**:
+- `tsc --noEmit` → exit 0.
+- Broken-shape canary → `400 / 23502` (NOT NULL user_id) + `PGRST204` (no `username`).
+- **Fixed-shape end-to-end**: admin-created a real throwaway auth user → `POST profiles {id,user_id,name,avatar_url,role}` → `201` → profile resolvable by `user_id` → cleaned up (user + cascade). PASS.
+- Logged-in features as the real reviewer session: own-profile read, saved_hadiths/hadith_folders/user_stats/user_streaks/user_preferences/reflections reads, save→read-back→unsave CRUD, AI assistant → all PASS.
+**Lesson learned**: Probe the live `profiles` schema (Rule 032) before writing it; the columns are `name` + NOT-NULL `user_id`, and `user_id` (not `id`) is the app's read key. Canonical map now in `docs/SCHEMA_PROFILES.md` so this never loops again.
+
+### [FIX-063] — Apple reviewer could not log in + premium never granted (readiness doc claimed "DONE", production said otherwise)
+**Date**: 2026-06-09 PT
+**Pattern category**: Release gating / doc-vs-reality drift (→ promoted to SYSTEM_RULES Rule 034)
+**Root cause**: Every readiness/audit doc listed the demo reviewer account and the RevenueCat `premium` grant as completed-or-trivial follow-ups. In production NEITHER was true: `POST /auth/v1/token` with the documented demo credentials returned `Invalid login credentials` (DEMO_ACCOUNT.sql was authored but never executed), and the reviewer's RevenueCat subscriber had ZERO entitlements (promotional `premium` never granted). The bug "couldn't be fixed for weeks" because the docs asserted readiness and nobody probed the live endpoints.
+**Files changed**: none in app code (operational/production-data fix). Docs: `SYSTEM_RULES.md` (+Rule 034), `CLAUDE.md` (+Release Gating section), this log.
+**Exact fix applied** (production, via supported admin APIs, service-role + RC-secret from env):
+- Reviewer auth user already existed (uuid `a1433858-cdce-4dbe-9a83-26ecb0022979`, NOT the doc's placeholder `00000000-…-001`) but had a non-matching password / unconfirmed email. Reset via GoTrue admin: `PUT {SUPABASE_URL}/auth/v1/admin/users/{uuid}` `{password, email_confirm:true}`.
+- Granted premium: `POST https://api.revenuecat.com/v1/subscribers/{uuid}/entitlements/premium/promotional` `{"duration":"lifetime"}` → HTTP 201.
+- Created the `profiles` row with the REAL schema (`id`, `user_id`, `name`, `role`) — the doc/SQL used a non-existent `username` column.
+**Verification (receipts, 2026-06-09)**:
+- `[1] LOGIN` → PASS, access_token issued, email_confirmed.
+- `[2] PREMIUM` → PASS, `premium` entitlement ACTIVE (expires 2226 = effective lifetime).
+- `[3] PROFILE` → row created via service role (RLS hides it from anon — expected).
+**Lesson learned**: A "GO" in a readiness doc is a hypothesis; only a live production probe is a receipt. Reviewer login (GoTrue password grant) and premium (RC subscriber API) must be proven green against prod before any "ready to submit" claim. See Rule 034.
+**Related find (NOT fixed — locked file, needs KP approval)**: `lib/auth/AuthProvider.tsx:77` inserts `username` into `profiles`, but the live schema column is `name`. New-user signup currently throws `PGRST204 could not find 'username' column`. One-line fix (`username` → `name`) but `lib/auth/` is in the hard-locked zone — escalated, awaiting approval.
+
+### [FIX-062] — BUG-C resolved: AI assistant 404 in production (mobile-chat route never deployed)
+**Date**: 2026-06-09 PT
+**Pattern category**: Deploy drift / backend-frontend sync (recurring — see FIX-037 / FIX-038 / FIX-045; endpoint has dropped 3+ times → promote to a SYSTEM_RULE)
+**Root cause**: The mobile app calls `POST ${baseUrl}/api/mobile-chat` (`lib/api/groq.ts:39`, baseUrl → `https://www.authentichadith.app`). That route is served by the SEPARATE web repo `redlanternstudios/v0-authentic-hadith` (Vercel, deploys from `main`). The route fix existed only on an unpushed/unmerged branch — PR #60 (`fix/restore-mobile-chat-route`, commit 343afde) was OPEN, so `origin/main` never had the route → production returned HTTP 404. The route source itself was correct.
+**Files changed**: none in this (Expo) repo. Web repo: merged PR #60 → `app/api/mobile-chat/route.ts` (1 file, 49 lines) onto `main`.
+**Exact fix applied**:
+- Verified route correctness first: it calls `generateText({ model: "openai/gpt-4o-mini" })` via AI SDK v6 gateway — identical to the already-LIVE sibling routes `/api/chat` and `/api/summarize` in the same web repo, so the gateway/OpenAI access was already provisioned in prod (no env work needed).
+- `gh pr merge 60 --merge` on `redlanternstudios/v0-authentic-hadith` → route landed on `main`.
+- Vercel auto-deployed from `main`.
+**Verification (receipts, 2026-06-09)**:
+- Pre-fix live probe: `POST https://www.authentichadith.app/api/mobile-chat` → 404.
+- Post-deploy (landed 20:26:37 PT): same endpoint → **HTTP 200**.
+- Real call returned valid `{"response": "<310-char answer citing Qur'an 17:23>"}` — exact shape `lib/api/groq.ts:69` requires (`typeof data.response === 'string'`).
+**Lesson learned**: The AI backend lives in a DIFFERENT repo (web) than the mobile client. A correct route file in the Expo repo's `app/api/` is inert — it never deploys anywhere. Always verify the route exists on the WEB repo's deployed branch (`origin/main` of `v0-authentic-hadith`) AND that production returns non-404, not just that the file exists locally. The stale BUG-C note named the wrong repo (`rsemeah/AuthenticHadithApp`); the actual prod backend is `redlanternstudios/v0-authentic-hadith`.
 
 ### [FIX-047] — Learning Paths Red Banner on Build #14 (Audit Entry — Code Already Closed by FIX-044)
 **Date**: 2026-05-24 PT (~22:35 PT)
