@@ -92,6 +92,16 @@ Before any EAS build:
 
 ## FIXES
 
+### [FIX-068] — PremiumGate rendered silent blank space while RevenueCat resolved (pre-Build-24 hardening)
+**Date**: 2026-06-10 PT
+**Pattern category**: SILENT_NULL_RENDER (Rule 005 family)
+**Root cause**: `components/premium/PremiumGate.tsx` returned `null` while `usePremiumStatus().isLoading` was true. On a slow reviewer network the entire gated section (e.g. premium Learning Paths block) rendered as blank space until the RC entitlement check resolved — looks like a broken screen. Provider itself is sound: `RevenueCatProvider` clears `isLoading` in `finally` and degrades gracefully, so no infinite stall — only the blank window.
+**Files changed**: `components/premium/PremiumGate.tsx` — loading state now renders a centered `ActivityIndicator` instead of `null`.
+**Verification**: `npx tsc --noEmit` exit 0; `npx eslint components/premium/PremiumGate.tsx` exit 0. Quiz generator guard audit (same pass): already double-layered — query filters `.not('english_text','is',null).neq('english_text','')` + same for narrator (app/quiz.tsx:145-148) AND in-loop `if (!hadith.english_text || !hadith.english_text.trim()) continue` (app/quiz.tsx:68) — no change needed. Entitlement ID confirmed centralized as `premium` in `lib/revenuecat/config.ts:20` (a "rc_promo_premium_lifetime" key named in planning docs does NOT exist in code).
+**Lesson learned**: Every gate component's loading branch must render something visible. Audit `return null` on any `isLoading` branch before a release build.
+
+---
+
 ### [FIX-067] — Quiz active-card hadith text still truncating mid-word with ellipsis (Build 23 device QA)
 **Date**: 2026-06-10 PT
 **Pattern category**: DATA_VS_LAYOUT_MISDIAGNOSIS — the truncation was IN the string, not in the render

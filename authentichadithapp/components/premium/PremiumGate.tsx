@@ -1,5 +1,5 @@
 import React from 'react'
-import { Text, StyleSheet, Modal, Pressable } from 'react-native'
+import { Text, StyleSheet, Modal, Pressable, ActivityIndicator, View } from 'react-native'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
 import { COLORS, SPACING, FONT_SIZES } from '../../lib/styles/colors'
@@ -17,7 +17,13 @@ export function PremiumGate({ feature, description, children }: PremiumGateProps
   const [showPaywall, setShowPaywall] = React.useState(false)
 
   if (isLoading) {
-    return null
+    // Visible loading state — a silent `return null` left the gated section as
+    // blank space on slow networks (Rule 005: no silent null renders).
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="small" color={COLORS.emeraldMid} />
+      </View>
+    )
   }
 
   if (isPremium) {
@@ -59,6 +65,11 @@ export function PremiumGate({ feature, description, children }: PremiumGateProps
 }
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: SPACING.xl,
+  },
   lockedCard: {
     alignItems: 'center',
     padding: SPACING.xl,
