@@ -36,6 +36,29 @@ interface SunnahPractice {
   description_ar: string
 }
 
+// The live sunnah_categories.icon column stores Lucide icon NAMES ("Moon",
+// "HandHeart"), not emoji — rendering them raw clips to "Moo"/"Han" inside the
+// 44px circle. Map every name in production to an emoji; values that are
+// already emoji (bundled fallback data) pass through untouched.
+const ICON_NAME_TO_EMOJI: Record<string, string> = {
+  Clock: '🕐',
+  HandHeart: '🤲',
+  Heart: '❤️',
+  Home: '🏠',
+  MapPin: '📍',
+  Moon: '🌙',
+  Star: '⭐',
+  Users: '👥',
+  Utensils: '🍽️',
+}
+
+function resolveCategoryIcon(icon: string | null | undefined): string {
+  if (!icon) return '📿'
+  // Pure-ASCII value = an icon name from the DB, never a renderable emoji.
+  if (/^[A-Za-z]+$/.test(icon)) return ICON_NAME_TO_EMOJI[icon] || '📿'
+  return icon
+}
+
 function getDayOfYear(): number {
   const now = new Date()
   const start = new Date(now.getFullYear(), 0, 0)
@@ -172,7 +195,7 @@ export default function SunnahScreen() {
                 ]}
               >
                 <Text style={styles.categoryIconText}>
-                  {category.icon || '📿'}
+                  {resolveCategoryIcon(category.icon)}
                 </Text>
               </View>
               <View style={styles.categoryInfo}>

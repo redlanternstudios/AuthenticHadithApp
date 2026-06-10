@@ -6,6 +6,7 @@ import { useTheme } from '@/lib/theme/ThemeProvider';
 import { usePremiumStatus } from '@/hooks/usePremiumStatus';
 import { ChatMessage, sendChatMessage, AI_REQUEST_FAILED } from '@/lib/api/groq';
 import { Ionicons } from '@expo/vector-icons';
+import Markdown from 'react-native-markdown-display';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 
 const MAX_INPUT_LENGTH = 500;
@@ -64,6 +65,27 @@ function AssistantScreenInner() {
   }, [messages]);
 
   const isAtLimit = !isPremium && freeUsed >= FREE_DAILY_LIMIT;
+
+  // Markdown typography for AI bubbles — white text on chatAiBubble, gold accents
+  // for headers per the premium theme. Built from getColors per Rule 017.
+  const markdownStyles = {
+    body: { color: colors.white, fontSize: FONT_SIZES.base, lineHeight: 20 },
+    paragraph: { marginTop: 0, marginBottom: SPACING.sm },
+    heading1: { color: colors.goldHighlight, fontSize: FONT_SIZES.xl, fontWeight: '700' as const, marginBottom: SPACING.xs },
+    heading2: { color: colors.goldHighlight, fontSize: FONT_SIZES.lg, fontWeight: '700' as const, marginBottom: SPACING.xs },
+    heading3: { color: colors.goldHighlight, fontSize: FONT_SIZES.md, fontWeight: '700' as const, marginBottom: SPACING.xs },
+    strong: { fontWeight: '700' as const },
+    em: { fontStyle: 'italic' as const },
+    bullet_list: { marginBottom: SPACING.sm },
+    ordered_list: { marginBottom: SPACING.sm },
+    list_item: { marginBottom: SPACING.xs },
+    code_inline: { backgroundColor: 'rgba(0,0,0,0.25)', color: colors.white, borderRadius: 4, paddingHorizontal: 4 },
+    fence: { backgroundColor: 'rgba(0,0,0,0.25)', color: colors.white, borderRadius: BORDER_RADIUS.sm, padding: SPACING.sm, borderWidth: 0 },
+    code_block: { backgroundColor: 'rgba(0,0,0,0.25)', color: colors.white, borderRadius: BORDER_RADIUS.sm, padding: SPACING.sm, borderWidth: 0 },
+    blockquote: { backgroundColor: 'rgba(0,0,0,0.15)', borderColor: colors.goldMid, paddingHorizontal: SPACING.sm, marginBottom: SPACING.sm },
+    link: { color: colors.goldHighlight, textDecorationLine: 'underline' as const },
+    hr: { backgroundColor: 'rgba(255,255,255,0.3)', marginVertical: SPACING.sm },
+  };
 
   const persistQuota = async (newCount: number) => {
     setFreeUsed(newCount);
@@ -198,7 +220,13 @@ function AssistantScreenInner() {
                     {message.role === 'user' ? 'You' : 'AI Assistant'}
                   </Text>
                 </View>
-                <Text style={[styles.messageContent, { color: colors.white }]}>{message.content}</Text>
+                {message.role === 'assistant' ? (
+                  // AI responses arrive as markdown (**bold**, ### headers, - lists);
+                  // render them instead of showing raw syntax. User messages stay plain.
+                  <Markdown style={markdownStyles}>{message.content}</Markdown>
+                ) : (
+                  <Text style={[styles.messageContent, { color: colors.white }]}>{message.content}</Text>
+                )}
               </View>
             ))
           )}

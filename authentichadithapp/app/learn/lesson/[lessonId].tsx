@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, View, Text, ScrollView , View as RNView, Text as RNText } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase/client';
 import { Card } from '@/components/ui/Card';
@@ -15,7 +15,9 @@ import { trackActivity } from '@/lib/gamification/track-activity';
 import { getStaticLesson } from '@/lib/learning/staticLearningContent';
 
 export default function LessonDetailScreen() {
-  const { lessonId } = useLocalSearchParams<{ lessonId: string }>();
+  const params = useLocalSearchParams<{ lessonId: string }>();
+  // Normalize string | string[] so the query guard and progress hook never see junk.
+  const lessonId = typeof params.lessonId === 'string' && params.lessonId.length > 0 ? params.lessonId : undefined;
   const router = useRouter();
   const { user } = useAuth();
   const { isDark } = useTheme();
@@ -43,13 +45,19 @@ export default function LessonDetailScreen() {
   });
 
   if (isLoading) {
-    return <LoadingSpinner />;
+    return (
+      <>
+        <Stack.Screen options={{ title: 'Lesson' }} />
+        <LoadingSpinner />
+      </>
+    );
   }
 
   if (!lesson) {
     // Intentional empty state — replaces silent `return null` (Rule 005).
     return (
       <View style={[styles.notFoundContainer, { backgroundColor: colors.background }]}>
+        <Stack.Screen options={{ title: 'Lesson' }} />
         <Text style={styles.notFoundEmoji}>🔍</Text>
         <Text style={[styles.notFoundTitle, { color: colors.bronzeText }]}>Lesson not found</Text>
         <Text style={[styles.notFoundText, { color: colors.mutedText }]}>
@@ -66,6 +74,8 @@ export default function LessonDetailScreen() {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Real lesson title in the nav header — never the route literal "[lessonId]". */}
+      <Stack.Screen options={{ title: lesson.title }} />
       <View style={styles.content}>
         <Button
           title="← Back"

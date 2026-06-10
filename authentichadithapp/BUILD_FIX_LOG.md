@@ -92,6 +92,28 @@ Before any EAS build:
 
 ## FIXES
 
+### [FIX-066] — App Store submission UI batch: Learning Path header leak, hadith count vs listing, AI raw markdown, Sunnah icon names, quiz narrator dupes (+ Muslim "1527" audit)
+**Date**: 2026-06-10 PT
+**Pattern category**: SPEC_COVERAGE_GAP + Column Names/Data Shape — Trust the DB, Not the Code (Golden Rule #2)
+**Root cause** (5 sub-items, one EAS-bound batch on `release/appstore-ready-v1.0`):
+1. **`[pathId]`/`[lessonId]` leaking in nav header** — no `app/learn/_layout.tsx` exists, so both learn screens are direct children of the root Stack and rendered the DEFAULT header with the raw route literal as title. The root `_layout.tsx` `<Stack.Screen name="learn" options={{headerShown:false}}/>` matches nothing (no such screen name without a learn layout). Neither screen set `<Stack.Screen options={{title}}/>`. Also `[pathId].tsx` had no `enabled` guard, so the lessons query could fire with `undefined`.
+2. **Home count 14,232 vs App Store listing 14,444** — `VISIBLE_HADITH_TOTAL` was set to the blank-filtered viewable count (14,232); KP directive 2026-06-10: headline must match listing copy (corpus 14,444). The home screen was ALREADY constant-driven; the `count:'exact'` query in `index.tsx` is the random-offset picker for Hadith of the Moment, NOT the displayed total — left intact deliberately.
+3. **AI chat raw markdown** — `assistant.tsx:201` rendered `message.content` in a plain `<Text>`; Groq responses contain `**bold**`/`###`/lists.
+4. **Sunnah rows showing "Moor"/"Hanc"** — live `sunnah_categories.icon` stores Lucide icon NAMES (probe receipt: Clock, HandHeart, Heart, Home, MapPin, Moon, Star, Users, Utensils), not emoji; the 44px circle clipped the words. Bundled fallback data uses emoji, which is why local fallback looked fine. Quiz: results row had `numberOfLines={1}` (ellipsis clipping) and the narrator decoy filter compared raw strings, so DB "Ibn \`Umar" sat next to hardcoded decoy "Ibn Umar" as a phonetic duplicate.
+5. **Muslim #1527 "truncation"** — NOT a bug. DB text matches the canonical Siddiqui translation verbatim: sunnah.com/muslim:670c reads "…no mention has been made of, enough"." (the variant narration omits the word "enough"). DB hadith_number 1527 = sunnah.com in-book ref 670c (numbering differs). Systemic-but-cosmetic: terminal punctuation is stripped from english_text tails across rows (1526/1527/1528 all end without "."). No data patch required; optional readability patch documented in session report.
+**Files changed**:
+- `app/learn/[pathId].tsx` — param normalization (string|string[]), `enabled:!!pathId` on both queries, new `learning_paths` title query, `<Stack.Screen options={{title:pathTitle}}/>` in both render branches, header text bound to real path title.
+- `app/learn/lesson/[lessonId].tsx` — param normalization, `<Stack.Screen>` title = lesson.title (loading/not-found/loaded branches). `content` column verified live (lessons columns: content/created_at/description/estimated_minutes/id/order_index/title). Mark-as-Complete already gated post-load.
+- `lib/hadith/visibleCollections.ts` — `VISIBLE_HADITH_TOTAL` 14_232 → 14_444 + comment documenting the 212-blank-row integrity caveat.
+- `app/(tabs)/assistant.tsx` — `react-native-markdown-display@^7.0.2` (installed via `npx expo install`, pure-JS, no native module), assistant bubbles render `<Markdown>` with dark-theme styles from `getColors` (Rule 017); user bubbles + both disclaimers untouched.
+- `app/sunnah.tsx` — `ICON_NAME_TO_EMOJI` map + `resolveCategoryIcon()` (ASCII name → emoji, emoji passthrough).
+- `app/quiz.tsx` — removed `numberOfLines={1}` on results row; `normalizeNarratorName()` (strips backticks/apostrophes/ʿ/ʾ, collapses whitespace, lowercases) used in decoy filter.
+- `package.json` / `package-lock.json` — react-native-markdown-display added.
+**Verification**: `npx tsc --noEmit` exit 0; `npx eslint` over all 6 changed files exit 0. Live Supabase probes (anon REST) for lessons/learning_paths/sunnah_categories schemas and Muslim 1526–1528 text. sunnah.com 670a/b/c fetched for canonical comparison.
+**Lesson learned**: (1) A dynamic-route header leak means no layout owns the screen — check for a missing `_layout.tsx` before touching the screen. (2) "Remove the COUNT query" style instructions in a punch list can be stale — classify what a query actually feeds before deleting it. (3) Icon columns are a data SHAPE contract: probe the live values (Rule 032), don't trust the bundled fallback to mirror production. (4) A "truncated translation" claim against a hadith corpus must be grounded against the canonical source before patching — the source itself can be the odd one.
+
+---
+
 ### [FIX-064] — New-user signup + onboarding broke: `profiles` writes used non-existent columns + omitted NOT-NULL `user_id`
 **Date**: 2026-06-09 PT
 **Pattern category**: Column Names — Trust the DB, Not the Code (Golden Rule #2, 7th occurrence → see canonical `docs/SCHEMA_PROFILES.md`)

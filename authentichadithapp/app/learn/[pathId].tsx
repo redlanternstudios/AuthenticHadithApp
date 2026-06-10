@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, View, Text, FlatList, Pressable } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase/client';
 import { Card } from '@/components/ui/Card';
@@ -12,10 +12,29 @@ import { Lesson } from '@/types/hadith';
 import { getStaticLessonsForPath } from '@/lib/learning/staticLearningContent';
 
 export default function LearningPathDetailScreen() {
-  const { pathId } = useLocalSearchParams<{ pathId: string }>();
+  const params = useLocalSearchParams<{ pathId: string }>();
+  // Expo Router can hand back string | string[]; normalize so queries never fire with junk.
+  const pathId = typeof params.pathId === 'string' && params.pathId.length > 0 ? params.pathId : undefined;
   const router = useRouter();
   const { isDark } = useTheme();
   const colors = getColors(isDark);
+
+  const { data: path } = useQuery({
+    queryKey: ['learning-path', pathId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('learning_paths')
+        .select('id, title, subtitle')
+        .eq('id', pathId!)
+        .maybeSingle();
+      if (error) {
+        __DEV__ && console.warn('[Learn:pathId] path title fetch failed (non-fatal):', error.message);
+        return null;
+      }
+      return data;
+    },
+    enabled: !!pathId,
+  });
 
   const { data: lessons, isLoading } = useQuery({
     queryKey: ['path-lessons', pathId],
@@ -26,7 +45,7 @@ export default function LearningPathDetailScreen() {
           *,
           path_lessons!inner(learning_path_id)
         `)
-        .eq('path_lessons.learning_path_id', pathId)
+        .eq('path_lessons.learning_path_id', pathId!)
         .order('order_index');
 
       if (error) {
@@ -43,21 +62,31 @@ export default function LearningPathDetailScreen() {
       }
       return (data?.length ? data : getStaticLessonsForPath(pathId)) as Lesson[];
     },
+    enabled: !!pathId,
   });
 
+  const pathTitle = path?.title ?? 'Lessons';
+
   if (isLoading) {
-    return <LoadingSpinner />;
+    return (
+      <>
+        <Stack.Screen options={{ title: pathTitle }} />
+        <LoadingSpinner />
+      </>
+    );
   }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Binds the real path name to the nav header so the route literal "[pathId]" never leaks. */}
+      <Stack.Screen options={{ title: pathTitle }} />
       <View style={styles.header}>
         <Button
           title="← Back"
           onPress={() => router.back()}
           variant="ghost"
         />
-        <Text style={[styles.title, { color: colors.bronzeText }]}>Lessons</Text>
+        <Text style={[styles.title, { color: colors.bronzeText }]}>{pathTitle}</Text>
       </View>
 
       <FlatList
