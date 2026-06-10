@@ -46,6 +46,18 @@ function normalizeNarratorName(name: string): string {
     .trim()
 }
 
+// Excerpt the hadith for the question card: cut at a word boundary near
+// EXCERPT_MAX chars and append an ellipsis ONLY when text was actually
+// truncated — never a mid-word cut like "(he meant garl...".
+const EXCERPT_MAX = 300
+function excerptHadith(text: string): string {
+  const t = text.trim()
+  if (t.length <= EXCERPT_MAX) return t
+  const cut = t.slice(0, EXCERPT_MAX)
+  const lastSpace = cut.lastIndexOf(' ')
+  return (lastSpace > 0 ? cut.slice(0, lastSpace) : cut).replace(/[,;:.\s]+$/, '') + '…'
+}
+
 function generateQuestions(hadiths: Hadith[]): QuizQuestion[] {
   const questions: QuizQuestion[] = []
 
@@ -65,7 +77,7 @@ function generateQuestions(hadiths: Hadith[]): QuizQuestion[] {
       const shuffled = wrongNarrators.sort(() => Math.random() - 0.5).slice(0, 3)
       const options = [...shuffled, hadith.narrator].sort(() => Math.random() - 0.5)
       questions.push({
-        question: `Who narrated this hadith?\n\n"${(hadith.english_text || '').slice(0, 120)}..."`,
+        question: `Who narrated this hadith?\n\n"${excerptHadith(hadith.english_text || '')}"`,
         options,
         correctIndex: options.indexOf(hadith.narrator),
         explanation: `This hadith was narrated by ${hadith.narrator}.`,
@@ -82,7 +94,7 @@ function generateQuestions(hadiths: Hadith[]): QuizQuestion[] {
         .slice(0, 3)
       const options = [...wrongCollections, correct].sort(() => Math.random() - 0.5)
       questions.push({
-        question: `Which collection contains this hadith?\n\n"${(hadith.english_text || '').slice(0, 120)}..."`,
+        question: `Which collection contains this hadith?\n\n"${excerptHadith(hadith.english_text || '')}"`,
         options,
         correctIndex: options.indexOf(correct),
         explanation: `This hadith is from ${correct}.`,
@@ -93,7 +105,7 @@ function generateQuestions(hadiths: Hadith[]): QuizQuestion[] {
       const correct = (hadith.grade && gradeDisplay[hadith.grade]) || 'Sahih (Authentic)'
       const options = Object.values(gradeDisplay).sort(() => Math.random() - 0.5)
       questions.push({
-        question: `What is the grade of this hadith?\n\n"${(hadith.english_text || '').slice(0, 120)}..."`,
+        question: `What is the grade of this hadith?\n\n"${excerptHadith(hadith.english_text || '')}"`,
         options,
         correctIndex: options.indexOf(correct),
         explanation: `This hadith is graded as ${correct}.`,
