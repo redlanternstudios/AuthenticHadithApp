@@ -92,6 +92,16 @@ Before any EAS build:
 
 ## FIXES
 
+### [FIX-067] — Quiz active-card hadith text still truncating mid-word with ellipsis (Build 23 device QA)
+**Date**: 2026-06-10 PT
+**Pattern category**: DATA_VS_LAYOUT_MISDIAGNOSIS — the truncation was IN the string, not in the render
+**Root cause**: Build 23 device QA showed question cards ending "...(he meant garl...". FIX-066 removed `numberOfLines={1}` from the RESULTS rows, but the active card was never layout-clipped: the question `<Text>` (quiz.tsx) has no numberOfLines and no style height caps, and the screen root is a ScrollView. The ellipsis is baked into the string by `generateQuestions()` — all 3 question types built the prompt with `english_text.slice(0, 120) + '..."'`, a hard character cut that lands mid-word and appends "..." even when the text is shorter than 120 chars.
+**Files changed**: `app/quiz.tsx` — added `excerptHadith()` (EXCERPT_MAX 300, word-boundary cut, trailing punctuation stripped, `…` appended ONLY when actually truncated); replaced the 3 inline `.slice(0, 120)}..."` sites (narrator/collection/grade questions) with the helper.
+**Verification**: `npx tsc --noEmit` exit 0; `npx eslint app/quiz.tsx` exit 0; node sanity harness — 599-char input → 300-char output ending "…" cut at a word boundary (tail receipt `"d word word…"`), 29-char input returned unchanged with no ellipsis. On-device state Unknown until the next build (Build 24) is QA'd.
+**Lesson learned**: When text "truncates with ellipses", check whether the ellipsis is a layout artifact (`numberOfLines`/height caps) or a literal character in the data/string-builder BEFORE touching styles. Grep for `slice(`/`substring(`/`'...'` in the generator first — a render fix can't repair a string that arrives pre-truncated.
+
+---
+
 ### [FIX-066] — App Store submission UI batch: Learning Path header leak, hadith count vs listing, AI raw markdown, Sunnah icon names, quiz narrator dupes (+ Muslim "1527" audit)
 **Date**: 2026-06-10 PT
 **Pattern category**: SPEC_COVERAGE_GAP + Column Names/Data Shape — Trust the DB, Not the Code (Golden Rule #2)
