@@ -92,6 +92,36 @@ Before any EAS build:
 
 ## FIXES
 
+### [FIX-071] — Root layout hid splash before Supabase auth hydrated, causing FOUC on cold boot
+**Date**: 2026-06-10 PT
+**Pattern category**: ASYNC_LIFECYCLE_GAP — context module ready ≠ context module mounted
+**Root cause**: `app/_layout.tsx` called `SplashScreen.hideAsync()` the moment fonts resolved (`fontsLoaded || fontError`), without waiting for `AuthProvider` to complete its `supabase.auth.getSession()` call. Worse, the font-loading early-return path (`if (!fontsLoaded && !fontError) return <ActivityIndicator />`) exited before mounting the provider tree at all — so `AuthProvider` was never instantiated while the font fallback was visible. When fonts loaded and the provider tree mounted for the first time, the auth session and theme hadn't settled, producing unstyled content flash (FOUC) and asymmetric layout shifts. The font-fallback `View` also had no brand styling (default white background), making the transition jarring on the `#121212` dark-bg app.
+**Files changed**: `app/_layout.tsx` — (1) `useState/useCallback/useRef` added to React imports; `useAuth` added to `AuthProvider` import. (2) New `AppReadySignal` component placed inside `AuthProvider` tree — fires `onReady` callback via `useEffect` once `authLoading` transitions to false (guarded by a `firedRef` so it fires exactly once per session). (3) `RootLayout` now tracks `authReady` state; `hideAsync()` gates on `(fontsLoaded || fontError) && authReady` — splash stays up until BOTH conditions are true. (4) Provider tree mounts unconditionally (no early return before `<ErrorBoundary>`), so auth and RC can start hydrating in parallel with font loading. (5) Font-loading fallback is now inline inside the provider tree with brand styling: `backgroundColor: '#121212'`, `color: '#4caf84'` emerald spinner.
+**Verification**: `npx tsc --noEmit` exit 0 (commit 0476fa8). On-device splash retention Unknown until Build 25 device QA.
+**Lesson learned**: Never gate `SplashScreen.hideAsync()` on a single async condition when multiple providers need to settle before first meaningful render. Always mount providers unconditionally so they can start resolving in parallel. Brand-match every loading fallback to the app's dark bg — a white flash between splash and first frame is a UX red flag.
+
+---
+
+### [FIX-070] — PremiumGate brand skeleton lacks theme-aware background (white flash on dark mode)
+**Date**: 2026-06-10 PT
+**Pattern category**: SILENT_NULL_RENDER upgrade — spinner present but unthemed container
+**Root cause**: FIX-068 added an `ActivityIndicator` to replace the `null` return on RC `isLoading`, but the `loadingContainer` `View` had no `backgroundColor`. On the `#121212` dark-bg theme the spinner floated over whatever the parent's background was (could be white on first render), producing a brief white flash. Also, `ActivityIndicator` used the static `COLORS` export (light-mode values) rather than the live theme — on dark mode `COLORS.emeraldMid` is the light-mode shade (`#1b5e43`), which is too dark to be legible against a dark bg.
+**Files changed**: `components/premium/PremiumGate.tsx` — added `getColors` to colors import; added `useTheme` import from `ThemeProvider`; component now calls `const { isDark } = useTheme()` and `const colors = getColors(isDark)`; `loadingContainer` receives `backgroundColor: colors.background` inline; `ActivityIndicator` color changed to `colors.emeraldMid` (resolves to `#3a9270` dark / `#1b5e43` light). Entitlement key: `premium` confirmed (no `rc_promo_premium_lifetime` in codebase).
+**Verification**: `npx tsc --noEmit` exit 0 (commit 0476fa8). Visual regression on dark-mode device Unknown until Build 25 device QA.
+**Lesson learned**: Any loading container that sits over a themed surface must carry an explicit `backgroundColor` from the design system — unstyled fallback containers produce flash artefacts.
+
+---
+
+### [FIX-069] — Quiz generateQuestions() null guard for empty english_text rows (verification pass)
+**Date**: 2026-06-10 PT
+**Pattern category**: VERIFICATION_PASS — guard already present, no mutation required
+**Root cause**: Mission spec requested injection of `if (!hadith.english_text || hadith.english_text.trim().length === 0) { continue; }` inside the `generateQuestions()` loop to block 212 untranslated rows from reaching quiz UI. Codebase audit found the guard already present at `app/quiz.tsx:68` (comment: "FIX-038 defense-in-depth"), functionally identical: `if (!hadith.english_text || !hadith.english_text.trim()) continue`. The upstream query also double-layers: `.not('english_text','is',null).neq('english_text','')` (app/quiz.tsx:145-148). No code change needed — guard is shipping.
+**Files changed**: None.
+**Verification**: `grep -n 'english_text' app/quiz.tsx` confirms guard at line 68. `npx tsc --noEmit` exit 0.
+**Lesson learned**: Before injecting a guard, grep for functionally equivalent logic first. Re-adding an existing guard can introduce duplicate `continue` paths and muddy the diff history.
+
+---
+
 ### [FIX-068] — PremiumGate rendered silent blank space while RevenueCat resolved (pre-Build-24 hardening)
 **Date**: 2026-06-10 PT
 **Pattern category**: SILENT_NULL_RENDER (Rule 005 family)
