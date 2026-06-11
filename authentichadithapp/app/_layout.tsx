@@ -42,7 +42,9 @@ function AppContent() {
   return (
     <NavigationThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
       <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        {/* title here is the BACK label on every screen pushed from the tabs —
+            without it iOS renders the route-group literal "(tabs)". */}
+        <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'Home' }} />
         <Stack.Screen name="auth" options={{ headerShown: false }} />
         <Stack.Screen name="hadith" options={{ headerShown: false }} />
         <Stack.Screen name="collection" options={{ headerShown: false }} />
