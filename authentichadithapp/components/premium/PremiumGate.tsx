@@ -2,7 +2,8 @@ import React from 'react'
 import { Text, StyleSheet, Modal, Pressable, ActivityIndicator, View } from 'react-native'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
-import { COLORS, SPACING, FONT_SIZES } from '../../lib/styles/colors'
+import { getColors, COLORS, SPACING, FONT_SIZES } from '../../lib/styles/colors'
+import { useTheme } from '../../lib/theme/ThemeProvider'
 import { usePremiumStatus } from '../../hooks/usePremiumStatus'
 import { PaywallScreen } from './PaywallScreen'
 
@@ -14,14 +15,16 @@ interface PremiumGateProps {
 
 export function PremiumGate({ feature, description, children }: PremiumGateProps) {
   const { isPremium, isLoading } = usePremiumStatus()
+  const { isDark } = useTheme()
+  const colors = getColors(isDark)
   const [showPaywall, setShowPaywall] = React.useState(false)
 
   if (isLoading) {
-    // Visible loading state — a silent `return null` left the gated section as
-    // blank space on slow networks (Rule 005: no silent null renders).
+    // FIX-070: Brand skeleton — theme-aware background prevents white flash on
+    // dark mode while RC entitlement resolves (network drop degrades gracefully).
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="small" color={COLORS.emeraldMid} />
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="small" color={colors.emeraldMid} />
       </View>
     )
   }

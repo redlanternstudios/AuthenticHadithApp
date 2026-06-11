@@ -3,22 +3,38 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import 'react-native-reanimated';
 
 import { ReactQueryProvider } from '@/lib/providers/react-query-provider';
-import { AuthProvider } from '@/lib/auth/AuthProvider';
+import { AuthProvider, useAuth } from '@/lib/auth/AuthProvider';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { ThemeProvider, useTheme } from '@/lib/theme/ThemeProvider';
 import { LanguageProvider } from '@/lib/i18n/LanguageProvider';
 import { RevenueCatProvider } from '@/lib/revenuecat/RevenueCatProvider';
 
+// FIX-071: preventAutoHideAsync at module level ensures the splash is held
+// from the very first JS frame — must remain unconditional and at top-level.
 SplashScreen.preventAutoHideAsync();
 
 export const unstable_settings = {
   anchor: '(tabs)',
 };
+
+// Signals the root layout that Supabase auth has hydrated so the splash can
+// safely drop. Must be placed inside AuthProvider in the render tree.
+function AppReadySignal({ onReady }: { onReady: () => void }) {
+  const { isLoading: authLoading } = useAuth()
+  const firedRef = useRef(false)
+  useEffect(() => {
+    if (!authLoading && !firedRef.current) {
+      firedRef.current = true
+      onReady()
+    }
+  }, [authLoading, onReady])
+  return null
+}
 
 function AppContent() {
   const { isDark } = useTheme();
@@ -57,21 +73,20 @@ export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     Ionicons: require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Ionicons.ttf'),
   });
+  const [authReady, setAuthReady] = useState(false)
+  const handleAuthReady = useCallback(() => setAuthReady(true), [])
 
+  // FIX-071: Hide splash only after BOTH fonts have settled AND Supabase auth
+  // has hydrated. Prevents FOUC and asymmetric layout shifts on cold boot.
   useEffect(() => {
-    if (fontsLoaded || fontError) {
+    if ((fontsLoaded || fontError) && authReady) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, fontError]);
+  }, [fontsLoaded, fontError, authReady]);
 
-  if (!fontsLoaded && !fontError) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
-
+  // Providers mount unconditionally — AppReadySignal (inside AuthProvider) must
+  // be live immediately so auth hydration can resolve in parallel with font
+  // loading rather than waiting for the font gate to pass first.
   return (
     <ErrorBoundary>
       <ReactQueryProvider>
@@ -79,7 +94,17 @@ export default function RootLayout() {
           <LanguageProvider>
             <AuthProvider>
               <RevenueCatProvider>
-                <AppContent />
+                {/* Fires handleAuthReady once Supabase session resolves */}
+                <AppReadySignal onReady={handleAuthReady} />
+                {(!fontsLoaded && !fontError) ? (
+                  // Brand-matched fallback: #121212 bg prevents white flash while
+                  // fonts load; #4caf84 emerald spinner is on-theme.
+                  <View style={{ flex: 1, backgroundColor: '#121212', justifyContent: 'center', alignItems: 'center' }}>
+                    <ActivityIndicator size="large" color="#4caf84" />
+                  </View>
+                ) : (
+                  <AppContent />
+                )}
               </RevenueCatProvider>
             </AuthProvider>
           </LanguageProvider>
