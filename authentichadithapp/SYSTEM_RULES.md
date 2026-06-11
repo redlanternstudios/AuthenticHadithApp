@@ -993,6 +993,70 @@ node scripts/enrich-summaries.mjs --write 2>&1 | head -2
 
 ---
 
+## Rule 035: Delete Account Auth Contract
+
+Every delete-account endpoint must require an authenticated session. A request with no `Authorization` header or an invalid/expired Bearer token MUST return `401` before any database operation is attempted. A `200` response is only valid when the caller's identity has been verified by Supabase `auth.getUser()` and returned a non-null user. Bypassing this check is a SUBMISSION_BLOCKER and an App Store Review Guideline 5.1.1(v) violation.
+
+### Failing = SUBMISSION_BLOCKER
+
+Any code path that:
+- Proceeds to `delete_user_account` RPC without first resolving a valid user from the token
+- Returns `2xx` on an unauthenticated request
+- Swallows a 401-worthy auth error and proceeds anyway
+
+is a defect. Treat it with the same urgency as a crash.
+
+---
+
+## Rule 036: Profiles Schema Contract
+
+A `profiles` row MUST be created immediately after `auth.signUp()` succeeds, in the same call context. The row must use:
+- `id` = `data.user.id` (primary key)
+- `user_id` = `data.user.id` (NOT NULL — verified 2026-06-09 against live schema)
+- `name` = trimmed full name or email prefix (NOT `username`, NOT `full_name`)
+
+Any code path that creates an auth user without a corresponding `profiles` row is a defect (FIX-064). If `profiles.insert()` fails, `signUp` must throw — never silently continue with a half-created account. The column names `id`, `user_id`, `name` are the canonical production schema. Do not invent or reuse stale column names without probing the live schema first (Rule 032).
+
+---
+
+## Rule 037: Collection Visibility Contract
+
+The following constants in `lib/hadith/visibleCollections.ts` are KP-approved and locked. Changes require explicit KP sign-off before any PR is merged.
+
+| Constant | Required value |
+|---|---|
+| `HIDDEN_COLLECTION_SLUGS.length` | exactly `6` |
+| `VISIBLE_COLLECTION_COUNT` | `2` |
+| `VISIBLE_HADITH_TOTAL` | `14444` |
+
+The 6 hidden slugs are: `musnad-ahmad`, `sunan-abu-dawud`, `jami-tirmidhi`, `sunan-nasai`, `sunan-ibn-majah`, `muwatta-malik`. Only Sahih Bukhari and Sahih Muslim are visible. `VISIBLE_HADITH_TOTAL` is the raw Sahihayn corpus count; it matches the App Store listing copy exactly (KP directive 2026-06-10). Any PR that changes these values without a documented KP directive is automatically reverted.
+
+---
+
+## Rule 038: RC Entitlement Key Contract
+
+The active RevenueCat entitlement key is `premium`. The string `rc_promo_premium_lifetime` is permanently retired as of 2026-06-10 (FIX-063 era cleanup). Any `grep` hit on that string in the codebase is a false signal from a stale search — do not act on it, do not reactivate it, do not reference it in docs or configs. The correct entitlement identifier in all code, docs, probes, and RevenueCat dashboard entries is the single string `premium`.
+
+### Prohibited
+
+- Using `rc_promo_premium_lifetime` as an entitlement ID anywhere in source, docs, or RC dashboard
+- Granting a promotional entitlement under any key other than `premium`
+- Treating a grep hit on the retired string as evidence of a real problem
+
+---
+
+## Rule 039: Reviewer Account Probes Are Pre-Submission BLOCKERS
+
+Before every TestFlight or App Store submission, the following two probes MUST be run manually and both must PASS with a live receipt (not a checkbox in a doc):
+
+**B10 — Reviewer auth:** `apple.reviewer@authentichadith.app` can sign in via GoTrue password grant and reaches the home tab without error. PASS = `access_token` returned. FAIL = any other response.
+
+**B11 — RC entitlement:** Reviewer UID `00000000-0000-0000-0000-000000000001` has an active `premium` entitlement via `GET api.revenuecat.com/v1/subscribers/{uid}`. PASS = `entitlements.premium` present and active. FAIL = entitlements missing or empty.
+
+Both are SUBMISSION_BLOCKERS. If either probe fails, fix the live state (Rule 034) and re-run the probe before proceeding. Never substitute a doc checklist for a live receipt. The lesson from FIX-063: the doc said "DONE" for weeks while the reviewer couldn't log in and had no entitlement.
+
+---
+
 # Required File System
 
 Every serious app build must include:
