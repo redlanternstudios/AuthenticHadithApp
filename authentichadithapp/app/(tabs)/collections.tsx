@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, View, FlatList, Text, Pressable } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase/client';
@@ -15,6 +16,7 @@ export default function CollectionsScreen() {
   const router = useRouter();
   const { isDark } = useTheme();
   const colors = getColors(isDark);
+  const insets = useSafeAreaInsets();
 
   const { data: collections, isLoading, isError, refetch } = useQuery({
     queryKey: ['collections'],
@@ -36,7 +38,9 @@ export default function CollectionsScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {isError && <QueryErrorBanner onRetry={refetch} />}
-      <View style={styles.header}>
+      {/* insets.top keeps the title clear of the status bar / Dynamic Island —
+          this tab screen has no native header to do it for us. */}
+      <View style={[styles.header, { paddingTop: insets.top + SPACING.md }]}>
         <Text style={[styles.title, { color: colors.bronzeText }]}>{'\u{1F4DA}'} Hadith Collections</Text>
         <Text style={[styles.subtitle, { color: colors.mutedText }]}>
           Browse hadiths from {VISIBLE_COLLECTION_COUNT} major authentic collections
