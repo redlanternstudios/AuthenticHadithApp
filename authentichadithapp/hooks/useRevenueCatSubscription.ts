@@ -17,6 +17,10 @@ export function useRevenueCatSubscription() {
     try {
       const { customerInfo } = await Purchases.purchasePackage(pkg)
       if (customerInfo.entitlements.active[ENTITLEMENT_ID]?.isActive) {
+        // Force the canonical provider state to refresh immediately so every
+        // isPro consumer (Profile CTA, PremiumGate, AI quota) flips without
+        // waiting for the async RC listener — kills the stale "Upgrade to Pro".
+        await refreshCustomerInfo()
         return { success: true }
       }
       return { success: false, error: 'Purchase completed but entitlement not active' }
@@ -28,7 +32,7 @@ export function useRevenueCatSubscription() {
     } finally {
       setPurchasing(false)
     }
-  }, [])
+  }, [refreshCustomerInfo])
 
   const monthlyPackage = currentOffering?.monthly ?? null
   const yearlyPackage = currentOffering?.annual ?? null

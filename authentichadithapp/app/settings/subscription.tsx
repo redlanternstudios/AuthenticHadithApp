@@ -11,6 +11,7 @@ import {
   isRevenueCatConfigured,
   type SubscriptionStatus,
 } from '@/lib/purchases/revenuecat';
+import { useRevenueCat } from '@/lib/revenuecat/RevenueCatProvider';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 
 // RevenueCat purchase errors expose richer fields than `.message`. Prefer them
@@ -36,6 +37,9 @@ function SubscriptionScreenInner() {
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  // Canonical provider state — refreshed after purchase/restore so every other
+  // isPro consumer (Profile CTA, PremiumGate) updates in the same frame.
+  const { refreshCustomerInfo } = useRevenueCat();
 
   const [initError, setInitError] = useState<string | null>(null);
 
@@ -74,6 +78,7 @@ function SubscriptionScreenInner() {
       if (success) {
         const newStatus = await getSubscriptionStatus();
         setStatus(newStatus);
+        await refreshCustomerInfo(); // sync canonical isPro (Profile/PremiumGate)
         Alert.alert('Welcome to Premium!', 'Your subscription is now active.');
       }
     } catch (err: any) {
@@ -89,6 +94,7 @@ function SubscriptionScreenInner() {
     try {
       const restoredStatus = await restorePurchases();
       setStatus(restoredStatus);
+      await refreshCustomerInfo(); // sync canonical isPro (Profile/PremiumGate)
       if (restoredStatus.isActive) {
         Alert.alert('Restored!', 'Your subscription has been restored.');
       } else {

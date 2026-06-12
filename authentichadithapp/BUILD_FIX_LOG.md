@@ -92,6 +92,17 @@ Before any EAS build:
 
 ## FIXES
 
+### [FIX-083] — Stale "Upgrade to Pro" after successful purchase (canonical refresh on purchase/restore)
+**Date**: 2026-06-12 PT · KP-authorized · for Build 32
+**Pattern category**: STALE_STATE_AFTER_MUTATION (RC listener race)
+**Root cause**: Build 31 device QA — after a successful monthly sandbox purchase, Profile briefly still showed "Upgrade to Pro". Three purchase/restore paths mutated RevenueCat but never refreshed the canonical provider `customerInfo`/`isPro`: (1) `hooks/useRevenueCatSubscription.purchasePackage`, (2) `app/settings/subscription.tsx` handlePurchase/handleRestore (module-level fns), (3) `PaywallScreen` completion callbacks. Profile's CTA gates on provider `isPro` and waited for RC's async listener. (Tapping the CTA showing Apple's renewal sheet was correct Apple behavior, not a bug.)
+**Files changed (4)**: the three paths above now call `refreshCustomerInfo()` on success (hook awaits it before returning; subscription screen after purchase AND restore; paywall on purchase+restore completion). `__tests__/revenuecat.test.ts` — truth-table tests (free→CTA; monthly/annual/lifetime/reviewer→no CTA; lookalike denied; monthly→RC date; 2226→Lifetime ♾️) + refresh-wiring assertions.
+**Not changed**: product IDs, RC keys, Supabase auth, app config, unrelated UI, notifications (parked v1.1). Profile's restore already canonical (provider path) — untouched.
+**Verification**: tsc exit 0 · eslint exit 0 · jest 23/23. On-device proof pending Build 32.
+**Lesson learned**: any mutation of entitlement state (purchase/restore) must synchronously refresh the canonical provider state — never rely on the SDK's async listener to update UI the user is staring at.
+
+---
+
 ### [FIX-082] — Subscription state mismatch: Profile "Free" vs Subscription "Premium / Expires Apr 22, 2226" (release blocker, Build 30 device QA)
 **Date**: 2026-06-12 PT · KP-authorized · for Build 31
 **Pattern category**: DUAL_SOURCE_OF_TRUTH + MISSING_LIFETIME_GUARD
