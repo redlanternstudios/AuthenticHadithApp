@@ -12,6 +12,8 @@ import {
   type SubscriptionStatus,
 } from '@/lib/purchases/revenuecat';
 import { useRevenueCat } from '@/lib/revenuecat/RevenueCatProvider';
+import { isReviewerEmail } from '@/lib/revenuecat/config';
+import { useAuth } from '@/lib/auth/AuthProvider';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 
 // RevenueCat purchase errors expose richer fields than `.message`. Prefer them
@@ -40,6 +42,11 @@ function SubscriptionScreenInner() {
   // Canonical provider state — refreshed after purchase/restore so every other
   // isPro consumer (Profile CTA, PremiumGate) updates in the same frame.
   const { refreshCustomerInfo } = useRevenueCat();
+  const { user } = useAuth();
+  // Allowlisted (reviewer/internal lifetime) accounts display Lifetime here even
+  // without an RC grant — same canonical rule as Profile, so the two screens
+  // can never disagree (FIX-082 family).
+  const allowlistLifetime = isReviewerEmail(user?.email);
 
   const [initError, setInitError] = useState<string | null>(null);
 
@@ -134,9 +141,9 @@ function SubscriptionScreenInner() {
         <View style={[styles.statusCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Text style={[styles.statusLabel, { color: colors.mutedText }]}>Current Plan</Text>
           <Text style={[styles.statusTier, { color: colors.bronzeText }]}>
-            {status?.tier === 'free' ? 'Free' : status?.tier === 'lifetime' ? 'Lifetime' : 'Premium'}
+            {allowlistLifetime || status?.tier === 'lifetime' ? 'Lifetime' : status?.tier === 'free' ? 'Free' : 'Premium'}
           </Text>
-          {status?.isActive && status.tier === 'lifetime' ? (
+          {allowlistLifetime || (status?.isActive && status.tier === 'lifetime') ? (
             <Text style={[styles.statusExpiry, { color: colors.mutedText }]}>
               Lifetime ♾️ — no renewal date
             </Text>

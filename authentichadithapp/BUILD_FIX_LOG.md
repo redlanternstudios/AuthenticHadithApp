@@ -92,6 +92,17 @@ Before any EAS build:
 
 ## FIXES
 
+### [FIX-084] — Internal lifetime allowlist (3 accounts) + Subscription-screen allowlist display
+**Date**: 2026-06-12 PT · KP-authorized · for Build 32
+**Pattern category**: ALLOWLIST_EXTENSION (FIX-080/082 family)
+**What**: Added 3 internal lifetime accounts to the canonical allowlist — roryleesemeah@icloud.com, g.homira@gmail.com, clashon64@gmail.com (emails only, NO passwords anywhere). Same exact-match `isReviewerEmail` path as the Apple reviewer accounts → Profile shows Pro Member, no Upgrade CTA, premium unlocked. `app/settings/subscription.tsx` now renders allowlisted accounts as "Lifetime / Lifetime ♾️ — no renewal date" even without an RC grant, so Profile and Subscription can never disagree for allowlisted users (FIX-082 rule at the display source).
+**Files (3)**: `lib/revenuecat/config.ts` (allowlist), `app/settings/subscription.tsx` (allowlist lifetime display), `__tests__/revenuecat.test.ts` (3 accounts → lifetime premium; 5 lookalikes denied).
+**Not changed**: passwords (none stored/logged), Supabase auth, RC product IDs/keys, app config, unrelated UI. Monthly/annual still use real RC dates; free users unchanged.
+**Verification**: tsc exit 0 · eslint exit 0 · jest 25/25. On-device proof pending Build 32.
+**Note**: emails ship in the binary (non-secret). Cleaner long-term: RC promotional entitlements (server-side, revocable) — flagged to KP, declined for now.
+
+---
+
 ### [FIX-083] — Stale "Upgrade to Pro" after successful purchase (canonical refresh on purchase/restore)
 **Date**: 2026-06-12 PT · KP-authorized · for Build 32
 **Pattern category**: STALE_STATE_AFTER_MUTATION (RC listener race)
