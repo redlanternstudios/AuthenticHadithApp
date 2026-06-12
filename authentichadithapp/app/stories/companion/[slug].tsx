@@ -1,6 +1,6 @@
 import React from 'react'
 import { StyleSheet, View, ScrollView, Text } from 'react-native'
-import { Stack, useLocalSearchParams } from 'expo-router'
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth/AuthProvider'
@@ -15,6 +15,7 @@ import { useCompletionStatus } from '@/hooks/useProgress'
 export default function CompanionStoryScreen() {
   const { isDark } = useTheme()
   const colors = getColors(isDark)
+  const router = useRouter()
   const { slug } = useLocalSearchParams<{ slug: string }>()
   const { user } = useAuth()
   const completion = useCompletionStatus('story', slug ?? null)
@@ -93,6 +94,10 @@ export default function CompanionStoryScreen() {
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
       <Stack.Screen options={{ title: companion.name_en, headerShown: true }} />
 
+      <View style={styles.backRow}>
+        <Button title="← Back" onPress={() => router.back()} variant="ghost" />
+      </View>
+
       {/* Hero Header */}
       <View style={[styles.hero, { backgroundColor: colors.goldMid + '10' }]}>
         <View style={[styles.avatar, { backgroundColor: colors.goldMid + '25' }]}>
@@ -163,6 +168,7 @@ const styles = StyleSheet.create({
   content: { paddingBottom: SPACING.xxl },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   emptyText: { fontSize: FONT_SIZES.base },
+  backRow: { paddingHorizontal: SPACING.md, paddingTop: SPACING.sm },
   hero: {
     padding: SPACING.xl, alignItems: 'center', gap: SPACING.sm,
   },
