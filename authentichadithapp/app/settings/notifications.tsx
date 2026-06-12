@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Switch } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Stack } from 'expo-router';
 import { SPACING, FONT_SIZES , getColors } from '@/lib/styles/colors';
 import { useTheme } from '@/lib/theme/ThemeProvider';
@@ -22,29 +22,14 @@ export default function NotificationsScreen() {
       />
       <View style={styles.content}>
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <View style={styles.row}>
-            <View style={styles.rowText}>
-              <Text style={[styles.title, { color: colors.bronzeText }]}>Daily Hadith</Text>
-              <Text style={[styles.subtitle, { color: colors.mutedText }]}>
-                Receive a daily hadith notification
-              </Text>
-            </View>
-            <Switch value={false} disabled />
-          </View>
-          <View style={[styles.divider, { backgroundColor: colors.border }]} />
-          <View style={styles.row}>
-            <View style={styles.rowText}>
-              <Text style={[styles.title, { color: colors.bronzeText }]}>Learning Reminders</Text>
-              <Text style={[styles.subtitle, { color: colors.mutedText }]}>
-                Reminders to continue learning paths
-              </Text>
-            </View>
-            <Switch value={false} disabled />
+          <View style={styles.rowText}>
+            <Text style={[styles.title, { color: colors.bronzeText }]}>Stay connected</Text>
+            <Text style={[styles.subtitle, { color: colors.mutedText }]}>
+              Open Authentic Hadith any time for the daily hadith, your learning paths,
+              and saved content — it&apos;s all ready inside the app.
+            </Text>
           </View>
         </View>
-        <Text style={[styles.comingSoon, { color: colors.mutedText }]}>
-          Push notifications coming soon. Stay tuned for updates.
-        </Text>
       </View>
     </View>
   );
@@ -57,21 +42,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     overflow: 'hidden',
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     padding: SPACING.md,
   },
-  rowText: { flex: 1, marginRight: SPACING.md },
-  title: { fontSize: FONT_SIZES.md, fontWeight: '600', marginBottom: 2 },
-  subtitle: { fontSize: FONT_SIZES.sm },
-  divider: { height: 1 },
-  comingSoon: {
-    fontSize: FONT_SIZES.sm,
-    textAlign: 'center',
-    marginTop: SPACING.lg,
-    fontStyle: 'italic',
-  },
+  rowText: { flex: 1 },
+  title: { fontSize: FONT_SIZES.md, fontWeight: '600', marginBottom: SPACING.xs },
+  subtitle: { fontSize: FONT_SIZES.sm, lineHeight: 20 },
 });

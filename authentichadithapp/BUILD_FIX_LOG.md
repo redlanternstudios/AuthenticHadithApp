@@ -92,6 +92,20 @@ Before any EAS build:
 
 ## FIXES
 
+### [FIX-081] — Notifications screen clean honest state + unambiguous subscription date format (App Review polish)
+**Date**: 2026-06-12 PT · KP-authorized · for Build 30
+**Pattern category**: APP_REVIEW_COMPLETENESS + DATE_FORMAT_CLARITY
+**Why**: (1) `app/settings/notifications.tsx` showed two `disabled` toggles + "Push notifications coming soon" — a Guideline 2.1 (completeness) flag: advertises features that don't work. (2) Subscription renewal/expiry dates rendered via `toLocaleDateString()` (no options) = ambiguous numeric like "7/12/2026" for a reviewer in any locale.
+**Files changed** (UI/subscription-display PROTECTED, authorized):
+- `app/settings/notifications.tsx` — removed the 2 disabled toggles + "coming soon" line + unused `Switch` import + orphaned styles; replaced with one clean "Stay connected" informational card (content lives in-app). No dead controls advertised.
+- `app/(tabs)/profile.tsx:182` — renewal date format → `toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' })` → "Jul 12, 2026". Lifetime/`>2100` guard + "Lifetime ♾️" branch unchanged.
+- `app/settings/subscription.tsx:135` — same explicit format for the Renews/Expires date.
+**Not changed**: date data source (still RevenueCat `expirationDate`/`status.expiresAt`), null guards, lifetime handling, any logic. Format-only on the date; no layout/styling beyond the notifications card cleanup.
+**Verification**: `npx tsc --noEmit` exit 0; `npx eslint` (3 files) exit 0; subscription jest 10/10. On-device proof pending Build 30.
+**Lesson learned**: disabled toggles + "coming soon" read as an unfinished screen to App Review — remove non-functional controls rather than label them. And reviewer-facing dates should use an explicit month to be locale-unambiguous.
+
+---
+
 ### [FIX-080] — Apple reviewer premium bypass (guarantees reviewer can evaluate premium even if RevenueCat fails)
 **Date**: 2026-06-12 PT · KP-authorized · for Build 29
 **Pattern category**: APP_REVIEW_ACCESS_GUARANTEE

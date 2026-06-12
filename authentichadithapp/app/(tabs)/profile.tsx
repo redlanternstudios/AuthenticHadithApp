@@ -179,7 +179,7 @@ export default function ProfileScreen() {
                 new Date(expirationDate).getFullYear() > 2100 ||
                 (productIdentifier || '').toLowerCase().includes('lifetime')
                   ? 'Lifetime ♾️'
-                  : new Date(expirationDate).toLocaleDateString()
+                  : new Date(expirationDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
               }
               onPress={() => setShowCustomerCenter(true)}
             />
