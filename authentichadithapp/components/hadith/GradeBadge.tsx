@@ -1,17 +1,12 @@
 import React from 'react'
 import { View, Text, StyleSheet } from 'react-native'
-import { COLORS, BORDER_RADIUS, SPACING, FONT_SIZES } from '../../lib/styles/colors'
+import { getColors, BORDER_RADIUS, SPACING, FONT_SIZES } from '../../lib/styles/colors'
+import { useTheme } from '../../lib/theme/ThemeProvider'
 import { HadithGrade } from '../../types/hadith'
 
 interface GradeBadgeProps {
   grade: HadithGrade | null | undefined
   size?: 'small' | 'medium'
-}
-
-const GRADE_COLORS: Record<HadithGrade, string> = {
-  sahih: COLORS.sahih,
-  hasan: COLORS.hasan,
-  daif: COLORS.daif,
 }
 
 const GRADE_LABELS: Record<HadithGrade, string> = {
@@ -20,11 +15,19 @@ const GRADE_LABELS: Record<HadithGrade, string> = {
   daif: 'Daif',
 }
 
-const UNGRADED_COLOR = COLORS.mutedText ?? '#7B7B7B'
-
 export function GradeBadge({ grade, size = 'medium' }: GradeBadgeProps) {
+  const { isDark } = useTheme()
+  const colors = getColors(isDark)
+  // Grade colors are theme-aware (Rule 017) — sahih/hasan/daif each shift
+  // between light and dark palettes for contrast.
+  const gradeColors: Record<HadithGrade, string> = {
+    sahih: colors.sahih,
+    hasan: colors.hasan,
+    daif: colors.daif,
+  }
+
   const isKnown = grade === 'sahih' || grade === 'hasan' || grade === 'daif'
-  const bg = isKnown ? GRADE_COLORS[grade as HadithGrade] : UNGRADED_COLOR
+  const bg = isKnown ? gradeColors[grade as HadithGrade] : colors.mutedText
   const label = isKnown ? GRADE_LABELS[grade as HadithGrade] : 'Ungraded'
 
   return (
@@ -35,6 +38,7 @@ export function GradeBadge({ grade, size = 'medium' }: GradeBadgeProps) {
     ]}>
       <Text style={[
         styles.text,
+        { color: colors.white },
         size === 'small' && styles.textSmall,
       ]}>
         {label}
@@ -55,7 +59,6 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   text: {
-    color: COLORS.white,
     fontSize: FONT_SIZES.sm,
     fontWeight: '600',
   },

@@ -4,7 +4,6 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase/client';
 import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors';
 import { useTheme } from '@/lib/theme/ThemeProvider';
@@ -78,16 +77,10 @@ export default function LearningPathDetailScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Binds the real path name to the nav header so the route literal "[pathId]" never leaks. */}
+      {/* Native header owns the title + back affordance; binding pathTitle here
+          keeps the route literal "[pathId]" from leaking. No custom in-screen
+          header — that was a redundant second back button + title. */}
       <Stack.Screen options={{ title: pathTitle }} />
-      <View style={styles.header}>
-        <Button
-          title="← Back"
-          onPress={() => router.back()}
-          variant="ghost"
-        />
-        <Text style={[styles.title, { color: colors.bronzeText }]}>{pathTitle}</Text>
-      </View>
 
       <FlatList
         data={lessons}
@@ -113,15 +106,6 @@ export default function LearningPathDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    padding: SPACING.md,
-    paddingTop: SPACING.xl,
-  },
-  title: {
-    fontSize: FONT_SIZES.xxl,
-    fontWeight: '700',
-    marginTop: SPACING.sm,
   },
   content: {
     padding: SPACING.md,

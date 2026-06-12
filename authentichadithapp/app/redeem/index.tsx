@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Card } from '@/components/ui/Card';
 import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors';
 import { useTheme } from '@/lib/theme/ThemeProvider';
@@ -50,14 +51,7 @@ export default function RedeemScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={styles.header}>
-        <Button
-          title="← Back"
-          onPress={() => router.back()}
-          variant="ghost"
-        />
-        <Text style={[styles.title, { color: colors.bronzeText }]}>🎁 Redeem Code</Text>
-      </View>
+      <ScreenHeader title="Redeem Code" showBack />
 
       <View style={styles.content}>
         <Card>
@@ -95,15 +89,6 @@ export default function RedeemScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    padding: SPACING.md,
-    paddingTop: SPACING.xl,
-  },
-  title: {
-    fontSize: FONT_SIZES.xxl,
-    fontWeight: '700',
-    marginTop: SPACING.sm,
   },
   content: {
     padding: SPACING.md,

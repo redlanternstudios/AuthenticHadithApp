@@ -7,6 +7,7 @@ import { generateShareToken } from '@/lib/api/my-hadith'
 import { supabase } from '@/lib/supabase/client'
 import { HadithCard } from '@/components/hadith/HadithCard'
 import { Button } from '@/components/ui/Button'
+import { ScreenHeader } from '@/components/ui/ScreenHeader'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors'
 import { useTheme } from '@/lib/theme/ThemeProvider'
@@ -64,19 +65,19 @@ export default function FolderDetailScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={styles.header}>
-        <Button
-          title="← Back"
-          onPress={() => router.back()}
-          variant="ghost"
-        />
-        <Button
-          title="Share"
-          onPress={handleShare}
-          variant="outline"
-          disabled={isGeneratingToken}
-        />
-      </View>
+      <ScreenHeader
+        title={folder?.name ?? 'Folder'}
+        showBack
+        right={
+          <Button
+            title="Share"
+            onPress={handleShare}
+            variant="outline"
+            size="small"
+            disabled={isGeneratingToken}
+          />
+        }
+      />
 
       <FlatList
         data={hadiths}
@@ -115,12 +116,6 @@ export default function FolderDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: SPACING.md,
-    paddingTop: SPACING.xl,
   },
   notes: {
     padding: SPACING.md,

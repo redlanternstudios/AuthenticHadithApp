@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router'
 import { useCreateFolder } from '@/hooks/useMyHadith'
 import { useAuth } from '@/lib/auth/AuthProvider'
 import { Button } from '@/components/ui/Button'
+import { ScreenHeader } from '@/components/ui/ScreenHeader'
 import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors'
 import { useTheme } from '@/lib/theme/ThemeProvider'
 
@@ -44,14 +45,7 @@ export default function CreateFolderScreen() {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={styles.header}>
-        <Button
-          title="← Back"
-          onPress={() => router.back()}
-          variant="ghost"
-        />
-        <Text style={[styles.title, { color: colors.bronzeText }]}>Create Folder</Text>
-      </View>
+      <ScreenHeader title="Create Folder" showBack />
 
       <View style={styles.form}>
         <Text style={[styles.label, { color: colors.bronzeText }]}>Folder Name</Text>
@@ -120,15 +114,6 @@ export default function CreateFolderScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    padding: SPACING.md,
-    paddingTop: SPACING.xl,
-  },
-  title: {
-    fontSize: FONT_SIZES.xxl,
-    fontWeight: '700',
-    marginTop: SPACING.sm,
   },
   form: {
     padding: SPACING.md,

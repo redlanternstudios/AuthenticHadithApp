@@ -5,6 +5,7 @@ import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
 
 import { ReactQueryProvider } from '@/lib/providers/react-query-provider';
@@ -91,27 +92,32 @@ export default function RootLayout() {
   // loading rather than waiting for the font gate to pass first.
   return (
     <ErrorBoundary>
-      <ReactQueryProvider>
-        <ThemeProvider>
-          <LanguageProvider>
-            <AuthProvider>
-              <RevenueCatProvider>
-                {/* Fires handleAuthReady once Supabase session resolves */}
-                <AppReadySignal onReady={handleAuthReady} />
-                {(!fontsLoaded && !fontError) ? (
-                  // Brand-matched fallback: #121212 bg prevents white flash while
-                  // fonts load; #4caf84 emerald spinner is on-theme.
-                  <View style={{ flex: 1, backgroundColor: '#121212', justifyContent: 'center', alignItems: 'center' }}>
-                    <ActivityIndicator size="large" color="#4caf84" />
-                  </View>
-                ) : (
-                  <AppContent />
-                )}
-              </RevenueCatProvider>
-            </AuthProvider>
-          </LanguageProvider>
-        </ThemeProvider>
-      </ReactQueryProvider>
+      {/* Explicit SafeAreaProvider — Expo Router auto-mounts one, but pinning it
+          here guarantees useSafeAreaInsets() never reads zeros under any entry
+          path (headless, deep link, test harness). */}
+      <SafeAreaProvider>
+        <ReactQueryProvider>
+          <ThemeProvider>
+            <LanguageProvider>
+              <AuthProvider>
+                <RevenueCatProvider>
+                  {/* Fires handleAuthReady once Supabase session resolves */}
+                  <AppReadySignal onReady={handleAuthReady} />
+                  {(!fontsLoaded && !fontError) ? (
+                    // Brand-matched fallback: #121212 bg prevents white flash while
+                    // fonts load; #4caf84 emerald spinner is on-theme.
+                    <View style={{ flex: 1, backgroundColor: '#121212', justifyContent: 'center', alignItems: 'center' }}>
+                      <ActivityIndicator size="large" color="#4caf84" />
+                    </View>
+                  ) : (
+                    <AppContent />
+                  )}
+                </RevenueCatProvider>
+              </AuthProvider>
+            </LanguageProvider>
+          </ThemeProvider>
+        </ReactQueryProvider>
+      </SafeAreaProvider>
     </ErrorBoundary>
   );
 }

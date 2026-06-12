@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors';
 import { useTheme } from '@/lib/theme/ThemeProvider';
@@ -31,6 +32,7 @@ function getTodayKey() {
 function AssistantScreenInner() {
   const { isDark } = useTheme();
   const colors = getColors(isDark);
+  const insets = useSafeAreaInsets();
   const { isPremium } = usePremiumStatus();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -158,7 +160,7 @@ function AssistantScreenInner() {
 
   return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={[styles.header, { borderBottomColor: colors.border }]}>
+        <View style={[styles.header, { borderBottomColor: colors.border, paddingTop: insets.top + SPACING.md }]}>
           <Text style={[styles.title, { color: colors.bronzeText }]}>{'✨'} AI Assistant</Text>
           <Text style={[styles.subtitle, { color: colors.mutedText }]}>
             Ask questions about hadith. Answers are AI-generated context, not a fatwa.
@@ -298,8 +300,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    padding: SPACING.md,
-    paddingTop: SPACING.xl,
+    paddingHorizontal: SPACING.md,
+    paddingBottom: SPACING.md,
     borderBottomWidth: 1,
   },
   title: {

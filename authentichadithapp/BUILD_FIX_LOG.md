@@ -92,6 +92,27 @@ Before any EAS build:
 
 ## FIXES
 
+### [FIX-077] — Enterprise-grade UI pass (ship-blocker tier): ScreenHeader foundation, safe-area insets, dark-mode tokens, double-header removal
+**Date**: 2026-06-11 PT
+**Pattern category**: UI_CONSISTENCY / MISSING_SAFE_AREA_INSET / SILENT_DARK_MODE_VIOLATION (Rule 017)
+**Trigger**: KP side-by-side UI audit. Three Explore agents mapped the design system, all 47 routes, and HIG gaps. Scope locked to ship-blocker (what a user/reviewer SEES as broken); Dynamic Type / haptics / a11y / animations deferred to a v1.1 pass.
+**Foundation built**:
+- `components/ui/ScreenHeader.tsx` (NEW) — canonical header: `useSafeAreaInsets()` + theme colors + title/subtitle/showBack(44pt chevron)/right slot. One source of truth replacing duplicated manual headers.
+- `lib/styles/colors.ts` — added `destructive`/`destructiveText` tokens (light `#dc2626`, dark `#ef4444`, white text) to both palettes.
+- `app/_layout.tsx` — explicit `<SafeAreaProvider>` at root (Expo Router auto-mounts one; this pins it for all entry paths).
+- Rule 017 dark-mode fixes: `components/ui/LoadingSpinner.tsx` + `components/hadith/GradeBadge.tsx` (were static `COLORS` — grades invisible in dark mode) now `getColors(isDark)`; `app/settings/delete-account.tsx` hardcoded reds → `destructive` token (native iOS pattern: red title + readable body + red button).
+**Page-walk fixes (safe-area + header consistency)**:
+- `app/(tabs)/search.tsx`, `app/(tabs)/assistant.tsx` — `paddingTop: SPACING.xl` static (title under Dynamic Island) → `insets.top + SPACING.md`. Search keeps its compound filter header; Assistant keeps its bordered bar.
+- `app/(tabs)/my-hadith.tsx`, `app/my-hadith/folder/[id]`, `app/my-hadith/create-folder.tsx`, `app/redeem/index.tsx` — ad-hoc "← Back" text-button headers → `ScreenHeader` (native chevron, insets handled, rubric-consistent).
+- `app/learn/[pathId].tsx`, `app/learn/lesson/[lessonId].tsx` — removed DOUBLE HEADER (native header + redundant custom in-screen back button/title). Native header owns title+back; binding the dynamic title still prevents the `[pathId]`/`[lessonId]` literal leak.
+- Verified-correct, no change: `app/(tabs)/profile.tsx` (`useDeviceLayout()` returns `contentTop = insets.top + 8`), `app/(tabs)/index|collections|more.tsx` (already inset-aware), Settings family + collection/book/chapter/topics/stories/bookmarks (native headers — safe-area auto-handled; agent "missing insets" flags were false alarms).
+**Flagged, not fixed**: `app/collections/index.tsx` is DEAD — nothing navigates to the non-tab `/collections` route (real screen is `(tabs)/collections.tsx`); its hardcoded colors are not user-visible. Recommend deletion. `quiz`/`sunnah`/`progress`/`reflections` have native headers + cosmetic extra content padding (not a safe-area bug; left per scope).
+**Verification**: `npx tsc --noEmit` exit 0; `npx eslint` exit 0 across all 14 touched files. On-device proof pending Build 27 (these fixes are NOT in Build 26).
+**Lesson learned**: A native `Stack.Screen headerShown:true` already handles top safe-area — "missing insets" only matters for CUSTOM/manual headers. Before flagging an inset bug, check whether a native header owns the chrome. And a screen that sets a native header title AND renders its own back button has a double header — bind the title, delete the custom chrome.
+
+---
+
+
 ### [FIX-071] — Root layout hid splash before Supabase auth hydrated, causing FOUC on cold boot
 **Date**: 2026-06-10 PT
 **Pattern category**: ASYNC_LIFECYCLE_GAP — context module ready ≠ context module mounted

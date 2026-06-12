@@ -21,6 +21,7 @@ import {
 import { useTheme } from '@/lib/theme/ThemeProvider';
 import { Hadith } from '@/types/hadith';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { filterVisibleCollections, HIDDEN_COLLECTION_FILTER } from '@/lib/hadith/visibleCollections';
 import { QueryErrorBanner } from '@/components/common/QueryErrorBanner';
 
@@ -30,6 +31,7 @@ export default function SearchScreen() {
   const router = useRouter();
   const { isDark } = useTheme();
   const colors = getColors(isDark);
+  const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const [gradeFilter, setGradeFilter] = useState<string>('All');
   const [collectionFilter, setCollectionFilter] = useState<string | null>(null);
@@ -105,7 +107,9 @@ export default function SearchScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={styles.header}>
+      {/* insets.top clears the status bar / Dynamic Island — this tab has no
+          native header (matches Home/Collections/More). */}
+      <View style={[styles.header, { paddingTop: insets.top + SPACING.md }]}>
         <View style={styles.titleRow}>
           <Text style={[styles.title, { color: colors.bronzeText }]}>Search Hadiths</Text>
           {activeFilterCount > 0 && (
@@ -232,8 +236,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    padding: SPACING.md,
-    paddingTop: SPACING.xl,
+    paddingHorizontal: SPACING.md,
+    paddingBottom: SPACING.md,
   },
   titleRow: {
     flexDirection: 'row',
