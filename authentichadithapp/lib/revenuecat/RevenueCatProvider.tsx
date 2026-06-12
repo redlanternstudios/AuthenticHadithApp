@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react'
 import Purchases, { CustomerInfo, PurchasesOffering, LOG_LEVEL } from 'react-native-purchases'
-import { ENTITLEMENT_ID } from './config'
+import { ENTITLEMENT_ID, isReviewerEmail } from './config'
 import {
   configureRevenueCat,
   isRevenueCatConfigured,
@@ -48,7 +48,11 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
   const [isConfigured, setIsConfigured] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
-  const isPro = customerInfo?.entitlements.active[ENTITLEMENT_ID]?.isActive === true
+  // Apple reviewer bypass: the exact demo account is always premium so the
+  // reviewer can evaluate premium features even if RevenueCat doesn't resolve
+  // their entitlement live. Exact-email-match only — no effect on any other
+  // user, who still needs a real RevenueCat `premium` entitlement (via IAP).
+  const isPro = isReviewerEmail(user?.email) || customerInfo?.entitlements.active[ENTITLEMENT_ID]?.isActive === true
   // Purchases is available iff configure() has succeeded. Until then no
   // default-instance call (getCustomerInfo, getOfferings, restorePurchases,
   // addCustomerInfoUpdateListener) is safe.

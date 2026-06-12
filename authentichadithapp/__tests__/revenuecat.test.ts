@@ -141,3 +141,28 @@ describe('Paywall — all three tiers present in offerings', () => {
     expect(offerings.current.availablePackages).toHaveLength(3)
   })
 })
+
+describe('isReviewerEmail — Apple reviewer premium bypass (Build 29)', () => {
+  it('grants premium ONLY for the exact Apple reviewer demo email (case-insensitive)', () => {
+    const { isReviewerEmail } = require('@/lib/revenuecat/config')
+    expect(isReviewerEmail('apple.reviewer+20260604@authentichadith.app')).toBe(true)
+    // case-insensitive + trims surrounding whitespace
+    expect(isReviewerEmail('  APPLE.REVIEWER+20260604@AuthenticHadith.app ')).toBe(true)
+  })
+
+  it('does NOT grant premium to any normal/production user', () => {
+    const { isReviewerEmail } = require('@/lib/revenuecat/config')
+    expect(isReviewerEmail('user@gmail.com')).toBe(false)
+    expect(isReviewerEmail('kp@pennenterprisesllc.com')).toBe(false)
+    // no domain/wildcard match — a lookalike at the same domain is still false
+    expect(isReviewerEmail('apple.reviewer@authentichadith.app')).toBe(false)
+    expect(isReviewerEmail('hacker+apple.reviewer+20260604@authentichadith.app')).toBe(false)
+  })
+
+  it('handles null/undefined/empty safely (no bypass)', () => {
+    const { isReviewerEmail } = require('@/lib/revenuecat/config')
+    expect(isReviewerEmail(null)).toBe(false)
+    expect(isReviewerEmail(undefined)).toBe(false)
+    expect(isReviewerEmail('')).toBe(false)
+  })
+})
