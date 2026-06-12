@@ -74,17 +74,17 @@ export default function DeleteAccountScreen() {
           headerShown: true,
           headerBackTitle: 'Settings',
           headerStyle: { backgroundColor: colors.card },
-          headerTintColor: '#dc2626',
+          headerTintColor: colors.destructive,
           headerShadowVisible: false,
         }}
       />
 
       <View style={styles.content}>
-        <View style={[styles.warningBox, { backgroundColor: isDark ? '#450a0a' : '#fef2f2', borderColor: '#dc2626' }]}> 
-          <Text style={[styles.warningTitle, { color: '#dc2626' }]}> 
+        <View style={[styles.warningBox, { backgroundColor: colors.destructive + '15', borderColor: colors.destructive + '40' }]}>
+          <Text style={[styles.warningTitle, { color: colors.destructive }]}>
             This action is permanent
           </Text>
-          <Text style={[styles.warningText, { color: isDark ? '#fca5a5' : '#991b1b' }]}> 
+          <Text style={[styles.warningText, { color: colors.bronzeText }]}>
             Deleting your account will permanently remove:{'\n'}
             {'\n'}&bull; Your profile and preferences
             {'\n'}&bull; All saved hadiths and bookmarks
@@ -115,6 +115,7 @@ export default function DeleteAccountScreen() {
         <TouchableOpacity
           style={[
             styles.deleteButton,
+            { backgroundColor: colors.destructive },
             { opacity: confirmText !== 'DELETE' || isDeleting ? 0.4 : 1 },
           ]}
           onPress={handleDelete}
@@ -122,9 +123,9 @@ export default function DeleteAccountScreen() {
           activeOpacity={0.7}
         >
           {isDeleting ? (
-            <ActivityIndicator size="small" color="#ffffff" />
+            <ActivityIndicator size="small" color={colors.destructiveText} />
           ) : (
-            <Text style={styles.deleteButtonText}>Permanently Delete Account</Text>
+            <Text style={[styles.deleteButtonText, { color: colors.destructiveText }]}>Permanently Delete Account</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -167,13 +168,11 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
   deleteButton: {
-    backgroundColor: '#dc2626',
     padding: SPACING.md,
     borderRadius: 12,
     alignItems: 'center',
   },
   deleteButtonText: {
-    color: '#ffffff',
     fontSize: FONT_SIZES.base,
     fontWeight: '700',
   },

@@ -74,15 +74,10 @@ export default function LessonDetailScreen() {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Real lesson title in the nav header — never the route literal "[lessonId]". */}
+      {/* Native header owns title + back; binding lesson.title keeps the route
+          literal "[lessonId]" from leaking. No redundant in-content back button. */}
       <Stack.Screen options={{ title: lesson.title }} />
       <View style={styles.content}>
-        <Button
-          title="← Back"
-          onPress={() => router.back()}
-          variant="ghost"
-        />
-
         <Card style={styles.lessonCard}>
           <Text style={[styles.title, { color: colors.bronzeText }]}>{lesson.title}</Text>
           <Text style={[styles.duration, { color: colors.mutedText }]}>⏱️ {lesson.estimated_minutes} minutes</Text>

@@ -5,6 +5,7 @@ import { useFolders } from '@/hooks/useMyHadith'
 import { useAuth } from '@/lib/auth/AuthProvider'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { ScreenHeader } from '@/components/ui/ScreenHeader'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors'
 import { useTheme } from '@/lib/theme/ThemeProvider'
@@ -39,14 +40,17 @@ export default function MyHadithScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {isError && <QueryErrorBanner onRetry={refetch} />}
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.bronzeText }]}>My Hadith</Text>
-        <Button
-          title="+ New Folder"
-          onPress={() => router.push('/my-hadith/create-folder')}
-          variant="primary"
-        />
-      </View>
+      <ScreenHeader
+        title="My Hadith"
+        right={
+          <Button
+            title="+ New Folder"
+            onPress={() => router.push('/my-hadith/create-folder')}
+            variant="primary"
+            size="small"
+          />
+        }
+      />
 
       <FlatList
         data={folders}
@@ -92,17 +96,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: SPACING.lg,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: SPACING.md,
-    paddingTop: SPACING.xl,
-  },
-  title: {
-    fontSize: FONT_SIZES.xxxl,
-    fontWeight: '700',
   },
   grid: {
     padding: SPACING.sm,
