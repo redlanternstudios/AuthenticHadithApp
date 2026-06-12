@@ -130,11 +130,15 @@ function SubscriptionScreenInner() {
           <Text style={[styles.statusTier, { color: colors.bronzeText }]}>
             {status?.tier === 'free' ? 'Free' : status?.tier === 'lifetime' ? 'Lifetime' : 'Premium'}
           </Text>
-          {status?.isActive && status.expiresAt && (
+          {status?.isActive && status.tier === 'lifetime' ? (
+            <Text style={[styles.statusExpiry, { color: colors.mutedText }]}>
+              Lifetime ♾️ — no renewal date
+            </Text>
+          ) : status?.isActive && status.expiresAt ? (
             <Text style={[styles.statusExpiry, { color: colors.mutedText }]}>
               {status.willRenew ? 'Renews' : 'Expires'}: {new Date(status.expiresAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
             </Text>
-          )}
+          ) : null}
         </View>
 
         {/* Packages */}

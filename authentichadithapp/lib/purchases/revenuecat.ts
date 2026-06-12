@@ -181,7 +181,12 @@ export async function getSubscriptionStatus(): Promise<SubscriptionStatus> {
 
     if (!entitlement) return defaultStatus
 
-    const isLifetime = entitlement.productIdentifier === PRODUCT_IDS.LIFETIME
+    // Lifetime = the lifetime product OR a far-future promotional grant
+    // (e.g. RC promo "lifetime" sets expiration ~200 years out). Prevents
+    // "Expires: Apr 22, 2226" rendering as a normal renewal date.
+    const isLifetime =
+      entitlement.productIdentifier === PRODUCT_IDS.LIFETIME ||
+      (!!entitlement.expirationDate && new Date(entitlement.expirationDate).getFullYear() > 2100)
     return {
       isActive: true,
       tier: isLifetime ? 'lifetime' : 'premium',
@@ -211,7 +216,12 @@ export async function restorePurchases(): Promise<SubscriptionStatus> {
 
     if (!entitlement) return defaultStatus
 
-    const isLifetime = entitlement.productIdentifier === PRODUCT_IDS.LIFETIME
+    // Lifetime = the lifetime product OR a far-future promotional grant
+    // (e.g. RC promo "lifetime" sets expiration ~200 years out). Prevents
+    // "Expires: Apr 22, 2226" rendering as a normal renewal date.
+    const isLifetime =
+      entitlement.productIdentifier === PRODUCT_IDS.LIFETIME ||
+      (!!entitlement.expirationDate && new Date(entitlement.expirationDate).getFullYear() > 2100)
     return {
       isActive: true,
       tier: isLifetime ? 'lifetime' : 'premium',
