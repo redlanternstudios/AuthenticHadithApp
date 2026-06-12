@@ -246,6 +246,25 @@ describe('Premium UI truth table — Upgrade CTA gating (FIX-083)', () => {
   it('lookalike reviewer emails → still see Upgrade to Pro (denied bypass)', () => {
     expect(showsUpgradeCTA('apple.reviewer.fake@authentichadith.app', false)).toBe(true)
   })
+
+  it('internal lifetime accounts resolve as lifetime premium (no Upgrade CTA, no RC grant needed)', () => {
+    const { isReviewerEmail } = require('@/lib/revenuecat/config')
+    for (const email of ['roryleesemeah@icloud.com', 'g.homira@gmail.com', 'clashon64@gmail.com']) {
+      expect(isReviewerEmail(email)).toBe(true)
+      expect(showsUpgradeCTA(email, false)).toBe(false)
+    }
+    // case-insensitive
+    expect(isReviewerEmail('Clashon64@Gmail.com')).toBe(true)
+  })
+
+  it('lookalikes of internal lifetime accounts are denied', () => {
+    const { isReviewerEmail } = require('@/lib/revenuecat/config')
+    expect(isReviewerEmail('roryleesemeah+x@icloud.com')).toBe(false)
+    expect(isReviewerEmail('rorylee.semeah@icloud.com')).toBe(false)
+    expect(isReviewerEmail('g.homira@gmail.co')).toBe(false)
+    expect(isReviewerEmail('clashon640@gmail.com')).toBe(false)
+    expect(isReviewerEmail('clashon64@gmail.com.evil.com')).toBe(false)
+  })
 })
 
 describe('Post-purchase/restore canonical refresh (FIX-083)', () => {

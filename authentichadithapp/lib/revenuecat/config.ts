@@ -32,6 +32,12 @@ export const REVIEWER_EMAILS = [
   // Legacy demo account — also exists in Supabase with an RC promotional grant;
   // must resolve premium consistently across Profile + Subscription screens.
   'apple.reviewer@authentichadith.app',
+  // Internal lifetime accounts (KP-authorized 2026-06-12). Exact-match only;
+  // resolve as lifetime premium through the same canonical path as the
+  // reviewer accounts. Emails only — never passwords.
+  'roryleesemeah@icloud.com',
+  'g.homira@gmail.com',
+  'clashon64@gmail.com',
 ] as const
 
 /** True only for an exact (case-insensitive) Apple-reviewer demo email match. */
