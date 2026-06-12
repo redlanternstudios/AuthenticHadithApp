@@ -2,7 +2,6 @@ import React from 'react';
 import { StyleSheet, View, Text, ScrollView , View as RNView, Text as RNText } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase/client';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -37,19 +36,9 @@ export default function LessonDetailScreen() {
   const { data: lesson, isLoading } = useQuery({
     queryKey: ['lesson', lessonId],
     queryFn: async () => {
-      // maybeSingle() — a stale lessonId in a deep-link must NOT throw
-      // PGRST116 (Rule 028). We surface a clear empty state instead.
-      const { data, error } = await supabase
-        .from('lessons')
-        .select('*')
-        .eq('id', lessonId)
-        .maybeSingle();
-
-      if (error) {
-        __DEV__ && console.warn('[Lesson] lookup failed (non-fatal):', error.message);
-        return getStaticLesson(lessonId);
-      }
-      return (data || getStaticLesson(lessonId)) as Lesson | null;
+      // V1 LOCK: Supabase lessons table is intentionally empty for V1.
+      // Static content is the authoritative source for all lesson data.
+      return getStaticLesson(lessonId) as Lesson | null;
     },
     enabled: !!lessonId,
   });

@@ -2,14 +2,13 @@ import React, { useMemo } from 'react';
 import { StyleSheet, View, FlatList, Text, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase/client';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card } from '@/components/ui/Card';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { PremiumGate } from '@/components/premium/PremiumGate';
 import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors';
 import { useTheme } from '@/lib/theme/ThemeProvider';
 import { LearningPath } from '@/types/hadith';
-import { QueryErrorBanner } from '@/components/common/QueryErrorBanner';
 import { useCompletedItems } from '@/hooks/useProgress';
 import {
   STATIC_LEARNING_PATHS,
@@ -22,54 +21,20 @@ export default function LearnScreen() {
   const router = useRouter();
   const { isDark } = useTheme();
   const colors = getColors(isDark);
+  const insets = useSafeAreaInsets();
 
-  const { data: paths, isLoading, isError, error, refetch } = useQuery({
+  // V1 LOCK: always return static content. Supabase learning_paths rows use
+  // UUIDs which mismatch the slug-keyed static content, producing blank screens.
+  const { data: paths, isLoading } = useQuery({
     queryKey: ['learning-paths'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('learning_paths')
-        .select('*')
-        .order('sort_order');
-
-      if (error) {
-        if (__DEV__) {
-          console.error('[Learn] learning_paths fetch failed:', { // __DEV__
-            code: (error as any).code,
-            message: error.message,
-            details: (error as any).details,
-            hint: (error as any).hint,
-          });
-        }
-        return STATIC_LEARNING_PATHS;
-      }
-      return (data?.length ? data : STATIC_LEARNING_PATHS) as LearningPath[];
-    },
-    retry: 1,
+    queryFn: async () => STATIC_LEARNING_PATHS as LearningPath[],
   });
 
-  // Cheap second query for "X / Y lessons" progress. Non-fatal: a failure
-  // here must NOT blank the path list — return null and let progress simply
-  // hide. Logs are still loud so the issue surfaces.
+  // V1 LOCK: path_lessons join table returns UUIDs; static map uses slugs.
+  // Progress display uses the static map so lesson counts are always correct.
   const { data: pathLessons } = useQuery({
     queryKey: ['learning-paths-lesson-map'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('path_lessons')
-        .select('learning_path_id, lesson_id');
-      if (error) {
-        if (__DEV__) {
-          console.error('[Learn] path_lessons fetch failed (non-fatal):', { // __DEV__
-            code: (error as any).code,
-            message: error.message,
-            details: (error as any).details,
-            hint: (error as any).hint,
-          });
-        }
-        return STATIC_PATH_LESSON_MAP;
-      }
-      return (data?.length ? data : STATIC_PATH_LESSON_MAP) as PathLessonMap[];
-    },
-    retry: 1,
+    queryFn: async () => STATIC_PATH_LESSON_MAP as PathLessonMap[],
   });
 
   // Subscribes to the local progress store; re-renders when a lesson is
@@ -117,29 +82,9 @@ export default function LearnScreen() {
     );
   };
 
-  // Surface the actual error to the user. The generic "Something went wrong"
-  // string was the precise reason FIX-044 missed this bug — KP had no way to
-  // see what was failing. Showing the code/message/hint inline makes the
-  // next reproduction self-diagnosing.
-  const bannerMessage = isError
-    ? (() => {
-        const e: any = error;
-        const parts: string[] = [];
-        if (e?.code) parts.push(`[${e.code}]`);
-        if (e?.message) parts.push(e.message);
-        else if (typeof e === 'string') parts.push(e);
-        if (e?.hint) parts.push(`Hint: ${e.hint}`);
-        const composed = parts.join(' ').trim();
-        return composed.length > 0
-          ? `Could not load learning paths. ${composed}`
-          : 'Could not load learning paths. Please try again.';
-      })()
-    : undefined;
-
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {isError && <QueryErrorBanner message={bannerMessage} onRetry={refetch} />}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + SPACING.sm }]}>
         <Text style={[styles.title, { color: colors.bronzeText }]}>{'\u{1F393}'} Learning Paths</Text>
         <Text style={[styles.subtitle, { color: colors.mutedText }]}>
           Structured curriculum from beginner to scholar
@@ -200,7 +145,6 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: SPACING.md,
-    paddingTop: SPACING.xl,
   },
   title: {
     fontSize: FONT_SIZES.xxxl,

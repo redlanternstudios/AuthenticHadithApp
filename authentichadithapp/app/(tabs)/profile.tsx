@@ -169,8 +169,18 @@ export default function ProfileScreen() {
           {expirationDate && (
             <SettingsRow
               icon="calendar-outline"
-              label="Renews"
-              value={new Date(expirationDate).toLocaleDateString()}
+              label={
+                new Date(expirationDate).getFullYear() > 2100 ||
+                (productIdentifier || '').toLowerCase().includes('lifetime')
+                  ? 'Valid Until'
+                  : 'Renews'
+              }
+              value={
+                new Date(expirationDate).getFullYear() > 2100 ||
+                (productIdentifier || '').toLowerCase().includes('lifetime')
+                  ? 'Lifetime ♾️'
+                  : new Date(expirationDate).toLocaleDateString()
+              }
               onPress={() => setShowCustomerCenter(true)}
             />
           )}
