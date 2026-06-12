@@ -1,9 +1,3 @@
-// lib/learning/staticQuizContent.ts
-// FIX-075 — Hardcoded lesson-correlated quizzes
-// 3 quizzes, each tied to specific content from staticLearningContent.ts.
-// Questions reference exact Arabic phrases, hadith numbers, narrators, and
-// teachings from the 13 lessons — NOT generic DB-backed questions.
-
 import { QuizQuestion } from "@/lib/hadith/generateQuiz"
 
 export interface StaticQuiz {
@@ -16,14 +10,11 @@ export interface StaticQuiz {
 }
 
 export const STATIC_QUIZZES: StaticQuiz[] = [
-  // ─── QUIZ 1 — Foundations & Daily Practice ──────────────────────────────
-  // Covers: foundations-intention, foundations-prayer, daily-morning-evening,
-  //         daily-small-consistent, daily-eating-etiquette
   {
     id: "quiz-foundations-daily",
     title: "Foundations & Daily Practice",
-    description: "Intention, prayer, dhikr, consistency, and eating etiquette",
-    emoji: "\u{1F305}",
+    description: "Test your knowledge of intention, prayer, dhikr, consistency, and eating etiquette",
+    emoji: "🌅",
     lessonIds: [
       "foundations-intention",
       "foundations-prayer",
@@ -33,80 +24,132 @@ export const STATIC_QUIZZES: StaticQuiz[] = [
     ],
     questions: [
       {
-        question:
-          "The hadith \u{0625}\u{0646}\u{0651}\u{0645}\u{064E}\u{0627} \u{0627}\u{0644}\u{0623}\u{0639}\u{0645}\u{064E}\u{0627}\u{0644}\u{064F} \u{0628}\u{0650}\u{0627}\u{0644}\u{0646}\u{0651}\u{064A}\u{0651}\u{064E}\u{0627}\u{062A}\u{0650}\n(\"Actions are judged by intentions\") was narrated by which companion?",
+        question: "The hadith إِنَّمَا الْأَعْمَالُ بِالنِّيَّاتِ was narrated by which Companion?",
         options: [
           "Abu Hurairah (ra)",
           "Umar ibn al-Khattab (ra)",
-          "Aisha (ra)",
           "Abdullah ibn Masud (ra)",
+          "Anas ibn Malik (ra)",
         ],
         correctIndex: 1,
         explanation:
-          "Umar ibn al-Khattab (ra) narrated this hadith — recorded as Bukhari #1 and Muslim #1907. It opens most hadith collections because intention is the foundation of every act of worship.",
+          "Umar ibn al-Khattab (ra) narrated this foundational hadith recorded in Bukhari #1 and Muslim #1907. It opens Sahih al-Bukhari, signaling that all actions are judged by their intention.",
       },
       {
-        question:
-          "In the prayer hadith (Bukhari #528), the Prophet \u{FDFA} compared 5 daily prayers to bathing in a river 5 times daily. What is the lesson?",
+        question: "The Prophet (ﷺ) compared the five daily prayers to a river for bathing five times a day. What does this analogy teach?",
         options: [
-          "Prayer should be performed near water",
-          "Prayer physically purifies the body",
-          "Prayer erases sins just as water removes filth",
-          "Prayer counts as physical cleanliness",
+          "That prayer is spiritually refreshing",
+          "That prayer is obligatory every day",
+          "That prayer erases sins like water removes dirt",
+          "That prayer should be performed near water",
         ],
         correctIndex: 2,
         explanation:
-          "\u{0623}\u{0631}\u{064E}\u{0623}\u{064E}\u{064A}\u{062A}\u{064F}\u{0645}\u{0652} \u{0644}\u{064E}\u{0648}\u{0652} \u{0623}\u{064E}\u{0646}\u{0651}\u{064E} \u{0646}\u{064E}\u{0647}\u{064E}\u{0631}\u{064B}\u{0627} \u2014 \"Would any filth remain?\" The five daily prayers erase minor sins between them, spiritually purifying the believer each day.",
+          "Abu Hurairah (ra) narrated this analogy in Bukhari #528 and Muslim #667. Just as bathing five times a day leaves no dirt, the five prayers erase sins accumulated between them — a mercy built into the daily schedule.",
       },
       {
-        question:
-          "Saying \u{0633}\u{064F}\u{0628}\u{0652}\u{062D}\u{064E}\u{0627}\u{0646}\u{064E} \u{0627}\u{0644}\u{0644}\u{0651}\u{064E}\u{0647}\u{0650} \u{0648}\u{064E}\u{0628}\u{0650}\u{062D}\u{064E}\u{0645}\u{0652}\u{062F}\u{0650}\u{0647}\u{0650} (SubhanAllah wa bihamdihi) 100 times results in what? (Muslim #2692)",
+        question: "According to Muslim #2692, what is the spiritual reward for reciting سُبْحَانَ اللَّهِ وَبِحَمْدِهِ 100 times?",
         options: [
-          "A supplication guaranteed to be answered",
-          "Sins erased even if like the foam of the sea",
-          "100 good deeds written in the ledger",
-          "Protection from evil all day",
+          "Guaranteed Jannah",
+          "Sins erased even if as much as the foam of the sea",
+          "Provision expanded for that day",
+          "Protection from shaytan until Maghrib",
         ],
         correctIndex: 1,
         explanation:
-          "Muslim #2692: Whoever says SubhanAllah wa bihamdihi 100 times, his sins are wiped away even if they were like the foam of the sea. A small consistent act with enormous spiritual weight.",
+          "Abu Hurairah (ra) narrated this in Muslim #2692. 100 repetitions in the morning can wipe sins even if they are as much as the foam of the sea. Weight in words, lightness in effort.",
       },
       {
-        question:
-          "Aisha (ra) narrated (Bukhari #6464): \u{0623}\u{062D}\u{064E}\u{0628}\u{0651}\u{064F} \u{0627}\u{0644}\u{0623}\u{0639}\u{0645}\u{064E}\u{0627}\u{0644}\u{0650} \u{0625}\u{0644}\u{064E}\u{0649} \u{0627}\u{0644}\u{0644}\u{0651}\u{064E}\u{0647}\u{0650} \u{0623}\u{062F}\u{064E}\u{0648}\u{0645}\u{064F}\u{0647}\u{064E}\u{0627} \u{0648}\u{064E}\u{0625}\u{0646}\u{0652} \u{0642}\u{064E}\u{0644}\u{0651}\u{064E} \u2014 What does this mean?",
+        question: "أَحَبُّ الْأَعْمَالِ إِلَى اللَّهِ أَدْوَمُهَا وَإِنْ قَلَّ — what does this hadith prioritize?",
         options: [
-          "The most difficult deeds are most beloved to Allah",
-          "The most plentiful deeds are most beloved to Allah",
-          "The most consistent deeds are most beloved, even if small",
-          "Deeds in congregation are most beloved to Allah",
+          "The most difficult deeds",
+          "The deeds done in congregation",
+          "The most consistent deeds, even if small",
+          "Deeds performed in Ramadan",
         ],
         correctIndex: 2,
         explanation:
-          "\"The most beloved deeds to Allah are the most consistent, even if small.\" \u2014 Bukhari #6464. Consistency beats intensity. A small daily act maintained is worth more than a large act done once.",
+          "Aisha (ra) narrated this in Bukhari #6464 and Muslim #783. Allah loves consistency over intensity. A small deed performed daily surpasses a large deed done once.",
       },
       {
-        question:
-          "If a Muslim forgets Bismillah before eating and remembers mid-meal, what should they say according to the eating etiquette hadith?",
+        question: "If someone forgets to say Bismillah before eating and remembers mid-meal, what should they say?",
         options: [
-          "Alhamdulillah",
-          "Astaghfirullah three times",
-          "Bismillah fi awwalihi wa akhirihi",
-          "SubhanAllah wa bihamdihi",
+          "Start the meal over from the beginning",
+          "Nothing — the moment has passed",
+          "بِسْمِ اللَّهِ فِي أَوَّلِهِ وَآخِرِهِ (Bismillah fi awwalihi wa akhirihi)",
+          "Alhamdulillah and continue",
         ],
         correctIndex: 2,
         explanation:
-          "\u{0628}\u{0650}\u{0633}\u{0652}\u{0645}\u{0650} \u{0627}\u{0644}\u{0644}\u{0651}\u{064E}\u{0647}\u{0650} \u{0641}\u{0650}\u{064A}\u{0020}\u{0623}\u{064E}\u{0648}\u{0651}\u{064E}\u{0644}\u{0650}\u{0647}\u{0650} \u{0648}\u{064E}\u{0622}\u{062E}\u{0650}\u{0631}\u{0650}\u{0647}\u{0650} \u2014 \"In the name of Allah at its beginning and end.\" The Prophet \u{FDFA} prescribed this as the correction when Bismillah is forgotten at the start.",
+          "Aisha (ra) narrated this ruling in Abu Dawud #3767 and Tirmidhi #1858. The phrase acknowledges the late start and maintains the Sunnah of eating with the name of Allah throughout.",
+      },
+      {
+        question: "Two people perform the same outward action. According to Bukhari #1, what determines whether their deeds are equal?",
+        options: [
+          "The time they spent performing the deed",
+          "Whether they performed it in congregation",
+          "Their inner intention (niyyah)",
+          "The number of times they repeated it",
+        ],
+        correctIndex: 2,
+        explanation:
+          "The opening hadith of Bukhari establishes that niyyah is the dividing line. One person migrating for Allah earns full reward; another migrating for worldly gain earns only that worldly gain.",
+      },
+      {
+        question: "Who narrated the river-and-five-prayers analogy recorded in Bukhari #528?",
+        options: [
+          "Abu Hurairah (ra)",
+          "Anas ibn Malik (ra)",
+          "Jabir ibn Abdullah (ra)",
+          "Abdullah ibn Umar (ra)",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Abu Hurairah (ra) narrated this in Bukhari #528 and Muslim #667. Abu Hurairah is among the most prolific narrators of hadith, transmitting many of the Prophet's (ﷺ) vivid analogies about daily worship.",
+      },
+      {
+        question: "The evening dua أَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّاتِ مِنْ شَرِّ مَا خَلَقَ is recorded in which collection?",
+        options: [
+          "Bukhari #6217",
+          "Muslim #2709",
+          "Abu Dawud #5088",
+          "Tirmidhi #3604",
+        ],
+        correctIndex: 1,
+        explanation:
+          "This evening protection formula is recorded in Muslim #2709. Recited three times at the onset of evening, it provides comprehensive protection from the evil of Allah's creation.",
+      },
+      {
+        question: "Aisha (ra) narrated: 'Take on deeds you are capable of.' Why is this critical for spiritual consistency?",
+        options: [
+          "Because effort without capacity leads to bid'ah",
+          "Because Allah provides more reward for easier deeds",
+          "Because overburdening oneself leads to abandonment — and Allah loves a deed that is maintained",
+          "Because it applies only to nafl prayers",
+        ],
+        correctIndex: 2,
+        explanation:
+          "Recorded in Bukhari #6464 and Muslim #783, this guards against burnout. Overloading a practice causes total abandonment. A small, consistent deed loved by Allah outweighs a large deed dropped after a week.",
+      },
+      {
+        question: "The instruction to eat with the right hand in Muslim #2020 was narrated by which Companion?",
+        options: [
+          "Abu Hurairah (ra)",
+          "Umar ibn Abi Salamah (ra)",
+          "Anas ibn Malik (ra)",
+          "Abdullah ibn Umar (ra)",
+        ],
+        correctIndex: 3,
+        explanation:
+          "Abdullah ibn Umar (ra) narrated the right-hand eating instruction in Muslim #2020. Eating with the right hand transforms a mundane act into worship — intentional alignment with the Prophet's (ﷺ) way in every meal.",
       },
     ],
   },
-
-  // ─── QUIZ 2 — Hadith Sciences & Character ────────────────────────────────
-  // Covers: hadith-chain-text, hadith-gradings, character-mercy, character-truthfulness
   {
     id: "quiz-hadith-character",
     title: "Hadith Sciences & Character",
-    description: "Isnad, hadith grades, the ethics of mercy and truthfulness",
-    emoji: "\u{1F4DC}",
+    description: "Test your knowledge of hadith grading, chain authentication, mercy, and truthfulness",
+    emoji: "📚",
     lessonIds: [
       "hadith-chain-text",
       "hadith-gradings",
@@ -115,80 +158,132 @@ export const STATIC_QUIZZES: StaticQuiz[] = [
     ],
     questions: [
       {
-        question:
-          "What warning did the Prophet \u{FDFA} give about intentionally fabricating hadith? (Bukhari #110, Muslim #4)",
+        question: "What warning did the Prophet (ﷺ) issue about fabricating hadith, recorded in Bukhari #110?",
         options: [
-          "The fabricator loses all their good deeds",
-          "The fabricator will not enter Paradise for 40 years",
-          "Let them prepare their seat in the Hellfire",
-          "The fabricator\u2019s testimony is rejected for life",
+          "His deeds will be nullified",
+          "He will be questioned on Yawm al-Qiyamah",
+          "Let him prepare his seat in the Fire",
+          "He will be expelled from the Ummah",
         ],
         correctIndex: 2,
         explanation:
-          "\u{0645}\u{064E}\u{0646}\u{0652} \u{0643}\u{064E}\u{0630}\u{064E}\u{0628}\u{064E} \u{0639}\u{064E}\u{0644}\u{064E}\u{064A}\u{0651}\u{064E} \u{0645}\u{064F}\u{062A}\u{064E}\u{0639}\u{064E}\u{0645}\u{0651}\u{064F}\u{062F}\u{064B}\u{0627} \u{0641}\u{064E}\u{0644}\u{0652}\u{064A}\u{064E}\u{062A}\u{064E}\u{0628}\u{064E}\u{0648}\u{0651}\u{064E}\u{0623}\u{0652} \u{0645}\u{064E}\u{0642}\u{0652}\u{0639}\u{064E}\u{062F}\u{064E}\u{0647}\u{064F} \u{0645}\u{0650}\u{0646}\u{064E} \u{0627}\u{0644}\u{0646}\u{0651}\u{064E}\u{0627}\u{0631}\u{0650} \u2014 \"Whoever intentionally lies about me, let him prepare his seat in the Fire.\" Among the most transmitted warnings in all of hadith literature.",
+          "مَنْ كَذَبَ عَلَيَّ مُتَعَمِّدًا فَلْيَتَبَوَّأْ مَقْعَدَهُ مِنَ النَّارِ — 'Whoever lies about me intentionally, let him prepare his seat in the Fire.' This Mutawatir hadith narrated by over 70 Companions is the strongest warning against fabrication.",
       },
       {
-        question:
-          "In hadith classification, what does the grade Sahih (\u{0635}\u{062D}\u{064A}\u{062D}) indicate?",
+        question: "What does Sahih (صحيح) mean in hadith grading?",
         options: [
-          "Weak \u2014 a narrator has poor memory",
-          "Good \u2014 slightly below the highest grade",
-          "Authentic \u2014 unbroken trustworthy chain, free of defects",
-          "Fabricated \u2014 invented after the Prophet \u{FDFA}",
+          "Narrated by at least three Companions",
+          "Recorded in both Bukhari and Muslim",
+          "Authentic — continuous chain of upright narrators, free of anomalies and defects",
+          "Memorized by at least one hafidh in each generation",
         ],
         correctIndex: 2,
         explanation:
-          "Sahih = Authentic: (1) unbroken chain back to the Prophet \u{FDFA}, (2) all narrators are upright (adl) and have precise memory (dabt), (3) no hidden defect (\u2019illah), (4) not contradicted by a stronger narration (shudhudh).",
+          "Sahih requires: (1) continuous isnad, (2) all narrators are upright (adl) and precise (dabt), (3) no shudhudh (anomaly), (4) no illah (hidden defect). Meeting all four conditions yields the highest grade.",
       },
       {
-        question:
-          "Abdullah ibn Amr (ra) narrated: \u{0627}\u{0644}\u{0631}\u{0651}\u{064E}\u{0627}\u{062D}\u{0650}\u{0645}\u{064F}\u{0648}\u{0646}\u{064E} \u{064A}\u{064E}\u{0631}\u{062D}\u{064E}\u{0645}\u{064F}\u{0647}\u{064F}\u{0645}\u{064F} \u{0627}\u{0644}\u{0631}\u{0651}\u{064E}\u{062D}\u{0652}\u{0645}\u{064E}\u{0670}\u{0646}\u{064F}\n(Abu Dawud #4941). What does this mean?",
+        question: "What does الرَّاحِمُونَ يَرْحَمُهُمُ الرَّحْمَٰنُ teach about mercy?",
         options: [
-          "Those who pray will be blessed by the Most Merciful",
-          "The merciful will be shown mercy by the Most Merciful",
-          "Those who give charity receive divine mercy",
-          "The Most Merciful forgives all who repent",
+          "Mercy is only for those who ask for it",
+          "Those who show mercy to others will receive Allah's mercy",
+          "Mercy is earned through extra acts of worship",
+          "Mercy flows only within family bonds",
         ],
         correctIndex: 1,
         explanation:
-          "\"The merciful will be shown mercy by the Most Merciful. Have mercy on those on earth, and He who is in heaven will have mercy on you.\" \u2014 Abu Dawud #4941, Tirmidhi #1924. Mercy to creation is the path to Allah\u2019s mercy.",
+          "Abdullah ibn Amr (ra) narrated this in Abu Dawud #4941 and Tirmidhi #1924. 'The merciful are shown mercy by the Most Merciful.' Mercy to creation is the gateway to Allah's mercy — no mercy given means no mercy received.",
       },
       {
-        question:
-          "Abdullah ibn Masud (ra) narrated (Bukhari #6094): truthfulness (\u{0627}\u{0644}\u{0635}\u{0651}\u{062F}\u{0642}\u{064F}) leads through what chain to Paradise?",
+        question: "According to Bukhari #6094, where does a chain of truthfulness ultimately lead?",
         options: [
-          "Truthfulness \u2192 wealth \u2192 Jannah",
-          "Truthfulness \u2192 patience \u2192 Jannah",
-          "Truthfulness \u2192 righteousness (birr) \u2192 Jannah",
-          "Truthfulness \u2192 forgiveness \u2192 Jannah",
+          "To acceptance among people",
+          "To long life and expanded provision",
+          "To righteousness (birr) and then to Jannah",
+          "To becoming a scholar of hadith",
         ],
         correctIndex: 2,
         explanation:
-          "\u{0639}\u{064E}\u{0644}\u{064E}\u{064A}\u{0652}\u{0643}\u{064F}\u{0645}\u{0652} \u{0628}\u{0650}\u{0627}\u{0644}\u{0635}\u{0651}\u{062F}\u{0642}\u{0650} \u{0641}\u{064E}\u{0625}\u{0646}\u{0651}\u{064E} \u{0627}\u{0644}\u{0635}\u{0651}\u{062F}\u{0642}\u{064E} \u{064A}\u{064E}\u{0647}\u{062F}\u{0650}\u{064A} \u{0625}\u{0644}\u{064E}\u{0649} \u{0627}\u{0644}\u{0628}\u{0650}\u{0631}\u{0651}\u{0650} \u2014 Truthfulness \u2192 birr (righteousness) \u2192 Jannah. The inverse: lying \u2192 transgression (fujur) \u2192 Fire.",
+          "Abdullah ibn Masud (ra) narrated: truthfulness leads to birr (righteousness), and birr leads to Jannah. The man continues in truthfulness until he is written with Allah as a Siddiq. The chain is: truth → birr → Jannah.",
       },
       {
-        question:
-          "What does Da\u2019if (\u{0636}\u{0639}\u{064A}\u{0641}) mean in hadith grading?",
+        question: "What does Da'if (ضعيف) mean in hadith sciences?",
         options: [
-          "The highest authenticity grade",
-          "Certainly fabricated \u2014 rejected outright",
-          "Weak \u2014 one or more conditions for Sahih/Hasan are unmet",
-          "Narrated by only one companion",
+          "Rejected — attributed to the Prophet with no basis",
+          "Disputed — scholars disagree on its grading",
+          "Weak — one or more of the Sahih conditions are unmet",
+          "Rare — narrated by only one Companion",
         ],
         correctIndex: 2,
         explanation:
-          "Da\u2019if (Weak): a condition for Sahih or Hasan is missing \u2014 e.g., a narrator with poor memory, a broken chain, or a hidden defect. Da\u2019if hadith cannot establish rulings, though some scholars permit them for virtuous deeds (fada\u2019il al-a\u2019mal) under strict conditions.",
+          "Da'if (Weak) means the hadith falls short of Hasan or Sahih standards — a narrator may have weak memory, be unknown, or there is a break in the chain. Da'if hadiths are not used as evidence for rulings.",
+      },
+      {
+        question: "In hadith sciences, what is the difference between the isnad and the matn?",
+        options: [
+          "Isnad is the text of the hadith; matn is the chain of narrators",
+          "Isnad is the chain of narrators; matn is the actual text of the hadith",
+          "Isnad is the grade; matn is the ruling derived from it",
+          "Isnad is the written form; matn is the oral transmission",
+        ],
+        correctIndex: 1,
+        explanation:
+          "Ibn al-Mubarak noted that the isnad (chain of narrators) is part of the religion itself. The matn is the content — what the Prophet (ﷺ) actually said or did. Hadith scholars scrutinized both: fabricators could forge a matn, but a false chain exposed them.",
+      },
+      {
+        question: "What grade is Hasan (حسن) in hadith sciences?",
+        options: [
+          "Rejected — narrated by unreliable chains only",
+          "Acceptable — meets all Sahih conditions perfectly",
+          "Good — meets most Sahih conditions but a narrator has slightly weaker memory",
+          "Fabricated — invented after the Prophetic era",
+        ],
+        correctIndex: 2,
+        explanation:
+          "Hasan is the grade between Sahih and Da'if. All conditions of Sahih are met except one narrator shows slight weakness in precision (dabt) — not in integrity (adl). Hasan hadiths are valid evidence for rulings.",
+      },
+      {
+        question: "What is the Mawdu (موضوع) grade in hadith sciences?",
+        options: [
+          "Fabricated — deliberately invented and attributed to the Prophet (ﷺ) without basis",
+          "Interrupted — a narrator in the middle of the chain is missing",
+          "Weak — fails one of the five Sahih conditions",
+          "Suspended — the first narrator after the Companion is missing",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Mawdu is outright fabrication. A liar in the chain invented it and ascribed it to the Prophet (ﷺ). The Bukhari #110 fabrication warning applies directly here. Scholars spent lifetimes identifying Mawdu narrations to protect the Sunnah.",
+      },
+      {
+        question: "'He who shows no mercy will be shown no mercy' — which Companion narrated this and where is it recorded?",
+        options: [
+          "Abu Hurairah (ra) — Muslim #2319",
+          "Anas ibn Malik (ra) — Bukhari #7376",
+          "Abdullah ibn Amr (ra) — Abu Dawud #4941",
+          "Jarir ibn Abdullah (ra) — Bukhari #6013 / Muslim #2318",
+        ],
+        correctIndex: 3,
+        explanation:
+          "Jarir ibn Abdullah (ra) narrated this in Bukhari #6013 and Muslim #2318. It complements الرَّاحِمُونَ — both hadiths establish that mercy is not just spiritually rewarded but its absence is spiritually costly.",
+      },
+      {
+        question: "According to Bukhari #6094, what happens to a person who persists in lying?",
+        options: [
+          "Their prayers are not accepted for 40 days",
+          "They are recorded by Allah as a liar (kadhdhab), and lying leads to fujur then to the Fire",
+          "They lose their ability to memorize Quran",
+          "Their provision is reduced in this world",
+        ],
+        correctIndex: 1,
+        explanation:
+          "Abdullah ibn Masud (ra) narrated the complete chain: lying → fujur (wickedness) → Fire. Just as the truthful man is recorded as a Siddiq, the persistent liar is recorded by Allah as a kadhdhab. Character is built or destroyed by what we repeat.",
       },
     ],
   },
-
-  // ─── QUIZ 3 — Family, Community & Scholarship ────────────────────────────
-  // Covers: family-kinship, community-neighbor, scholar-context, scholar-action
   {
     id: "quiz-family-scholarship",
     title: "Family, Community & Scholarship",
-    description: "Kinship, neighbor rights, seeking knowledge, and beneficial learning",
-    emoji: "\u{1F3E1}",
+    description: "Test your knowledge of kinship ties, neighbor rights, obligation of knowledge, and scholarly wisdom",
+    emoji: "🕌",
     lessonIds: [
       "family-kinship",
       "community-neighbor",
@@ -197,69 +292,124 @@ export const STATIC_QUIZZES: StaticQuiz[] = [
     ],
     questions: [
       {
-        question:
-          "Anas ibn Malik (ra) narrated (Bukhari #5986): maintaining ties of kinship (silat al-rahim) results in what?",
+        question: "Anas ibn Malik (ra) narrated in Bukhari #5986 that maintaining silat al-rahim results in what two blessings?",
         options: [
-          "More children and a larger household",
-          "Expanded provision (rizq) and a lengthened lifespan",
-          "Protection from envy and the evil eye",
-          "A respected reputation in the community",
+          "Protection from the Fire and entry into Jannah",
+          "Expanded provision and longer life",
+          "Increased knowledge and righteous offspring",
+          "A light on Yawm al-Qiyamah and entry into Jannah without account",
         ],
         correctIndex: 1,
         explanation:
-          "\u{0645}\u{064E}\u{0646}\u{0652} \u{0623}\u{064E}\u{062D}\u{064E}\u{0628}\u{064E}\u{0651} \u{0623}\u{064E}\u{0646}\u{0652} \u{064A}\u{064F}\u{0628}\u{0652}\u{0633}\u{064E}\u{0637}\u{064E} \u{0644}\u{064E}\u{0647}\u{064F} \u{0641}\u{0650}\u{064A} \u{0631}\u{0650}\u{0632}\u{0652}\u{0642}\u{0650}\u{0647}\u{0650} \u2014 \"Whoever loves to have their provision expanded and lifespan extended, let them maintain ties of kinship.\" \u2014 Bukhari #5986, Muslim #2557.",
+          "مَنْ أَحَبَّ أَنْ يُبْسَطَ لَهُ فِي رِزْقِهِ — 'Whoever wishes to have his provision expanded and his lifespan extended, let him maintain kinship ties.' The Prophet (ﷺ) connects unseen barakah to how we treat family.",
       },
       {
-        question:
-          "The neighbor hadith (Bukhari #6016) opens with the Prophet \u{FDFA} swearing \"By Allah, he does not truly believe\" \u2014 three times. He is speaking about someone whose:",
+        question: "The Prophet (ﷺ) repeated 'By Allah, he does not believe' three times. What sin was he describing?",
         options: [
-          "Prayer is not performed on time",
-          "Family ties are cut off",
-          "Neighbor is not safe from their harm",
-          "Zakah has not been paid",
+          "A Muslim who does not pray Fajr in congregation",
+          "A Muslim who does not pay zakat",
+          "A Muslim whose neighbor is not safe from his harm",
+          "A Muslim who misses Jumu'ah without excuse",
         ],
         correctIndex: 2,
         explanation:
-          "\u{0648}\u{064E}\u{0627}\u{0644}\u{0644}\u{0651}\u{064E}\u{0647}\u{0650} \u{0644}\u{064E}\u{0627} \u{064A}\u{064F}\u{0624}\u{0652}\u{0645}\u{0650}\u{0646}\u{064F} \u{0648}\u{064E}\u{0627}\u{0644}\u{0644}\u{0651}\u{064E}\u{0647}\u{0650} \u{0644}\u{064E}\u{0627} \u{064A}\u{064F}\u{0624}\u{0652}\u{0645}\u{0650}\u{0646}\u{064F} \u{0648}\u{064E}\u{0627}\u{0644}\u{0644}\u{0651}\u{064E}\u{0647}\u{0650} \u{0644}\u{064E}\u{0627} \u{064A}\u{064F}\u{0624}\u{0652}\u{0645}\u{0650}\u{0646}\u{064F} \u2014 Narrated by Abu Hurairah (ra). The threefold oath signals severity: harming neighbors is a matter of iman, not just manners.",
+          "Abu Hurairah (ra) narrated this in Bukhari #6016 and Muslim #46. The triple oath — وَاللَّهِ لَا يُؤْمِنُ — is one of the strongest expressions of severity in the Sunnah. Harming your neighbor is an iman-level issue, not merely an ethics issue.",
       },
       {
-        question:
-          "\u{0637}\u{064E}\u{0644}\u{064E}\u{0628}\u{064F} \u{0627}\u{0644}\u{0652}\u{0639}\u{0650}\u{0644}\u{0652}\u{0645}\u{0650} \u{0641}\u{064E}\u{0631}\u{0650}\u{064A}\u{0636}\u{064E}\u{0629}\u{064C} \u{0639}\u{064E}\u{0644}\u{064E}\u{0649} \u{0643}\u{064F}\u{0644}\u{0651}\u{0650} \u{0645}\u{064F}\u{0633}\u{0652}\u{0644}\u{0650}\u{0645}\u{0640}\n\"Seeking knowledge is obligatory upon every Muslim\" \u2014 who narrated this?",
+        question: "طَلَبُ الْعِلْمِ فَرِيضَةٌ عَلَى كُلِّ مُسْلِمٍ — who narrated this and in which collection?",
         options: [
-          "Abu Hurairah (ra) \u2014 Sahih Bukhari",
-          "Aisha (ra) \u2014 Sahih Muslim",
-          "Anas ibn Malik (ra) \u2014 Sunan Ibn Majah #224",
-          "Umar ibn al-Khattab (ra) \u2014 Sunan Abu Dawud",
+          "Abu Hurairah (ra) — Bukhari #60",
+          "Abdullah ibn Masud (ra) — Muslim #2699",
+          "Anas ibn Malik (ra) — Ibn Majah #224",
+          "Umar ibn al-Khattab (ra) — Tirmidhi #2682",
         ],
         correctIndex: 2,
         explanation:
-          "Narrated by Anas ibn Malik (ra), recorded in Sunan Ibn Majah #224. The obligation covers \u2018aqeedah, core worship (\u2018ibadah), and the Islamic rulings governing daily life that every Muslim must know.",
+          "Anas ibn Malik (ra) narrated this in Ibn Majah #224, graded Sahih. 'Seeking knowledge is an obligation upon every Muslim' — not a recommendation. The scholar-context lesson adds: apply three questions before using any hadith.",
       },
       {
-        question:
-          "The morning du\u2019a \u{0627}\u{0644}\u{0644}\u{0651}\u{064E}\u{0647}\u{064F}\u{0645}\u{064E}\u{0651} \u{0625}\u{0646}\u{0651}\u{0650}\u{064A} \u{0623}\u{064E}\u{0633}\u{0652}\u{0623}\u{064E}\u{0644}\u{064F}\u{0643}\u{064E} \u{0639}\u{0650}\u{0644}\u{0652}\u{0645}\u{064B}\u{0627} \u{0646}\u{064E}\u{0627}\u{0641}\u{0650}\u{0639}\u{064B}\u{0627}\nwas narrated by which female companion? (Ibn Majah #925)",
+        question: "اللَّهُمَّ إِنِّي أَسْأَلُكَ عِلْمًا نَافِعًا وَرِزْقًا طَيِّبًا وَعَمَلًا مُتَقَبَّلًا — who narrated this dua and where is it recorded?",
         options: [
-          "Aisha (ra)",
-          "Fatimah al-Zahra (ra)",
-          "Khadijah bint Khuwaylid (ra)",
-          "Umm Salamah (ra)",
+          "Aisha (ra) — Muslim #2722",
+          "Anas ibn Malik (ra) — Bukhari #6368",
+          "Abdullah ibn Masud (ra) — Abu Dawud #5090",
+          "Umm Salamah (ra) — Ibn Majah #925",
         ],
         correctIndex: 3,
         explanation:
-          "\"O Allah, I ask You for beneficial knowledge, accepted deeds, and pure provision\" \u2014 narrated by Umm Salamah (ra), Ibn Majah #925. The key word \u{0646}\u{064E}\u{0627}\u{0641}\u{0650}\u{0639}\u{064B}\u{0627} (beneficial) teaches that knowledge must produce action, not just information.",
+          "Umm Salamah (ra) narrated this morning dua in Ibn Majah #925. It binds three inseparable elements: beneficial knowledge, pure provision, and accepted deeds. Knowledge without action breaks the chain.",
       },
       {
-        question:
-          "In the hadith sciences lesson, why did Ibn al-Mubarak say \"The isnad is part of the religion\"?",
+        question: "Ibn al-Mubarak said: 'The isnad is part of the religion.' What did he warn would happen without it?",
         options: [
-          "Hadith without isnad are more poetic and memorable",
-          "Without the chain, anyone could claim anything about the Prophet \u{FDFA}",
-          "Scholars memorized chains instead of texts",
-          "The isnad makes hadith easier to categorize",
+          "Scholars would lose the ability to derive rulings",
+          "Anyone could say whatever they wished about the Prophet (ﷺ)",
+          "The Quran would be misinterpreted",
+          "Hadith collections would be corrupted over time",
         ],
         correctIndex: 1,
         explanation:
-          "Ibn al-Mubarak: \"Were it not for the isnad, anyone could say whatever they wished.\" The chain of narrators is the authentication mechanism protecting the Sunnah \u2014 verifiable, traceable back to eyewitnesses of the Prophet \u{FDFA}.",
+          "Ibn al-Mubarak's statement is a cornerstone of hadith sciences. Without the chain, anyone could say whatever they wished. The isnad prevents fabrication from being accepted as Sunnah — it is why Muslims can trace every hadith back to its source.",
+      },
+      {
+        question: "What is the higher standard of kinship maintenance described in Bukhari #5991?",
+        options: [
+          "Visiting relatives every week without fail",
+          "Giving sadaqah exclusively to relatives in need",
+          "Maintaining ties even when the relative cuts them off",
+          "Making dua for relatives in every prayer",
+        ],
+        correctIndex: 2,
+        explanation:
+          "Abdullah ibn Amr (ra) narrated in Bukhari #5991 that the true wasil is not the one who reciprocates — that is merely equal exchange. The wasil maintains ties even when the other side cuts them. This is the prophetic standard: unconditional silat al-rahim.",
+      },
+      {
+        question: "Jibril (as) kept urging the Prophet (ﷺ) about kindness to the neighbor until what point?",
+        options: [
+          "Until the Prophet (ﷺ) included neighbor rights in the khutbah",
+          "Until the Prophet (ﷺ) thought the neighbor would inherit from him",
+          "Until a specific verse about neighbors was revealed",
+          "Until the neighbor accepted Islam",
+        ],
+        correctIndex: 1,
+        explanation:
+          "Aisha and Ibn Umar narrated in Bukhari #6015 and Muslim #2625 that Jibril's repeated urging was so persistent that the Prophet (ﷺ) began to think the neighbor would be given a share of inheritance. This is how seriously Islam treats the neighbor's right.",
+      },
+      {
+        question: "The scholar-context lesson teaches asking three questions before applying a hadith. Which option correctly names all three?",
+        options: [
+          "Who narrated it, when was it recorded, and which collection it appears in",
+          "Is it Sahih, is it abrogated, and does the madhab accept it",
+          "To whom was it addressed, in what context, and for what purpose",
+          "Who is the primary narrator, who is secondary, and is the chain Mutawatir",
+        ],
+        correctIndex: 2,
+        explanation:
+          "Before applying any hadith: (1) To whom was it addressed — general or specific? (2) In what context — what situation prompted this? (3) For what purpose — what was being corrected or encouraged? Missing these leads to misapplication.",
+      },
+      {
+        question: "'The best among you are those who learn the Quran and teach it.' Which Companion narrated this and in which collection?",
+        options: [
+          "Ali ibn Abi Talib (ra) — Muslim #2578",
+          "Abu Hurairah (ra) — Tirmidhi #2908",
+          "Uthman ibn Affan (ra) — Bukhari #5027",
+          "Abdullah ibn Masud (ra) — Ibn Majah #211",
+        ],
+        correctIndex: 2,
+        explanation:
+          "Uthman ibn Affan (ra) narrated this in Bukhari #5027. The cycle is complete: learn → internalize → teach → the Ummah benefits. The scholar-action lesson links this directly to Umm Salamah's dua — useful knowledge circulates through learning and teaching.",
+      },
+      {
+        question: "In the dua اللَّهُمَّ إِنِّي أَسْأَلُكَ عِلْمًا نَافِعًا, what does the word نَافِعًا (nafi'an) signal about the Islamic view of knowledge?",
+        options: [
+          "Knowledge must produce benefit — it is not complete without action and impact",
+          "Knowledge should be memorized before being shared",
+          "Knowledge is only valid if it comes from a recognized school",
+          "Knowledge must be sought from a certified scholar",
+        ],
+        correctIndex: 0,
+        explanation:
+          "نَافِعًا means 'beneficial.' The Prophet (ﷺ) sought refuge from knowledge that does not benefit. In Islam, knowledge is not an intellectual exercise — it must lead to action (amal), which must be accepted (mutaqabbal). The dua encodes: knowledge → deed → divine acceptance.",
       },
     ],
   },
