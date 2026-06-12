@@ -10,19 +10,29 @@ import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors';
 import { useTheme } from '@/lib/theme/ThemeProvider';
 import { Lesson } from '@/types/hadith';
 import { useCompletionStatus } from '@/hooks/useProgress';
+import { usePathLessons, getLessonNeighbors } from '@/hooks/useLearning';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import { trackActivity } from '@/lib/gamification/track-activity';
 import { getStaticLesson } from '@/lib/learning/staticLearningContent';
 
 export default function LessonDetailScreen() {
-  const params = useLocalSearchParams<{ lessonId: string }>();
+  const params = useLocalSearchParams<{ lessonId: string; pathId?: string }>();
   // Normalize string | string[] so the query guard and progress hook never see junk.
   const lessonId = typeof params.lessonId === 'string' && params.lessonId.length > 0 ? params.lessonId : undefined;
+  // pathId arrives as a query param from the path screen; it gives this lesson
+  // its sequence context for Prev/Next. Absent on a bare deep-link — handled.
+  const pathId = typeof params.pathId === 'string' && params.pathId.length > 0 ? params.pathId : undefined;
   const router = useRouter();
   const { user } = useAuth();
   const { isDark } = useTheme();
   const colors = getColors(isDark);
   const completion = useCompletionStatus('lesson', lessonId ?? null);
+
+  // Shared ordered sequence (reuses the path screen's cached query). Neighbors
+  // resolve to all-null when there's no path context, so nav degrades cleanly.
+  const { data: pathLessons } = usePathLessons(pathId);
+  const neighbors = getLessonNeighbors(pathLessons, lessonId);
+  const goToLesson = (id: string) => router.replace(`/learn/lesson/${id}?pathId=${pathId}`);
 
   const { data: lesson, isLoading } = useQuery({
     queryKey: ['lesson', lessonId],
@@ -84,6 +94,11 @@ export default function LessonDetailScreen() {
       <Stack.Screen options={{ title: lesson.title }} />
       <View style={styles.content}>
         <Card style={styles.lessonCard}>
+          {neighbors.index !== -1 && (
+            <Text style={[styles.position, { color: colors.emeraldMid }]}>
+              Lesson {neighbors.index + 1} of {neighbors.total}
+            </Text>
+          )}
           <Text style={[styles.title, { color: colors.bronzeText }]}>{lesson.title}</Text>
           <Text style={[styles.duration, { color: colors.mutedText }]}>⏱️ {lesson.estimated_minutes} minutes</Text>
           {lesson.description?.trim() ? (
@@ -109,7 +124,15 @@ export default function LessonDetailScreen() {
           </RNView>
         ) : (
           <Button
-            title={completion.isMarking ? 'Marking…' : 'Mark as Complete'}
+            title={
+              completion.isMarking
+                ? 'Marking…'
+                : neighbors.next
+                  ? 'Complete & Continue →'
+                  : neighbors.isLast
+                    ? 'Complete & Finish Path'
+                    : 'Mark as Complete'
+            }
             isLoading={completion.isMarking}
             onPress={async () => {
               await completion.markComplete({
@@ -123,11 +146,37 @@ export default function LessonDetailScreen() {
                   __DEV__ && console.warn('[Lesson] trackActivity failed (non-fatal):', err);
                 }
               }
-              // Brief delay so the "Completed" state is visible before nav.
-              setTimeout(() => router.back(), 600);
+              // Decision: completing advances. Brief delay so the optimistic
+              // "Completed" state is visible, then continue to the next lesson —
+              // or, on the last lesson, return to the path overview.
+              setTimeout(() => {
+                if (neighbors.next) goToLesson(neighbors.next.id);
+                else router.back();
+              }, 600);
             }}
             variant="primary"
           />
+        )}
+
+        {/* Free-navigation Prev/Next pair — only when this lesson sits in a known
+            path sequence. Each control disables at the ends of the path. */}
+        {neighbors.index !== -1 && neighbors.total > 1 && (
+          <View style={styles.navBar}>
+            <Button
+              title="← Previous"
+              variant="outline"
+              disabled={!neighbors.prev}
+              onPress={() => neighbors.prev && goToLesson(neighbors.prev.id)}
+              style={styles.navButton}
+            />
+            <Button
+              title="Next →"
+              variant="outline"
+              disabled={!neighbors.next}
+              onPress={() => neighbors.next && goToLesson(neighbors.next.id)}
+              style={styles.navButton}
+            />
+          </View>
         )}
       </View>
     </ScrollView>
@@ -143,6 +192,13 @@ const styles = StyleSheet.create({
   },
   lessonCard: {
     marginVertical: SPACING.lg,
+  },
+  position: {
+    fontSize: FONT_SIZES.sm,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: SPACING.xs,
   },
   title: {
     fontSize: FONT_SIZES.xxl,
@@ -176,6 +232,14 @@ const styles = StyleSheet.create({
   completedText: {
     fontSize: FONT_SIZES.md,
     fontWeight: '600',
+  },
+  navBar: {
+    flexDirection: 'row',
+    gap: SPACING.md,
+    marginTop: SPACING.md,
+  },
+  navButton: {
+    flex: 1,
   },
   notFoundContainer: {
     flex: 1,

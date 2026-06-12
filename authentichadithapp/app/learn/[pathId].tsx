@@ -7,8 +7,7 @@ import { Card } from '@/components/ui/Card';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors';
 import { useTheme } from '@/lib/theme/ThemeProvider';
-import { Lesson } from '@/types/hadith';
-import { getStaticLessonsForPath } from '@/lib/learning/staticLearningContent';
+import { usePathLessons } from '@/hooks/useLearning';
 
 export default function LearningPathDetailScreen() {
   const params = useLocalSearchParams<{ pathId: string }>();
@@ -35,34 +34,8 @@ export default function LearningPathDetailScreen() {
     enabled: !!pathId,
   });
 
-  const { data: lessons, isLoading } = useQuery({
-    queryKey: ['path-lessons', pathId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('lessons')
-        .select(`
-          *,
-          path_lessons!inner(learning_path_id)
-        `)
-        .eq('path_lessons.learning_path_id', pathId!)
-        .order('order_index');
-
-      if (error) {
-        if (__DEV__) {
-          console.error('[Learn:pathId] lessons embed fetch failed:', { // __DEV__
-            pathId,
-            code: (error as any).code,
-            message: error.message,
-            details: (error as any).details,
-            hint: (error as any).hint,
-          });
-        }
-        return getStaticLessonsForPath(pathId);
-      }
-      return (data?.length ? data : getStaticLessonsForPath(pathId)) as Lesson[];
-    },
-    enabled: !!pathId,
-  });
+  // Shared hook — same ordered sequence the lesson screen reads for Prev/Next.
+  const { data: lessons, isLoading } = usePathLessons(pathId);
 
   const pathTitle = path?.title ?? 'Lessons';
 
@@ -86,7 +59,7 @@ export default function LearningPathDetailScreen() {
         data={lessons}
         keyExtractor={(item) => item.id}
         renderItem={({ item, index }) => (
-          <Pressable onPress={() => router.push(`/learn/lesson/${item.id}`)}>
+          <Pressable onPress={() => router.push(`/learn/lesson/${item.id}?pathId=${pathId}`)}>
             <Card variant="elevated" style={styles.lessonCard}>
               <View style={styles.lessonHeader}>
                 <Text style={[styles.lessonNumber, { color: colors.emeraldMid }]}>Lesson {index + 1}</Text>
