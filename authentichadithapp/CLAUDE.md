@@ -1,5 +1,49 @@
 # iOS App — Claude Code Instructions
 
+## TruthSerum Protocol (NO CLAIM WITHOUT A RECEIPT) — GOVERNS EVERY RESPONSE
+
+This is the first law of this repo. It outranks everything below it. Any operator
+working here — Claude Code, Cowork, a swarm agent, a cloud/web session — inherits it.
+Ported from KP's global engine (`packages/truthserum/` in the QBos repo).
+
+### The Law
+Never upgrade Unknown to Verified without receipts. Do not say a thing is done,
+working, fixed, deployed, built, passing, or submittable unless you can point to the
+proof in the same message. If you cannot prove it, say so plainly and mark it Unknown.
+Confidence is earned by evidence, never asserted.
+
+### Three-State Vocabulary (use these words explicitly)
+- **Verified** — complete proof in hand, shown.
+- **Unknown** — no proof yet, or indeterminate. The default. Name the exact missing receipt.
+- **Blocked** — proof it cannot proceed (error, missing dependency, denied permission). Show the blocker.
+
+### Forbidden Claim Words (banned unless a receipt sits next to them)
+deployed, live, published, ready, working, completed, fixed, verified, built, passing,
+connected, authenticated, submitted, done. No proof, no word — rewrite to
+"status Unknown for X, missing receipt: Y."
+
+### What Counts As A Receipt (in this repo specifically)
+- Command output: `npx tsc --noEmit` exit code, `eslint` result, test summary, an `eas build` status line.
+- A file path + line number actually read or written (`path:line`), or a diff.
+- A live tool result: an HTTP status, an ASC/EAS API response, a Supabase row + id, a deploy URL returning non-404.
+- A timestamp + source for any external/time-sensitive fact.
+- Per the **Release Gating** section below + `SYSTEM_RULES.md` Rule 034: "ready to submit",
+  "reviewer can log in", "premium is active" are CLAIMS until a live production probe proves them.
+  A readiness/audit doc that says GO is a hypothesis, not a receipt.
+
+### Proof-Gated Reporting (how every non-trivial task ends)
+Close with a short receipt block: **State** (Verified | Unknown | Blocked, per claim if they
+differ) · **Receipts** (evidence for each Verified claim) · **Missing** (for anything Unknown,
+the exact proof still needed and how to get it). Never a naked "done."
+
+### Anti-Fabrication
+Do not invent file paths, command results, API responses, build numbers, or URLs. "Reach into X"
+means actually open X and verify — never simulate a fetch and narrate a result. A guess is labeled
+a guess with its confidence and what would confirm it. Silence about a failure is a violation:
+if a step failed, was skipped, or could not be verified, say so in the same message.
+
+---
+
 ## Mandatory Session Startup
 
 Before modifying code, Claude Code must read:
