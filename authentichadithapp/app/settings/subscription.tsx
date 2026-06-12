@@ -132,7 +132,7 @@ function SubscriptionScreenInner() {
           </Text>
           {status?.isActive && status.expiresAt && (
             <Text style={[styles.statusExpiry, { color: colors.mutedText }]}>
-              {status.willRenew ? 'Renews' : 'Expires'}: {new Date(status.expiresAt).toLocaleDateString()}
+              {status.willRenew ? 'Renews' : 'Expires'}: {new Date(status.expiresAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
             </Text>
           )}
         </View>
