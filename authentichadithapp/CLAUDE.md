@@ -294,6 +294,9 @@ Never run these without KP approval:
 
 ## Release Gating: Verify Reviewer Readiness Against Production (NON-NEGOTIABLE)
 
+### HARD GATE — No submission without full device QA (SYSTEM_RULES.md Rule 040)
+"Submit for Review" is BLOCKED until KP confirms every release-critical flow on the **actual TestFlight build, on a physical iPhone, with screenshots/results.** No operator may claim a build "passes QA" / "ready to submit" / "production-ready" from a doc, audit, simulator, or code inspection — only from KP's device evidence. The 8-item device checklist (cold launch, reviewer login+premium, account deletion, AI assistant, paywall prices, restore purchases, lessons, app icon) must be GREEN with KP receipts, and must be re-confirmed on every NEW build number. Attaching a build to the version is permitted prep; it does NOT unlock submission. Full rule: `SYSTEM_RULES.md` **Rule 040**.
+
 Before telling KP the app is submittable — or that the Apple reviewer can log in and see premium — you MUST prove it against PRODUCTION with live network calls. A readiness doc that says "GO" is a claim, not a receipt. See `SYSTEM_RULES.md` **Rule 034** for the full loop and the exact admin/grant commands.
 
 The minimum live receipts before any "ready to submit" statement:
