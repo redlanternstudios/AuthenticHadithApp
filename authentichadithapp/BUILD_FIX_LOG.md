@@ -92,6 +92,21 @@ Before any EAS build:
 
 ## FIXES
 
+### [FIX-082] — Subscription state mismatch: Profile "Free" vs Subscription "Premium / Expires Apr 22, 2226" (release blocker, Build 30 device QA)
+**Date**: 2026-06-12 PT · KP-authorized · for Build 31
+**Pattern category**: DUAL_SOURCE_OF_TRUTH + MISSING_LIFETIME_GUARD
+**Root cause**: Device account was the LEGACY `apple.reviewer@authentichadith.app` — not in the FIX-080 allowlist, so Profile (canonical `usePremiumStatus` → provider `isPro`) said Free, while subscription.tsx's own fresh `getCustomerInfo()` found the account's old RC promotional grant → Premium. The promo's far-future "lifetime" expiration (2226-04-22) rendered as "Expires: Apr 22, 2226" because subscription.tsx's lifetime check was only the exact `ah_lifetime_premium` product ID (no >2100 guard like profile.tsx).
+**Files changed (4)**:
+- `lib/revenuecat/config.ts` — legacy `apple.reviewer@authentichadith.app` added to `REVIEWER_EMAILS` (both demo accounts now resolve premium consistently).
+- `lib/purchases/revenuecat.ts` — `getSubscriptionStatus` + `restorePurchases`: lifetime = lifetime product OR `expirationDate` year > 2100 (promo grants classify as `tier: 'lifetime'`).
+- `app/settings/subscription.tsx` — lifetime tier renders "Lifetime ♾️ — no renewal date" instead of an Expires date. Monthly/annual unchanged (real RC date, Mon DD, YYYY).
+- `__tests__/revenuecat.test.ts` — legacy reviewer → premium; lookalikes/normal users denied; 2226 promo → lifetime; monthly Jul 12 2026 → renewing; free → free.
+**Not changed**: product IDs, RC keys, Supabase auth, unrelated UI.
+**Verification**: tsc exit 0 · eslint exit 0 · jest 14/14 · regression audit 10/10 PASS. On-device proof pending Build 31.
+**Lesson learned**: every screen that states premium/subscription status must classify through the same rules as the canonical source — a screen with its own fresh fetch AND its own (weaker) lifetime rule will drift. And any allowlist keyed to an account must include every live variant of that account.
+
+---
+
 ### [FIX-081] — Notifications screen clean honest state + unambiguous subscription date format (App Review polish)
 **Date**: 2026-06-12 PT · KP-authorized · for Build 30
 **Pattern category**: APP_REVIEW_COMPLETENESS + DATE_FORMAT_CLARITY

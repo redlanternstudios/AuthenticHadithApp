@@ -27,7 +27,12 @@ export const ENTITLEMENT_ID = 'premium'
  * nothing to any other user. Value is the ASC `demoAccountName`
  * (App Store Connect → App Review Information); keep in sync if it changes.
  */
-export const REVIEWER_EMAILS = ['apple.reviewer+20260604@authentichadith.app'] as const
+export const REVIEWER_EMAILS = [
+  'apple.reviewer+20260604@authentichadith.app',
+  // Legacy demo account — also exists in Supabase with an RC promotional grant;
+  // must resolve premium consistently across Profile + Subscription screens.
+  'apple.reviewer@authentichadith.app',
+] as const
 
 /** True only for an exact (case-insensitive) Apple-reviewer demo email match. */
 export function isReviewerEmail(email: string | null | undefined): boolean {
