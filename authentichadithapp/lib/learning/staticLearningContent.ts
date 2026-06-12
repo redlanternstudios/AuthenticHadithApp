@@ -90,7 +90,7 @@ Umma Connection: The collective acts of the ummah — congregational prayer, zak
       description: 'Use the five prayers as the structure of a faithful day.',
       content: `Prayer is not an interruption to the day; it is the frame the rest of the day hangs on. The five daily prayers divide the hours into manageable spans and return the believer to Allah again and again, so that no stretch of life passes without remembrance and renewal.
 
-The Prophet (peace be upon him) asked: "Tell me, if one of you had a river at his door and bathed in it five times a day, would any dirt remain on him?" They said, "No dirt would remain." He said, "That is the example of the five prayers; through them Allah erases sins." Narrated by Abu Hurairah (ra). Collection: Sahih al-Bukhari #528 and Sahih Muslim #667. Grade: Sahih.
+The Prophet (peace be upon him) asked: (أَرَأَيْتُمْ لَوْ أَنَّ نَهَرًا بِبَابِ أَحَدِكُمْ يَغْتَسِلُ مِنْهُ كُلَّ يَوْمّ خَمْسًا مَاذَا يَبْقَى مِنْ دَرَنِهِ) "Tell me, if one of you had a river at his door and bathed in it five times a day, would any dirt remain on him?" They said, "No dirt would remain." He said, "That is the example of the five prayers; through them Allah erases sins." Narrated by Abu Hurairah (ra). Collection: Sahih al-Bukhari #528 and Sahih Muslim #667. Grade: Sahih.
 
 The image is precise: just as flowing water carries away dirt, each prayer washes away the small slips that gather between one prayer and the next. Prayer is therefore both a cleansing and a reset — a moment to pause, remember your purpose, and return to your responsibilities with a cleaner heart.
 
@@ -128,7 +128,7 @@ Umma Connection: Morning and evening adhkar are practiced by Muslims on every co
       description: 'Why steady practice matters more than bursts of intensity.',
       content: `Many people begin worship with a burst of energy, take on far too much, and burn out within a week. The prophetic model is the opposite: choose something small, and never let it go. Consistency, not intensity, is what builds a lasting relationship with Allah.
 
-The Prophet (peace be upon him) said: "The most beloved deeds to Allah are the most consistent ones, even if they are small." Narrated by Aisha (ra). Collection: Sahih al-Bukhari #6464 and Sahih Muslim #783. Grade: Sahih. From the same source he also taught: "Take on only what you can bear of good deeds, for Allah does not tire until you tire."
+The Prophet (peace be upon him) said: (أَحَبُّ الأَعْمَالِ إِلَى اللَّهِ أَدْوَمُهَا وَإِنْ قَلَّ) "The most beloved deeds to Allah are the most consistent ones, even if they are small." Narrated by Aisha (ra). Collection: Sahih al-Bukhari #6464 and Sahih Muslim #783. Grade: Sahih. From the same source he also taught: "Take on only what you can bear of good deeds, for Allah does not tire until you tire."
 
 These two narrations work together. The first tells us what Allah loves most — steadiness. The second protects us from the trap of overreaching, reminding us that the goal is a deed we can keep, not a deed that exhausts us and disappears.
 
@@ -167,7 +167,7 @@ Umma Connection: These simple practices unite Muslim families around the world a
       description: 'Learn the basic difference between isnad and matn.',
       content: `One of the great gifts of this ummah is that it did not just preserve what the Prophet (peace be upon him) said — it preserved exactly how that saying reached us. Every authentic hadith carries two parts: the chain of people who passed it down, and the words themselves.
 
-The scholar Abdullah ibn al-Mubarak said: "The isnad is part of the religion. Were it not for the isnad, anyone could say whatever they wished." (Recorded in the Muqaddimah, the introduction, of Sahih Muslim.) This single statement explains why Muslims built an entire science around the chain of narration.
+The scholar Abdullah ibn al-Mubarak said: "The isnad is part of the religion. Were it not for the isnad, anyone could say whatever they wished." (Recorded in the Muqaddimah of Sahih Muslim.) The prophetic foundation underlying that science: "Whoever deliberately lies about me, let him take his seat in the Fire." (مَنْ كَذَبَ عَلَيَّ مُتَعَمِّدًا فَلْيَتَبَوَّأْ مَقْعَدَهُ مِنَ النَّارِ) Narrated by numerous Companions. Collection: Sahih al-Bukhari #110 and Sahih Muslim #4. Grade: Mutawatir. This warning made exact chain preservation a religious obligation.
 
 The two key terms are simple. The isnad is the chain of narrators — the line of trustworthy people who transmitted the report from the Prophet (peace be upon him) down to us, each one named and examined. The matn is the actual text — the wording of the hadith itself, the guidance you read and act upon. Both are studied: the chain is checked for the reliability and connection of its narrators, and the text is checked for soundness and consistency.
 
@@ -186,7 +186,7 @@ Umma Connection: This careful chain of transmission is what kept the Prophet's w
 
 The four core categories are: Sahih (Authentic) — a report that meets every condition of reliability in both its chain and its text; Hasan (Good) — a report with a slightly weaker chain that is still acceptable as evidence and for practice; Da'if (Weak) — a report with a deficiency in its chain or text, over which scholars differ regarding its use; and Mawdu (Fabricated) — an invented statement falsely attributed to the Prophet, which is rejected outright and never from him.
 
-The stakes are severe. The Prophet (peace be upon him) said: "Whoever narrates from me a hadith thinking it is false is one of the two liars." Narrated by Samura ibn Jundub (ra). Collection: Sahih Muslim (Introduction). Grade: Sahih. This is why scholars guarded the gradings so carefully — attributing a lie to the Messenger is among the gravest sins.
+The stakes are severe. The Prophet (peace be upon him) said: (مَنْ حَدَّثَ عَنِّي بِحَدِيثّ يَرَى أَنَّهُ كَذِبٌ فَهُوَ أَحَدُ الْكَاذِبَيْنِ) "Whoever narrates from me a hadith thinking it is false is one of the two liars." Narrated by Samura ibn Jundub (ra). Collection: Sahih Muslim (Introduction). Grade: Sahih. This is why scholars guarded the gradings so carefully — attributing a lie to the Messenger is among the gravest sins.
 
 Daily Application: When you encounter a hadith — in a book, a post, or a lecture — look for its grading and its source. For matters of ibadah (worship), rely only on what is graded sahih or hasan, and verify before you spread it.
 
@@ -203,7 +203,7 @@ Umma Connection: This grading system protects the entire ummah from building its
       description: 'Prophetic character begins with mercy toward people.',
       content: `Mercy (rahmah) is not a soft extra in Islam; it is the heart of prophetic character and a direct path to Allah's own mercy. The Prophet (peace be upon him) tied the mercy we receive from Allah to the mercy we extend to His creation, making compassion a daily transaction with our Lord.
 
-He (peace be upon him) said: "Those who show mercy will be shown mercy by the Most Merciful. Show mercy to those on earth, and the One above the heavens will show mercy to you." Narrated by Abdullah ibn Amr (ra). Collection: Abu Dawud #4941 and Tirmidhi #1924. Grade: Sahih. He also warned plainly: "He who does not show mercy to others will not be shown mercy." Narrated by Jarir ibn Abdullah (ra). Collection: Sahih al-Bukhari #6013 and Sahih Muslim #2318. Grade: Sahih.
+He (peace be upon him) said: (الرَّاحِمُونَ يَرْحَمُهُمُ الرَّحْمَٰنُ ارْحَمُوا مَنْ فِي الأَرْضِ يَرْحَمْكُمْ مَنْ فِي السَّمَاءِ) "Those who show mercy will be shown mercy by the Most Merciful. Show mercy to those on earth, and the One above the heavens will show mercy to you." Narrated by Abdullah ibn Amr (ra). Collection: Abu Dawud #4941 and Tirmidhi #1924. Grade: Sahih. He also warned plainly: "He who does not show mercy to others will not be shown mercy." Narrated by Jarir ibn Abdullah (ra). Collection: Sahih al-Bukhari #6013 and Sahih Muslim #2318. Grade: Sahih.
 
 These narrations frame mercy as both a command and a measure. The mercy you give is the mercy you are positioning yourself to receive. Far from weakness, true mercy is disciplined care — gentleness with people, patience with their faults, and active effort to ease their burdens.
 
@@ -220,7 +220,7 @@ Umma Connection: Mercy is the very quality Allah names in the Bismillah — Ar-R
       description: 'Why honesty is a foundation of Islamic character.',
       content: `Truthfulness (sidq) is not a single act but a direction the whole self travels in. The Prophet (peace be upon him) described honesty and lying as two roads, each one shaping the traveler until it becomes their permanent identity before Allah.
 
-He (peace be upon him) said: "Truthfulness leads to righteousness (birr), and righteousness leads to Paradise. A man keeps telling the truth until he is recorded with Allah as a truthful one (siddiq). Lying leads to wickedness, and wickedness leads to the Fire. A man keeps lying until he is recorded with Allah as a liar." Narrated by Abdullah ibn Masud (ra). Collection: Sahih al-Bukhari #6094 and Sahih Muslim #2607. Grade: Sahih.
+He (peace be upon him) said: (عَلَيْكُمْ بِالصِّدْقِ فَإِنَّ الصِّدْقَ يَهْدِي إِلَى الْبِرِّ وَإِنَّ الْبِرَّ يَهْدِي إِلَى الْجَنَّةِ) "Truthfulness leads to righteousness (birr), and righteousness leads to Paradise. A man keeps telling the truth until he is recorded with Allah as a truthful one (siddiq). Lying leads to wickedness, and wickedness leads to the Fire. A man keeps lying until he is recorded with Allah as a liar." Narrated by Abdullah ibn Masud (ra). Collection: Sahih al-Bukhari #6094 and Sahih Muslim #2607. Grade: Sahih.
 
 The lesson is that character is cumulative. No one is branded truthful or liar by a single word; it is the repeated choice that fixes the label. Every honest statement, even when it is costly, nudges a person toward the rank of siddiq — the highest station of truthfulness short of prophethood.
 
@@ -239,7 +239,7 @@ Umma Connection: Trust (amanah) is the social fabric that holds the ummah togeth
       description: 'Hadith guidance for preserving kinship and family duty.',
       content: `Maintaining family ties (silat al-rahim) is among the most emphasized social duties in Islam, and the Prophet (peace be upon him) attached remarkable worldly and spiritual rewards to it. Caring for relatives is not merely good manners; it is an act of worship with direct consequences for one's life and provision.
 
-He (peace be upon him) said: "Whoever wishes to have his provision expanded and his lifespan extended, let him maintain the ties of kinship." Narrated by Anas ibn Malik (ra). Collection: Sahih al-Bukhari #5986 and Sahih Muslim #2557. Grade: Sahih. He also raised the standard higher: "The one who maintains ties of kinship is not the one who reciprocates; rather it is the one who, when his ties of kinship are cut, still maintains them." Narrated by Abdullah ibn Amr (ra). Collection: Sahih al-Bukhari #5991. Grade: Sahih.
+He (peace be upon him) said: (مَنْ أَحَبَّ أَنْ يُبْسَطَ لَهُ فِي رِزْقِهِ وَيُنْسَأَ لَهُ فِي أَثَرِهِ فَلْيَصِلْ رَحِمَهُ) "Whoever wishes to have his provision expanded and his lifespan extended, let him maintain the ties of kinship." Narrated by Anas ibn Malik (ra). Collection: Sahih al-Bukhari #5986 and Sahih Muslim #2557. Grade: Sahih. He also raised the standard higher: "The one who maintains ties of kinship is not the one who reciprocates; rather it is the one who, when his ties of kinship are cut, still maintains them." Narrated by Abdullah ibn Amr (ra). Collection: Sahih al-Bukhari #5991. Grade: Sahih.
 
 Together these narrations teach that real kinship is not transactional. Anyone can return a call or a visit; the believer is asked to keep reaching out even toward relatives who have pulled away, turning patience and initiative into a means of blessing.
 
@@ -256,7 +256,7 @@ Umma Connection: The ummah is built outward from its smallest unit, the family. 
       description: 'Build community trust through care for nearby people.',
       content: `In Islam, faith is measured partly by how you treat the people who live closest to you. The Prophet (peace be upon him) raised the right of the neighbor to such a height that he linked it directly to the soundness of a believer's faith.
 
-He (peace be upon him) said, swearing three times for emphasis: "By Allah, he does not believe. By Allah, he does not believe. By Allah, he does not believe." It was asked, "Who, O Messenger of Allah?" He said, "The one whose neighbor is not safe from his harm." Narrated by Abu Hurairah (ra). Collection: Sahih al-Bukhari #6016 and Sahih Muslim #46. Grade: Sahih. He also said: "Jibril kept urging me to be good to my neighbor until I thought he would make him an heir." Narrated by Aisha and Ibn Umar (ra). Collection: Sahih al-Bukhari #6015 and Sahih Muslim #2625. Grade: Sahih.
+He (peace be upon him) said, swearing three times for emphasis: (وَاللَّهِ لَا يُؤْمِنُ وَاللَّهِ لَا يُؤْمِنُ وَاللَّهِ لَا يُؤْمِنُ) "By Allah, he does not believe. By Allah, he does not believe. By Allah, he does not believe." It was asked, "Who, O Messenger of Allah?" He said, "The one whose neighbor is not safe from his harm." Narrated by Abu Hurairah (ra). Collection: Sahih al-Bukhari #6016 and Sahih Muslim #46. Grade: Sahih. He also said: "Jibril kept urging me to be good to my neighbor until I thought he would make him an heir." Narrated by Aisha and Ibn Umar (ra). Collection: Sahih al-Bukhari #6015 and Sahih Muslim #2625. Grade: Sahih.
 
 The first hadith sets the floor — at minimum, your neighbor must be safe from your harm. The second sets the ceiling — the angel Jibril stressed kindness to neighbors so insistently that the Prophet expected them to inherit. Between those two lies the believer's daily duty: remove harm, and actively do good.
 
@@ -275,7 +275,7 @@ Umma Connection: Safe, supportive neighborhoods are the ummah made visible on ev
       description: 'Advanced study requires context, humility, and careful application.',
       content: `Mature study of the religion begins with a duty and a discipline: the duty to seek knowledge, and the discipline to understand a text before applying it. Rushing a hadith from the page to a verdict, without weighing its context, is one of the most common errors of the sincere but hasty student.
 
-The Prophet (peace be upon him) said: "Seeking knowledge is an obligation upon every Muslim." Narrated by Anas ibn Malik (ra). Collection: Sunan Ibn Majah #224. Grade: Sahih (authenticated by al-Albani and others). This obligation is not satisfied by collecting quotations; it is fulfilled by understanding them rightly.
+The Prophet (peace be upon him) said: (طَلَبُ الْعِلْمِ فَرِيضَةٌ عَلَى كُلِّ مُسْلِمّ) "Seeking knowledge is an obligation upon every Muslim." Narrated by Anas ibn Malik (ra). Collection: Sunan Ibn Majah #224. Grade: Sahih (authenticated by al-Albani and others). This obligation is not satisfied by collecting quotations; it is fulfilled by understanding them rightly.
 
 The Sahaba modeled this. They would ask about the occasion of revelation (asbab al-nuzul) for verses and the circumstances surrounding a hadith — to whom it was said, when, and why — before drawing conclusions. They understood that the same words can carry different applications depending on their setting, and that scholars across generations refined how a report is applied in changing conditions.
 
