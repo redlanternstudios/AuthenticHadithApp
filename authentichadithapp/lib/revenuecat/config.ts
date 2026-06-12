@@ -19,6 +19,23 @@ export const PRODUCT_IDS = {
 
 export const ENTITLEMENT_ID = 'premium'
 
+/**
+ * Apple App Review demo account(s). Premium is force-granted in-app for these
+ * exact emails ONLY, so the reviewer can always evaluate premium features even
+ * if RevenueCat fails to resolve their promotional entitlement live. This is a
+ * read-side client override — it writes nothing to RevenueCat and grants
+ * nothing to any other user. Value is the ASC `demoAccountName`
+ * (App Store Connect → App Review Information); keep in sync if it changes.
+ */
+export const REVIEWER_EMAILS = ['apple.reviewer+20260604@authentichadith.app'] as const
+
+/** True only for an exact (case-insensitive) Apple-reviewer demo email match. */
+export function isReviewerEmail(email: string | null | undefined): boolean {
+  if (!email) return false
+  const normalized = email.trim().toLowerCase()
+  return REVIEWER_EMAILS.some((e) => e.toLowerCase() === normalized)
+}
+
 type RevenueCatKeySource =
   | 'expo-extra-ios'
   | 'expo-extra-legacy'

@@ -92,6 +92,21 @@ Before any EAS build:
 
 ## FIXES
 
+### [FIX-080] — Apple reviewer premium bypass (guarantees reviewer can evaluate premium even if RevenueCat fails)
+**Date**: 2026-06-12 PT · KP-authorized · for Build 29
+**Pattern category**: APP_REVIEW_ACCESS_GUARANTEE
+**Root cause**: Reviewer premium depended entirely on RevenueCat resolving a promotional `premium` entitlement live (RC init + Supabase identity sync). If RC hiccupped, the reviewer could see locked premium content → rejection risk. Not guaranteed in code.
+**Files changed** (both SUBSCRIPTION PROTECTED, authorized):
+- `lib/revenuecat/config.ts` — added `REVIEWER_EMAILS` (value = ASC `demoAccountName`, pulled live: `apple.reviewer+20260604@authentichadith.app`) + `isReviewerEmail(email)` (exact, case-insensitive, trimmed match).
+- `lib/revenuecat/RevenueCatProvider.tsx` — `isPro` now `isReviewerEmail(user?.email) || customerInfo?.entitlements.active['premium']?.isActive === true`.
+- `__tests__/revenuecat.test.ts` — 3 new assertions (reviewer true; normal/lookalike/legacy-email false; null/undefined/empty false).
+**Behavior**: the exact reviewer demo email is always premium even if RC is down; every other user is unchanged (still needs a real RC `premium` entitlement via Apple IAP). Read-side client override only — writes nothing to RevenueCat. Covers both the Learn premium gate AND the AI quota (both read `isPro` via `usePremiumStatus`).
+**Verification**: `npx tsc --noEmit` exit 0; `npx eslint` 0 errors; `npx jest __tests__/revenuecat.test.ts` → 10/10 pass. On-device proof pending Build 29.
+**Compliance**: standard reviewer-access pattern; IAP intact for the public; keyed to one private email; no UI/copy change. App Review risk Low.
+**Lesson learned**: for any paywalled app, give the reviewer a code-guaranteed access path that does not depend on a live third-party (RevenueCat) call — the promotional grant is the happy path, the email bypass is the safety net.
+
+---
+
 ### [FIX-079] — Next/Previous lesson navigation (enterprise course flow)
 **Date**: 2026-06-11 PT
 **Pattern category**: NEW_FEATURE (lessons engine) — built to scope after KP product decisions
