@@ -13,6 +13,7 @@ import { trackActivity } from '@/lib/gamification/track-activity'
 import { Hadith } from '@/types/hadith'
 import { HIDDEN_COLLECTION_FILTER } from '@/lib/hadith/visibleCollections'
 import { QuizQuestion, generateQuestions } from '@/lib/hadith/generateQuiz'
+import { STATIC_QUIZZES, getStaticQuiz } from '@/lib/learning/staticQuizContent'
 import { QueryErrorBanner } from '@/components/common/QueryErrorBanner'
 
 type QuizState = 'start' | 'playing' | 'results'
@@ -28,6 +29,7 @@ export default function QuizScreen() {
   const [answers, setAnswers] = useState<number[]>([])
   const [score, setScore] = useState(0)
   const [timer, setTimer] = useState(0)
+  const [quizMode, setQuizMode] = useState<string>('general')
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const { data: hadiths, isLoading, isError, refetch } = useQuery({
@@ -56,7 +58,7 @@ export default function QuizScreen() {
       }
       return results
     },
-    enabled: quizState === 'start',
+    enabled: quizState === 'start' && quizMode === 'general',
   })
 
   useEffect(() => {
@@ -71,8 +73,15 @@ export default function QuizScreen() {
   }, [quizState])
 
   const startQuiz = useCallback(() => {
-    if (!hadiths || hadiths.length === 0) return
-    const q = generateQuestions(hadiths)
+    let q: QuizQuestion[]
+    if (quizMode === 'general') {
+      if (!hadiths || hadiths.length === 0) return
+      q = generateQuestions(hadiths)
+    } else {
+      const staticQuiz = getStaticQuiz(quizMode)
+      if (!staticQuiz || staticQuiz.questions.length === 0) return
+      q = [...staticQuiz.questions]
+    }
     setQuestions(q)
     setCurrentQuestion(0)
     setSelectedAnswer(null)
@@ -80,7 +89,7 @@ export default function QuizScreen() {
     setScore(0)
     setTimer(0)
     setQuizState('playing')
-  }, [hadiths])
+  }, [hadiths, quizMode])
 
   const handleAnswer = useCallback((index: number) => {
     if (selectedAnswer !== null) return
@@ -128,24 +137,57 @@ export default function QuizScreen() {
           <Text style={styles.startEmoji}>🧠</Text>
           <Text style={[styles.startTitle, { color: colors.bronzeText }]}>Knowledge Quiz</Text>
           <Text style={[styles.startSubtitle, { color: colors.mutedText }]}>
-            Test your knowledge of hadith narrators, collections, and grades
+            Choose a quiz to test what you've learned
           </Text>
-          <Card variant="elevated" style={styles.infoCard}>
-            <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, { color: colors.mutedText }]}>Questions</Text>
-              <Text style={[styles.infoValue, { color: colors.bronzeText }]}>10</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, { color: colors.mutedText }]}>Types</Text>
-              <Text style={[styles.infoValue, { color: colors.bronzeText }]}>Narrator, Collection, Grade</Text>
-            </View>
-          </Card>
+
+          {/* Quiz Mode Selector */}
+          <View style={styles.quizModeList}>
+            {/* General Knowledge — dynamic (Supabase) */}
+            <Pressable
+              style={[
+                styles.quizModeCard,
+                { backgroundColor: colors.card, borderColor: quizMode === 'general' ? colors.emeraldMid : colors.border },
+                quizMode === 'general' && styles.quizModeSelected,
+              ]}
+              onPress={() => setQuizMode('general')}
+            >
+              <Text style={styles.quizModeEmoji}>🎲</Text>
+              <View style={styles.quizModeTextBlock}>
+                <Text style={[styles.quizModeTitle, { color: colors.bronzeText }]}>General Knowledge</Text>
+                <Text style={[styles.quizModeDesc, { color: colors.mutedText }]}>
+                  Random hadith — narrators, collections, grades
+                </Text>
+              </View>
+              <Text style={[styles.quizModeBadge, { color: colors.mutedText }]}>10 Qs</Text>
+            </Pressable>
+
+            {/* Lesson-correlated static quizzes */}
+            {STATIC_QUIZZES.map((sq) => (
+              <Pressable
+                key={sq.id}
+                style={[
+                  styles.quizModeCard,
+                  { backgroundColor: colors.card, borderColor: quizMode === sq.id ? colors.emeraldMid : colors.border },
+                  quizMode === sq.id && styles.quizModeSelected,
+                ]}
+                onPress={() => setQuizMode(sq.id)}
+              >
+                <Text style={styles.quizModeEmoji}>{sq.emoji}</Text>
+                <View style={styles.quizModeTextBlock}>
+                  <Text style={[styles.quizModeTitle, { color: colors.bronzeText }]}>{sq.title}</Text>
+                  <Text style={[styles.quizModeDesc, { color: colors.mutedText }]}>{sq.description}</Text>
+                </View>
+                <Text style={[styles.quizModeBadge, { color: colors.mutedText }]}>{sq.questions.length} Qs</Text>
+              </Pressable>
+            ))}
+          </View>
+
           <Button
             title="Start Quiz"
             variant="primary"
             size="large"
             onPress={startQuiz}
-            disabled={!hadiths || hadiths.length === 0}
+            disabled={quizMode === 'general' && (!hadiths || hadiths.length === 0)}
           />
         </View>
       )}
@@ -294,4 +336,20 @@ const styles = StyleSheet.create({
   resultRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, paddingVertical: SPACING.xs },
   resultIcon: { fontSize: 16 },
   resultQuestion: { fontSize: FONT_SIZES.sm, flex: 1 },
+  // Quiz mode selector
+  quizModeList: { width: '100%', gap: SPACING.sm, marginVertical: SPACING.md },
+  quizModeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: SPACING.md,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1.5,
+    gap: SPACING.sm,
+  },
+  quizModeSelected: { borderWidth: 2 },
+  quizModeEmoji: { fontSize: 28 },
+  quizModeTextBlock: { flex: 1 },
+  quizModeTitle: { fontSize: FONT_SIZES.base, fontWeight: '600', marginBottom: 2 },
+  quizModeDesc: { fontSize: FONT_SIZES.sm, lineHeight: 18 },
+  quizModeBadge: { fontSize: FONT_SIZES.sm, fontWeight: '600' },
 })
