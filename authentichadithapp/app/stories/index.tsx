@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Card } from '@/components/ui/Card'
+import { Button } from '@/components/ui/Button'
 import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
 import { useTheme } from '@/lib/theme/ThemeProvider'
 
@@ -42,6 +43,10 @@ export default function StoriesScreen() {
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
       <Stack.Screen options={{ title: 'Stories', headerShown: true }} />
+
+      <View style={styles.backRow}>
+        <Button title="← Back" onPress={() => router.back()} variant="ghost" />
+      </View>
 
       <Text style={[styles.title, { color: colors.bronzeText }]}>Stories</Text>
       <Text style={[styles.subtitle, { color: colors.mutedText }]}>
@@ -134,6 +139,7 @@ export default function StoriesScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: SPACING.md, paddingBottom: SPACING.xxl },
+  backRow: { marginBottom: SPACING.sm },
   title: { fontSize: FONT_SIZES.xxxl, fontWeight: '700', paddingTop: SPACING.md },
   subtitle: { fontSize: FONT_SIZES.base, marginBottom: SPACING.lg },
   section: { marginBottom: SPACING.xl },

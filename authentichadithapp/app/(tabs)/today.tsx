@@ -202,6 +202,7 @@ export default function TodayScreen() {
         <Text style={[styles.dateText, { color: colors.goldMid }]}>
           {today.toLocaleDateString('en-US', {
             weekday: 'long',
+            year: 'numeric',
             month: 'long',
             day: 'numeric',
           })}
