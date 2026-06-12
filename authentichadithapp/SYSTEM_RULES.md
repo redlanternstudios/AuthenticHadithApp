@@ -1057,6 +1057,31 @@ Both are SUBMISSION_BLOCKERS. If either probe fails, fix the live state (Rule 03
 
 ---
 
+## Rule 040: No App Store Submission Without Full Device QA Evidence (HARD GATE)
+
+KP directive, hardcoded 2026-06-12. "Submit for Review" is BLOCKED until every release-critical flow is confirmed on the **actual TestFlight build, on a physical iPhone, by KP, with screenshots/results.** This rule outranks any readiness doc, audit verdict, simulator result, or code inspection.
+
+**No operator (Claude Code, Cowork, swarm, web session) may:**
+- Claim a build "passes QA" / is "ready to submit" / "production-ready" without KP's device evidence for each item below.
+- Treat code-side audit, simulator render, or assumption as a substitute for device confirmation.
+- Press Submit for Review, or instruct KP that it is safe to submit, until the checklist is GREEN with receipts.
+
+**Device-confirmed checklist (each needs a KP screenshot/result on the build being submitted):**
+1. Cold launch — clean, no white flash, lands signed-in, state restored.
+2. Reviewer login + premium unlock — reviewer account signs in AND premium content is unlocked (proves the RC↔Supabase entitlement resolves live).
+3. Account deletion — end-to-end on a throwaway account (prior rejection cause).
+4. AI Assistant — returns a real answer with disclaimer (prior rejection cause).
+5. Paywall — loads with $9.99 / $49.99 / $99.99 and does not crash.
+6. Restore Purchases — runs without error.
+7. Lessons / Learn — paths and lessons render, Next/Previous works.
+8. App icon — correct green/gold logo on the home screen (not Expo default).
+
+**Permitted before full QA:** attaching a build to the App Store version (reversible prep). **Not permitted:** Submit for Review. The attach step does not satisfy this rule and does not unlock submission.
+
+**Receipt discipline (ties to TruthSerum + Rule 039):** a checklist item flips to PASS only with a KP-provided device receipt. Until then it is Unknown. "The build is ready" without all 8 device receipts is a Rule 040 violation. Re-confirm the FULL checklist on any NEW build number before submission — a prior build's QA does not carry forward.
+
+---
+
 # Required File System
 
 Every serious app build must include:
