@@ -92,6 +92,21 @@ Before any EAS build:
 
 ## FIXES
 
+### [FIX-079] — Next/Previous lesson navigation (enterprise course flow)
+**Date**: 2026-06-11 PT
+**Pattern category**: NEW_FEATURE (lessons engine) — built to scope after KP product decisions
+**Why**: The lessons engine had NO lesson-to-lesson navigation. The lesson screen only received `lessonId` with zero path/sequence context, so "next lesson" was uncomputable. KP scoped it: free-forward Next button, auto-advance on complete, Prev+Next pair.
+**Architecture**:
+- `hooks/useLearning.ts` (NEW) — `usePathLessons(pathId)` is the SINGLE source of lesson order (same `queryKey: ['path-lessons', pathId]` as the path screen → the lesson screen reuses the cached, identically-ordered result, no extra fetch, Prev/Next can never disagree with the displayed list). `getLessonNeighbors(lessons, lessonId)` is a pure resolver returning `{index, total, prev, next, isFirst, isLast}` with a safe all-null neighborhood when the lesson isn't in the sequence (bare deep-link).
+- `app/learn/[pathId].tsx` — refactored its inline lessons query into `usePathLessons`; navigates with `?pathId=` so the lesson screen inherits sequence context.
+- `app/learn/lesson/[lessonId].tsx` — reads `pathId` param; renders "Lesson X of Y"; "Mark as Complete" now advances (`Complete & Continue →` to next via `router.replace`, or `Complete & Finish Path` → back to overview on the last lesson); a free-nav Prev/Next bar (each disabled at the ends) appears only when the lesson sits in a known multi-lesson path.
+**Navigation model**: `router.replace` for lateral moves keeps the stack shallow — native back always returns to the path list, never a chain of visited lessons. Degrades cleanly with no `pathId` (no bar, Mark Complete → back).
+**Verification**: `npx tsc --noEmit` exit 0; `npx eslint` exit 0 on all 3 files. Live probe: Foundations path (`0d97d9e7…`) returns 4 ordered lessons (order_index 1–4) — Prev/Next + position populate correctly. On-device proof pending Build 27.
+**Flagged (not fixed)**: `learning_paths.total_lessons` is stale metadata (says 8 for Foundations; actual join = 4). "Lesson X of Y" uses the honest actual count. Recommend a data backfill to reconcile the metadata.
+**Lesson learned**: A lesson belongs to a path only via the `path_lessons` join — sequence has no meaning without path context. Passing `pathId` through the route + one shared ordered-query hook is what makes Prev/Next provably consistent with the list. Build navigation off the SAME data source the list renders, never a parallel query.
+
+---
+
 ### [FIX-078] — Lessons engine hardening pass: premium fallback for null/empty lesson body
 **Date**: 2026-06-11 PT
 **Pattern category**: SILENT_EMPTY_UI (Rule 028 family)
