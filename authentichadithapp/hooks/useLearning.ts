@@ -6,29 +6,19 @@
  * result with no extra network round-trip.
  */
 import { useQuery } from '@tanstack/react-query'
-import { supabase } from '@/lib/supabase/client'
 import { Lesson } from '@/types/hadith'
 import { getStaticLessonsForPath } from '@/lib/learning/staticLearningContent'
 
-/** Ordered lessons for a path. Falls back to bundled static content. */
+/** Ordered lessons for a path. V1: static-only — no Supabase dependency. */
 export function usePathLessons(pathId: string | null | undefined) {
   return useQuery({
     queryKey: ['path-lessons', pathId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('lessons')
-        .select(`
-          *,
-          path_lessons!inner(learning_path_id)
-        `)
-        .eq('path_lessons.learning_path_id', pathId!)
-        .order('order_index')
-
-      if (error) {
-        __DEV__ && console.warn('[usePathLessons] embed fetch failed (non-fatal):', error.message)
-        return getStaticLessonsForPath(pathId)
-      }
-      return (data?.length ? data : getStaticLessonsForPath(pathId)) as Lesson[]
+      // V1 LOCK: always serve bundled static content. Supabase lessons table
+      // is intentionally empty for V1; UUID pathIds from any stale DB rows
+      // would return [] via the join query. Static slugs are the source of
+      // truth for all path/lesson content until V2.
+      return getStaticLessonsForPath(pathId) as Lesson[]
     },
     enabled: !!pathId,
   })

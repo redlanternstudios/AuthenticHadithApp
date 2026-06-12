@@ -1,13 +1,12 @@
 import React from 'react';
 import { StyleSheet, View, Text, FlatList, Pressable } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase/client';
 import { Card } from '@/components/ui/Card';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors';
 import { useTheme } from '@/lib/theme/ThemeProvider';
 import { usePathLessons } from '@/hooks/useLearning';
+import { STATIC_LEARNING_PATHS } from '@/lib/learning/staticLearningContent';
 
 export default function LearningPathDetailScreen() {
   const params = useLocalSearchParams<{ pathId: string }>();
@@ -17,27 +16,14 @@ export default function LearningPathDetailScreen() {
   const { isDark } = useTheme();
   const colors = getColors(isDark);
 
-  const { data: path } = useQuery({
-    queryKey: ['learning-path', pathId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('learning_paths')
-        .select('id, title, subtitle')
-        .eq('id', pathId!)
-        .maybeSingle();
-      if (error) {
-        __DEV__ && console.warn('[Learn:pathId] path title fetch failed (non-fatal):', error.message);
-        return null;
-      }
-      return data;
-    },
-    enabled: !!pathId,
-  });
+  // V1 LOCK: path title resolved from static content — no Supabase round-trip.
+  // Supabase learning_paths rows use UUIDs; static paths use slugs, so a DB
+  // lookup would always return null and fall back to 'Lessons' anyway.
+  const staticPath = STATIC_LEARNING_PATHS.find(p => p.id === pathId);
+  const pathTitle = staticPath?.title ?? 'Lessons';
 
   // Shared hook — same ordered sequence the lesson screen reads for Prev/Next.
   const { data: lessons, isLoading } = usePathLessons(pathId);
-
-  const pathTitle = path?.title ?? 'Lessons';
 
   if (isLoading) {
     return (
