@@ -22,7 +22,7 @@ WHAT YOU GET:
 - Save, organize, and annotate hadiths in personal folders
 - Structured learning paths with lessons on key Islamic topics
 - Gamified progress tracking with streaks, XP, and achievements
-- Offline access to your saved collection
+- Progress tracking that keeps working even with a spotty connection
 - Dark mode, light mode, and multiple language preferences
 
 WHY AUTHENTIC HADITH:
@@ -33,10 +33,9 @@ The AI assistant provides context and background, not religious rulings (fatwa).
 PREMIUM FEATURES:
 - Unlimited AI assistant conversations
 - Advanced learning paths and quizzes
-- Full offline library access
 - Priority access to new features
 
-Your progress syncs across all your devices. Start reading on your iPhone, continue on your iPad.
+Sign in to keep your account, saved hadiths, and premium access with you across devices.
 
 Built with care for the Muslim ummah by byRed LLC, San Diego, California.
 
