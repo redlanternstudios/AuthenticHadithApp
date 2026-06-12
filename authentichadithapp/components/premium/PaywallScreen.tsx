@@ -2,6 +2,7 @@ import React from 'react'
 import { View, StyleSheet } from 'react-native'
 import RevenueCatUI from 'react-native-purchases-ui'
 import { COLORS } from '../../lib/styles/colors'
+import { useRevenueCat } from '../../lib/revenuecat/RevenueCatProvider'
 
 interface PaywallScreenProps {
   onDismiss?: () => void
@@ -14,14 +15,19 @@ interface PaywallScreenProps {
  * Make sure to configure a Paywall template in the RevenueCat Dashboard first.
  */
 export function PaywallScreen({ onDismiss, onPurchaseCompleted, onRestoreCompleted }: PaywallScreenProps) {
+  const { refreshCustomerInfo } = useRevenueCat()
   return (
     <View style={styles.container}>
       <RevenueCatUI.Paywall
         onDismiss={onDismiss}
         onPurchaseCompleted={() => {
+          // Sync canonical isPro immediately — Profile CTA / PremiumGate flip
+          // in the same frame instead of waiting for the async RC listener.
+          refreshCustomerInfo()
           onPurchaseCompleted?.()
         }}
         onRestoreCompleted={() => {
+          refreshCustomerInfo()
           onRestoreCompleted?.()
         }}
       />

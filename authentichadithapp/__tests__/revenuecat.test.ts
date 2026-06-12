@@ -215,3 +215,56 @@ describe('getSubscriptionStatus — lifetime vs renewing classification (FIX-082
     expect(status.tier).toBe('free')
   })
 })
+
+describe('Premium UI truth table — Upgrade CTA gating (FIX-083)', () => {
+  // Mirrors the canonical rule every screen gates on:
+  // isPro = isReviewerEmail(email) || entitlements.active.premium?.isActive === true
+  // Profile renders "Upgrade to Pro" only when !isPro.
+  const computeIsPro = (email: string | null, entitlementActive: boolean) => {
+    const { isReviewerEmail } = require('@/lib/revenuecat/config')
+    return isReviewerEmail(email) || entitlementActive === true
+  }
+  const showsUpgradeCTA = (email: string | null, entitlementActive: boolean) =>
+    !computeIsPro(email, entitlementActive)
+
+  it('free user → sees Upgrade to Pro', () => {
+    expect(showsUpgradeCTA('user@gmail.com', false)).toBe(true)
+  })
+  it('active monthly subscriber → NO Upgrade to Pro', () => {
+    expect(showsUpgradeCTA('user@gmail.com', true)).toBe(false)
+  })
+  it('active annual subscriber → NO Upgrade to Pro', () => {
+    expect(showsUpgradeCTA('annual@user.com', true)).toBe(false)
+  })
+  it('lifetime purchaser → NO Upgrade to Pro', () => {
+    expect(showsUpgradeCTA('lifetime@user.com', true)).toBe(false)
+  })
+  it('reviewer lifetime accounts → NO Upgrade to Pro (even with RC unresolved)', () => {
+    expect(showsUpgradeCTA('apple.reviewer@authentichadith.app', false)).toBe(false)
+    expect(showsUpgradeCTA('apple.reviewer+20260604@authentichadith.app', false)).toBe(false)
+  })
+  it('lookalike reviewer emails → still see Upgrade to Pro (denied bypass)', () => {
+    expect(showsUpgradeCTA('apple.reviewer.fake@authentichadith.app', false)).toBe(true)
+  })
+})
+
+describe('Post-purchase/restore canonical refresh (FIX-083)', () => {
+  it('useRevenueCatSubscription.purchasePackage calls refreshCustomerInfo after a successful purchase', () => {
+    const fs = require('fs')
+    const src = fs.readFileSync('hooks/useRevenueCatSubscription.ts', 'utf8')
+    // The success branch must refresh canonical provider state before returning
+    const successBlock = src.split('isActive)')[1] || ''
+    expect(successBlock).toContain('await refreshCustomerInfo()')
+    expect(src).toContain('[refreshCustomerInfo]') // dep array wired
+  })
+  it('subscription screen refreshes canonical state after purchase AND restore', () => {
+    const fs = require('fs')
+    const src = fs.readFileSync('app/settings/subscription.tsx', 'utf8')
+    expect((src.match(/refreshCustomerInfo\(\)/g) || []).length).toBeGreaterThanOrEqual(2)
+  })
+  it('PaywallScreen refreshes canonical state on purchase and restore completion', () => {
+    const fs = require('fs')
+    const src = fs.readFileSync('components/premium/PaywallScreen.tsx', 'utf8')
+    expect((src.match(/refreshCustomerInfo\(\)/g) || []).length).toBeGreaterThanOrEqual(2)
+  })
+})
