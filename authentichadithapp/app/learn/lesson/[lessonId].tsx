@@ -44,6 +44,11 @@ export default function LessonDetailScreen() {
     enabled: !!lessonId,
   });
 
+  // Premium fallback for lessons whose description/content arrive null or blank
+  // from the DB — the card must never render bare (Rule 028 / no soft-empty UI).
+  const LESSON_PLACEHOLDER =
+    'Detailed notes for this lesson are being prepared. Keep moving through the path — your progress is still saved.';
+
   if (isLoading) {
     return (
       <>
@@ -81,13 +86,21 @@ export default function LessonDetailScreen() {
         <Card style={styles.lessonCard}>
           <Text style={[styles.title, { color: colors.bronzeText }]}>{lesson.title}</Text>
           <Text style={[styles.duration, { color: colors.mutedText }]}>⏱️ {lesson.estimated_minutes} minutes</Text>
-          <Text style={[styles.description, { color: colors.bronzeText }]}>{lesson.description}</Text>
+          {lesson.description?.trim() ? (
+            <Text style={[styles.description, { color: colors.bronzeText }]}>{lesson.description}</Text>
+          ) : null}
 
-          {lesson.content && (
+          {lesson.content?.trim() ? (
             <View style={[styles.contentSection, { backgroundColor: colors.marbleBase }]}>
               <Text style={[styles.contentText, { color: colors.bronzeText }]}>{lesson.content}</Text>
             </View>
-          )}
+          ) : !lesson.description?.trim() ? (
+            // Neither description nor content present — render a single premium
+            // placeholder so the card never looks empty/broken.
+            <View style={[styles.contentSection, { backgroundColor: colors.marbleBase }]}>
+              <Text style={[styles.contentText, { color: colors.mutedText }]}>{LESSON_PLACEHOLDER}</Text>
+            </View>
+          ) : null}
         </Card>
 
         {completion.isComplete ? (

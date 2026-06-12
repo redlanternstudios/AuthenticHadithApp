@@ -92,6 +92,20 @@ Before any EAS build:
 
 ## FIXES
 
+### [FIX-078] — Lessons engine hardening pass: premium fallback for null/empty lesson body
+**Date**: 2026-06-11 PT
+**Pattern category**: SILENT_EMPTY_UI (Rule 028 family)
+**Trigger**: KP "chronic lessons hardening" directive. Audited 3 asks against real code; only one was a live gap.
+**What was actually true (verified, not assumed)**:
+- **Next-Lesson sequencing (ask #1): N/A** — no Next-Lesson feature exists anywhere (`grep` over `app/learn`, `components`, `lib/learning` = 0 hits). The directive's path `app/learn/[pathId]/[lessonId].tsx` does not exist (real: `app/learn/[pathId].tsx` + `app/learn/lesson/[lessonId].tsx`). Building sequential nav is a NEW FEATURE, not hardening — flagged, not fabricated.
+- **Progress hydration (ask #3): ALREADY SATISFIED** — `useCompletionStatus.markComplete` → `progressService.markComplete` (`:224`) calls `notify()` (`:249`), fanning out to every dashboard subscriber (`useProgressSummary`/`useCompletedItems`/`useBadges` all `subscribe()`); the hook also flips optimistically. Mark-as-Complete already re-maps to the dashboard instantly (FIX-044 architecture). No change.
+- **Content null guard (ask #2): real gap, fixed.**
+**Fix**: `app/learn/lesson/[lessonId].tsx` — `lesson.description` was rendered unguarded (`Lesson.description: string` in type, but DB can return null/blank at runtime → bare card). Now: description renders only when non-blank (`?.trim()`); content section renders only when non-blank; if BOTH are empty, a single premium placeholder renders so the card is never empty. Non-noisy (no placeholder when real description OR content exists).
+**Verification**: `npx tsc --noEmit` exit 0; `npx eslint` exit 0. On-device proof pending Build 27.
+**Lesson learned**: Verify a directive's premise before coding it — two of three asks here referenced code that either doesn't exist (Next Lesson) or already works (progress notify pub/sub). Fabricating the first or re-implementing the second would have been waste or regression.
+
+---
+
 ### [FIX-077] — Enterprise-grade UI pass (ship-blocker tier): ScreenHeader foundation, safe-area insets, dark-mode tokens, double-header removal
 **Date**: 2026-06-11 PT
 **Pattern category**: UI_CONSISTENCY / MISSING_SAFE_AREA_INSET / SILENT_DARK_MODE_VIOLATION (Rule 017)
