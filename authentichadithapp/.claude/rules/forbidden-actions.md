@@ -23,6 +23,7 @@ You are structurally PROHIBITED from autonomous code mutations, write operations
 
 ### Purchase / Monetization Layer
 - `lib/purchases/revenuecat.ts`
+- `lib/revenuecat/config.ts` — canonical PRODUCT_IDS source. DO NOT modify.
 - RevenueCat entitlement ID `premium`
 - RevenueCat product IDs `ah_monthly_premium`, `ah_annual_premium`, `ah_lifetime_premium`
 - Stripe price IDs and product IDs in `.env.local`
