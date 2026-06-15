@@ -55,7 +55,8 @@ function AppContent() {
         <Stack.Screen name="topics" options={{ headerShown: false }} />
         <Stack.Screen name="bookmarks" options={{ headerShown: false }} />
         <Stack.Screen name="learn" options={{ headerShown: false }} />
-        <Stack.Screen name="redeem" options={{ headerShown: false }} />
+        <Stack.Screen name="redeem/index" options={{ headerShown: false }} />
+        <Stack.Screen name="redeem/my-code" options={{ headerShown: false }} />
         <Stack.Screen name="my-hadith" options={{ headerShown: false }} />
         <Stack.Screen name="settings" options={{ headerShown: false }} />
         <Stack.Screen name="onboarding" options={{ headerShown: false, presentation: 'fullScreenModal' }} />

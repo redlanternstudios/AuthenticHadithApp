@@ -213,17 +213,7 @@ export default function ProfileScreen() {
           onPress={handleRestore}
         />
         )}
-        <SettingsRow
-          icon="gift-outline"
-          label="Redeem Promo Code"
-          onPress={() => router.push('/redeem')}
-        />
-        <SettingsRow
-          icon="share-outline"
-          label="My Referral Code"
-          onPress={() => router.push('/redeem/my-code')}
-        />
-      </Card>
+</Card>
 
       {/* Settings */}
       <Card style={styles.section}>
