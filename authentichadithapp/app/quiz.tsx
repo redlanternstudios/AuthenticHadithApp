@@ -137,7 +137,7 @@ export default function QuizScreen() {
           <Text style={styles.startEmoji}>🧠</Text>
           <Text style={[styles.startTitle, { color: colors.bronzeText }]}>Knowledge Quiz</Text>
           <Text style={[styles.startSubtitle, { color: colors.mutedText }]}>
-            Choose a quiz to test what you've learned
+            Choose a quiz to test what you&apos;ve learned
           </Text>
 
           {/* Quiz Mode Selector */}
