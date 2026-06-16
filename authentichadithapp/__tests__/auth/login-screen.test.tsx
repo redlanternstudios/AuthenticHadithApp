@@ -9,6 +9,9 @@ import { render } from '@testing-library/react-native';
 jest.mock('expo-router', () => ({
   useRouter: () => ({ replace: jest.fn(), push: jest.fn(), back: jest.fn() }),
   Link: ({ children }: any) => children,
+  // FIX-086 added <Stack.Screen> to the auth screens; mock it as a null-render
+  // (matches real behavior: it only registers nav options, renders nothing).
+  Stack: { Screen: () => null },
 }));
 
 // Mock AuthProvider
