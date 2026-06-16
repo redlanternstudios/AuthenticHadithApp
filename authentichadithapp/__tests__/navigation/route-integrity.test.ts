@@ -19,7 +19,6 @@ const DECLARED_ROUTES = [
   'topics',
   'bookmarks',
   'learn',
-  'redeem',
   'my-hadith',
   'settings',
   'onboarding',

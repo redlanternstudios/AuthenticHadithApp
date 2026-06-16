@@ -92,6 +92,19 @@ Before any EAS build:
 
 ## FIXES
 
+### [FIX-085] — App Store rejection remediation: remove Redeem Code (3.1.1) + add EULA/Privacy links to paywall (3.1.2c)
+**Date**: 2026-06-15 PT · KP-authorized · for next build (Build 33 candidate)
+**Pattern category**: APPSTORE_COMPLIANCE (Guideline 3.1.1 IAP integrity, 3.1.2c subscription metadata)
+**Trigger**: Apple rejection of v1.0 build 32 (submission 632f5eee-0eb4-4a95-be1e-01d00806da30, reviewed 2026-06-14, iPad Air 11" M3). Four guidelines cited; this fix covers the two code-side ones. 3.1.1: app unlocked Premium via promo/referral codes outside Apple IAP. 3.1.2c: auto-renewable subscription paywall lacked functional Terms of Use (EULA) + Privacy Policy links.
+**What**: (1) Fully removed the Redeem Code feature — deleted `app/redeem/index.tsx` (promo-code unlock calling the `redeem_promo_code` RPC) and `app/redeem/my-code.tsx` (referral QR generating `authentichadith://redeem?code=`), removed the now-empty `app/redeem/` folder, and removed both `redeem/*` Stack.Screen registrations from `_layout.tsx`. Feature was already orphaned (zero in-app nav paths — Rule 014). (2) Added a "Terms of Use (EULA)" link (Apple standard stdeula URL) and a "Privacy Policy" link (https://byredllc.com/privacy) to the normal paywall view in `app/settings/subscription.tsx`, directly under the auto-renew disclosure.
+**Files (5)**: `app/redeem/index.tsx` (DELETED), `app/redeem/my-code.tsx` (DELETED), `app/_layout.tsx` (removed 2 route registrations), `app/settings/subscription.tsx` (Linking import + 2 legal links + 3 styles), `__tests__/navigation/route-integrity.test.ts` (removed 'redeem' from DECLARED_ROUTES).
+**Not changed**: Supabase `promo_codes` table / `redeem_promo_code` RPC (DB layer, now dormant — Apple reviews the binary only); RevenueCat product IDs / keys / entitlement; ASC metadata (2.3.7 priced screenshot + 2.3.2 duplicate promo images = coworker; ASC EULA field = coworker); no commit / push / build.
+**Verification**: `npx tsc --noEmit` exit 0 · `jest route-integrity.test.ts` 30/30 pass · grep for redeem refs across app/ components/ lib/ hooks/ __tests__/ = none · paywall links confirmed at `subscription.tsx:215` (EULA) + `:222` (privacy).
+**Status**: Code Verified in working tree. App Store compliance UNKNOWN until a new build passes Rule 040 device QA (paywall link tap-through added to the 8-point checklist) and Apple clears the resubmission with a screen recording. NOT "fixed" until the reviewer signs off.
+**Lesson**: Any "unlock premium" path that is not Apple IAP is a 3.1.1 rejection — promo/referral code redemption included. Auto-renewable subscriptions must carry functional EULA + Privacy links on the paywall surface itself (3.1.2c), not only buried in Settings.
+
+---
+
 ### [FIX-084] — Internal lifetime allowlist (3 accounts) + Subscription-screen allowlist display
 **Date**: 2026-06-12 PT · KP-authorized · for Build 32
 **Pattern category**: ALLOWLIST_EXTENSION (FIX-080/082 family)

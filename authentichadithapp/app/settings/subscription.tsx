@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Platform, Linking } from 'react-native';
 import { Stack } from 'expo-router';
 import { SPACING, FONT_SIZES , getColors } from '@/lib/styles/colors';
 import { useTheme } from '@/lib/theme/ThemeProvider';
@@ -206,6 +206,25 @@ function SubscriptionScreenInner() {
         <Text style={[styles.legalText, { color: colors.mutedText }]}>
           Payment will be charged to your Apple ID account at confirmation of purchase. Subscriptions automatically renew unless auto-renew is turned off at least 24 hours before the end of the current period. Your account will be charged for renewal within 24 hours prior to the end of the current period. You can manage and cancel your subscriptions in your App Store account settings.
         </Text>
+
+        {/* Apple 3.1.2(c): auto-renewable subscriptions must show functional links to
+            Terms of Use (EULA) and Privacy Policy on the paywall itself. EULA uses
+            Apple's standard Terms of Use; Privacy uses the app's canonical policy URL. */}
+        <View style={styles.legalLinks}>
+          <TouchableOpacity
+            onPress={() => Linking.openURL('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/')}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.legalLink, { color: colors.emeraldMid }]}>Terms of Use (EULA)</Text>
+          </TouchableOpacity>
+          <Text style={[styles.legalLinkSep, { color: colors.mutedText }]}>•</Text>
+          <TouchableOpacity
+            onPress={() => Linking.openURL('https://byredllc.com/privacy')}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.legalLink, { color: colors.emeraldMid }]}>Privacy Policy</Text>
+          </TouchableOpacity>
+        </View>
           </>
         )}
       </ScrollView>
@@ -253,6 +272,21 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: SPACING.md,
     paddingHorizontal: SPACING.md,
+  },
+  legalLinks: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    marginTop: SPACING.sm,
+  },
+  legalLink: {
+    fontSize: 12,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
+  legalLinkSep: {
+    fontSize: 12,
   },
 });
 
