@@ -166,7 +166,8 @@ function SubscriptionScreenInner() {
                 activeOpacity={0.7}
               >
                 <Text style={[styles.packageTitle, { color: colors.bronzeText }]}>
-                  {pkg.product.title}
+                  {/* FIX-088: StoreKit returns Lifetime's reference name "LifetimePremium" (no space). Split camelCase so it renders "Lifetime Premium". Already-spaced titles (Premium Monthly/Annual) are unaffected. */}
+                  {pkg.product.title?.replace(/([a-z])([A-Z])/g, '$1 $2')}
                 </Text>
                 <Text style={[styles.packagePrice, { color: colors.bronzeText }]}>
                   {pkg.product.priceString}
