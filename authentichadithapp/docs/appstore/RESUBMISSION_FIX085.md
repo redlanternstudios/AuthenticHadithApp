@@ -78,7 +78,7 @@ Keep it under ~30 seconds, portrait, no editing needed.
 
 ## Dependency order (do NOT skip)
 1. KP approves Checkpoint #1 → commit + push (Stage 3).
-2. New EAS production build (Build 33 candidate).
+2. ✅ EAS production **Build 34** (v1.0.0) built 2026-06-15 — build ID `16fa55ca-6d5e-4419-9f31-d25daea353f3`, IPA ready, NOT yet submitted to TestFlight.
 3. Coworker completes A1–A3 in ASC (can run in parallel with 1–2).
 4. Device QA on the new build incl. paywall EULA/Privacy tap-through (Rule 040).
 5. Record B3 screen recording on the QA build.
