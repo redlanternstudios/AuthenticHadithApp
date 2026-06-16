@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, Alert } from 'react-native';
-import { useRouter, Link } from 'expo-router';
+import { useRouter, Link, Stack } from 'expo-router';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -35,6 +35,8 @@ export default function LoginScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* FIX-086: Hardcode header title to prevent raw route string display */}
+      <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.bronzeText }]}>Welcome Back</Text>
         <Text style={[styles.subtitle, { color: colors.mutedText }]}>Sign in to continue</Text>

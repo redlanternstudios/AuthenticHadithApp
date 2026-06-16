@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, Stack } from 'expo-router';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -38,6 +38,8 @@ export default function ForgotPasswordScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* FIX-086: Hardcode header title to prevent raw route string display */}
+      <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.bronzeText }]}>Reset Password</Text>
         <Text style={[styles.subtitle, { color: colors.mutedText }]}>
