@@ -92,6 +92,22 @@ Before any EAS build:
 
 ## FIXES
 
+### [FIX-086] — Auth screens leaked raw route titles (2.3.2): hard-lock the entire auth group headerless
+**Date**: 2026-06-16 PT · KP-authorized · targeted for EAS Build 35 (v1.0.0)
+**Pattern category**: APPSTORE_COMPLIANCE (Guideline 2.3.2 accurate metadata / UI polish) + NAVIGATION_HEADER
+**Trigger**: Auth screens (`/auth/login`, `/auth/signup`, `/auth/forgot-password`) rendered with the default navigation header showing the raw route string (e.g. "auth/login") as the title — an Apple 2.3.2 (inaccurate metadata / unpolished UI) flag risk on resubmission after the build 32 rejection.
+**Root cause**: No `app/auth/_layout.tsx` existed. The root `app/_layout.tsx` only declares `<Stack.Screen name="auth" headerShown:false />`, which matches a literal `auth/index` route, NOT the child screens. So `auth/login|signup|forgot-password` registered directly on the ROOT stack and fell through to the default header with the raw route title.
+**Fix (belt-and-suspenders, "ensure there is none")**:
+1. NEW `app/auth/_layout.tsx` — group `Stack` with `screenOptions={{ headerShown: false }}` + explicit per-screen registrations. Structurally hides the header for every current AND future auth screen (matches the `app/stories/_layout.tsx` idiom). Durable backstop.
+2. Each auth screen now also renders `<Stack.Screen options={{ headerShown: false }} />` inline (import `Stack` from `expo-router`). Redundant with the group layout by design.
+**Files (4)**: `app/auth/_layout.tsx` (NEW), `app/auth/login.tsx`, `app/auth/signup.tsx`, `app/auth/forgot-password.tsx` (each: +`Stack` import + 1 `<Stack.Screen>`).
+**Forbidden-zone note**: the 3 auth screens are hard-locked (`.claude/rules/forbidden-actions.md`). The screen edits were KP-authorized this session; the group `_layout.tsx` is a NEW file outside the locked list and carries the durable fix so the locked files never have to change again.
+**Verification**: `npx tsc --noEmit` exit 0 · `eslint` on all 4 files clean · `git diff` confirms `Stack` import + `<Stack.Screen headerShown:false>` in each screen and group `screenOptions` in `_layout.tsx`.
+**Status**: Code Verified in working tree. App Store compliance UNKNOWN until Build 35 passes Rule 040 device QA (auth screens show NO header bar / no raw route title) and Apple clears the resubmission. NOT "fixed" until the reviewer signs off.
+**Lesson**: An expo-router route folder with no `_layout.tsx` lets its children fall through to the ROOT stack's default header, leaking the raw route path as the title. Every route group that should be headerless needs its own `_layout.tsx` with `screenOptions={{ headerShown: false }}` — per-screen overrides alone are fragile (a new screen forgets the line).
+
+---
+
 ### [FIX-085] — App Store rejection remediation: remove Redeem Code (3.1.1) + add EULA/Privacy links to paywall (3.1.2c)
 **Date**: 2026-06-15 PT · KP-authorized · shipped in EAS Build 34 (v1.0.0)
 **Pattern category**: APPSTORE_COMPLIANCE (Guideline 3.1.1 IAP integrity, 3.1.2c subscription metadata)
