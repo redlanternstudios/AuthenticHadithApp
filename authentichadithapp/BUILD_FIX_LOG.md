@@ -92,6 +92,32 @@ Before any EAS build:
 
 ## FIXES
 
+### [FIX-088] — Lifetime tier rendered "LifetimePremium" (no space) on the paywall
+**Date**: 2026-06-16 PT · KP-authorized · targeted for EAS Build 36 (v1.0.0)
+**Pattern category**: APPSTORE_COMPLIANCE (2.3.7 accurate metadata) / UI POLISH
+**Trigger**: The Subscription paywall (`app/settings/subscription.tsx`) showed the Lifetime tier as "LifetimePremium" with no space, on both simulator and physical TestFlight (KP screenshots 2026-06-16). Looked unpolished next to "Premium Monthly" / "Premium Annual".
+**Root cause**: Paywall renders `pkg.product.title` (RevenueCat/StoreKit). For the Lifetime non-consumable, StoreKit returned the ASC **reference name** `LifetimePremium` (no space) instead of the localized **display name** `Lifetime Premium` (which IS correctly set in ASC — verified via `/v2/inAppPurchases/6766451787` localization). Likely a StoreKit display-name propagation/cache lag; ASC metadata itself is already correct.
+**Fix**: Normalize the rendered title with a camelCase split — `pkg.product.title?.replace(/([a-z])([A-Z])/g, '$1 $2')` at `subscription.tsx:169`. Guarantees "Lifetime Premium" in the binary regardless of StoreKit caching. Already-spaced titles (Premium Monthly/Annual) are unaffected.
+**Files (1)**: `app/settings/subscription.tsx` (display normalization on the package title; not a locked file).
+**Verification**: `npx tsc --noEmit` exit 0. Node sanity: `"LifetimePremium"→"Lifetime Premium"`, `"Premium Monthly"→"Premium Monthly"`, `"Premium Annual"→"Premium Annual"`. On-device confirm required on Build 36.
+**Status**: Code Verified in working tree. On-device render UNKNOWN until Build 36.
+**Lesson**: Never trust StoreKit's `product.title` to equal the ASC localized display name — it can serve the reference name (cache/propagation). Normalize display strings at the render layer when polish matters.
+
+---
+
+### [FIX-087] — App icon swap: old marble icon → new dark-green mihrab/book logo
+**Date**: 2026-06-16 PT · KP-authorized · targeted for EAS Build 36 (v1.0.0)
+**Pattern category**: BRANDING / APP_ICON
+**Trigger**: Build 35 (and all prior builds) shipped the old busy green/gold marble app icon. KP finalized a new, cleaner brand logo (deep-green background, gold mihrab arch + open Quran) and needs it as the iOS app icon. App icons are compiled into the binary, so this requires a NEW build (36) — Build 35 cannot be edited.
+**Fix**: Replaced `assets/images/icon.png` with the new dark-green logo (`AuthenticHadith-AppIcon-Monthly-1024 (2).png`). 1024×1024, **no alpha** (Apple requires opaque app icons — the non-(2) source variants had alpha and would be rejected). No `app.json` change (same `icon` path, asset replaced in place → no locked-file edit).
+**Files (1)**: `assets/images/icon.png` (replaced; old 1.98 MB marble → new 764,585 B dark-green).
+**Not changed**: `splash-icon.png` (launch screen mark — separate asset, left as-is); android adaptive icons; RevenueCat/IAP. The same dark-green artwork is also used as the Premium Monthly subscription promo image in ASC (FIX from prior session) — reuse across surfaces is intentional.
+**Verification**: `sips` confirms icon.png = 1024×1024, hasAlpha=no. Visual confirm: deep-green bg, gold arch + open book, "AUTHENTIC HADITH". Compiled icon must be verified on the physical TestFlight Build 36 (Rule 040) — a build can still ship the wrong icon if assets don't resolve (see Build 19 blue-Expo-icon incident).
+**Status**: Asset Verified in working tree. Shipped-icon UNKNOWN until Build 36 installs on a physical device showing the new icon. NOT "done" until confirmed on TestFlight.
+**Lesson**: App icon = compiled asset. Any icon change is a new build + submit cycle; it cannot be hot-swapped on an existing TestFlight build. Always verify the *compiled* icon on-device, not just the source PNG (Build 19 shipped the blue Expo default despite a corrected source).
+
+---
+
 ### [FIX-086] — Auth screens leaked raw route titles (2.3.2): hard-lock the entire auth group headerless
 **Date**: 2026-06-16 PT · KP-authorized · targeted for EAS Build 35 (v1.0.0)
 **Pattern category**: APPSTORE_COMPLIANCE (Guideline 2.3.2 accurate metadata / UI polish) + NAVIGATION_HEADER
