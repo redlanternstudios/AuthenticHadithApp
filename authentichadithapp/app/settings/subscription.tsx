@@ -31,29 +31,65 @@ function extractPurchaseError(err: any, fallback: string): string {
   return fallback;
 }
 
-// FIX-089 lockdown — Apple 2.3.2 / 3.1.2: paywall titles + prices are HARDCODED
-// per product identifier, exactly matching the App Store Connect Display Name
-// and Price for each IAP. Dynamic StoreKit fetching can surface a locale-shifted
-// title ("LifetimePremium" camelCase leak — see FIX-088) or a bare price string
-// with no billing cadence ($49.99 with no "/year" — Apple 3.1.2 rejection
-// 2026-06-16). Pinning the strings here removes reviewer drift entirely. Unknown
-// product identifiers fall back to the StoreKit values so the screen never
-// renders blank if a new package is added to the RC offering later.
-function getHardcodedDisplay(pkg: any): { title: string; price: string } {
-  const id = pkg?.product?.identifier as string | undefined;
-  switch (id) {
-    case 'ah_monthly_premium':
-      return { title: 'Premium Monthly',  price: '$9.99 / month' };
-    case 'ah_annual_premium':
-      return { title: 'Premium Annual',   price: '$49.99 / year' };
-    case 'ah_lifetime_premium':
-      return { title: 'Lifetime Premium', price: '$99.99' };
-    default:
-      return {
-        title: (pkg?.product?.title ?? '').replace(/([a-z])([A-Z])/g, '$1 $2'),
-        price: pkg?.product?.priceString ?? '',
-      };
+// FIX-091 (reverts the FIX-089 + FIX-090 hardcode, per KP 2026-06-17) — Apple 2.3.2 / 3.1.2.
+//
+// PRICE is always the LIVE StoreKit-localized price (`pkg.product.priceString`).
+// Because that string comes straight from StoreKit, it is identical, by
+// construction, to the price Apple has on file for the IAP — in every storefront
+// and currency the reviewer or user is in. That is the ONLY way to keep the
+// "3-surface" price match (App Store Connect ↔ paywall ↔ reviewer note) true
+// forever. The old hardcoded USD literal silently broke the match the moment the
+// reviewer was non-US or KP edited the ASC price → 2.3.2 / 3.1.2 rejection and the
+// IAP getting returned. Never hardcode the price number again.
+//
+// CADENCE ("/ month", "/ year", "" for one-time) is appended by us. StoreKit's
+// priceString carries the number but never the term, and Apple 3.1.2 requires the
+// billing term to be visible next to the price. The cadence describes the PACKAGE
+// TYPE, not the price, so controlling it here is safe and locale-stable.
+//
+// TITLE is a clean fixed label per package, NOT `pkg.product.title`. The StoreKit
+// Display Name can leak a camelCase reference name ("LifetimePremium" — FIX-088),
+// so we never render it directly. The label is descriptive copy, not the
+// price-bearing metadata that must match Apple's record, so a fixed string is fine.
+const PACKAGE_CADENCE: Record<string, string> = {
+  ah_monthly_premium: ' / month',
+  ah_annual_premium: ' / year',
+  ah_lifetime_premium: '',
+};
+const PACKAGE_TITLE: Record<string, string> = {
+  ah_monthly_premium: 'Premium Monthly',
+  ah_annual_premium: 'Premium Annual',
+  ah_lifetime_premium: 'Lifetime Premium',
+};
+
+function getPackageDisplay(pkg: any): { title: string; price: string } {
+  const id = (pkg?.product?.identifier ?? '') as string;
+  // Live, localized price string from StoreKit — equals the App Store Connect
+  // price by construction, in the reviewer's/user's own storefront and currency.
+  const livePrice = (pkg?.product?.priceString ?? '').trim();
+  const knownTitle = PACKAGE_TITLE[id];
+  const knownCadence = PACKAGE_CADENCE[id];
+
+  // Known product: clean label + live price + our controlled billing cadence.
+  if (knownTitle !== undefined && knownCadence !== undefined) {
+    return {
+      title: knownTitle,
+      price: livePrice ? `${livePrice}${knownCadence}` : '',
+    };
   }
+
+  // Unknown product (a tier added to the RC offering later): camelCase-split the
+  // StoreKit title and infer cadence from the RC package type so the card still
+  // renders correctly with no code change.
+  const inferredCadence =
+    pkg?.packageType === 'MONTHLY' ? ' / month'
+    : pkg?.packageType === 'ANNUAL' ? ' / year'
+    : pkg?.packageType === 'WEEKLY' ? ' / week'
+    : '';
+  return {
+    title: (pkg?.product?.title ?? '').replace(/([a-z])([A-Z])/g, '$1 $2'),
+    price: livePrice ? `${livePrice}${inferredCadence}` : '',
+  };
 }
 
 function SubscriptionScreenInner() {
@@ -191,8 +227,8 @@ function SubscriptionScreenInner() {
         {offerings?.availablePackages ? (
           <View style={styles.packages}>
             {offerings.availablePackages.map((pkg: any) => {
-              // FIX-089 lockdown — pin title + price to ASC-matched literals.
-              const display = getHardcodedDisplay(pkg);
+              // FIX-091 — live StoreKit price + our controlled cadence/title.
+              const display = getPackageDisplay(pkg);
               return (
                 <TouchableOpacity
                   key={pkg.identifier}
