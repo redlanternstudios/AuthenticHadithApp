@@ -31,20 +31,28 @@ function extractPurchaseError(err: any, fallback: string): string {
   return fallback;
 }
 
-// FIX-089 — Patch A: Apple 3.1.2 — paywall must display price with billing cadence
-// so users know exactly what they are committing to before tapping a purchase button.
-// packageType is RC's normalised enum (MONTHLY, ANNUAL, LIFETIME, etc.).
-function getBillingPeriodLabel(pkg: any): string {
-  switch (pkg.packageType as string) {
-    case 'MONTHLY':     return ' / month';
-    case 'ANNUAL':      return ' / year';
-    case 'WEEKLY':      return ' / week';
-    case 'TWO_MONTH':   return ' / 2 months';
-    case 'THREE_MONTH': return ' / 3 months';
-    case 'SIX_MONTH':   return ' / 6 months';
-    case 'TWO_YEAR':    return ' / 2 years';
-    case 'LIFETIME':    return ''; // one-time purchase — no recurring period
-    default:            return '';
+// FIX-089 lockdown — Apple 2.3.2 / 3.1.2: paywall titles + prices are HARDCODED
+// per product identifier, exactly matching the App Store Connect Display Name
+// and Price for each IAP. Dynamic StoreKit fetching can surface a locale-shifted
+// title ("LifetimePremium" camelCase leak — see FIX-088) or a bare price string
+// with no billing cadence ($49.99 with no "/year" — Apple 3.1.2 rejection
+// 2026-06-16). Pinning the strings here removes reviewer drift entirely. Unknown
+// product identifiers fall back to the StoreKit values so the screen never
+// renders blank if a new package is added to the RC offering later.
+function getHardcodedDisplay(pkg: any): { title: string; price: string } {
+  const id = pkg?.product?.identifier as string | undefined;
+  switch (id) {
+    case 'ah_monthly_premium':
+      return { title: 'Premium Monthly',  price: '$9.99 / month' };
+    case 'ah_annual_premium':
+      return { title: 'Premium Annual',   price: '$49.99 / year' };
+    case 'ah_lifetime_premium':
+      return { title: 'Lifetime Premium', price: '$99.99' };
+    default:
+      return {
+        title: (pkg?.product?.title ?? '').replace(/([a-z])([A-Z])/g, '$1 $2'),
+        price: pkg?.product?.priceString ?? '',
+      };
   }
 }
 
@@ -182,29 +190,29 @@ function SubscriptionScreenInner() {
         {/* Packages */}
         {offerings?.availablePackages ? (
           <View style={styles.packages}>
-            {offerings.availablePackages.map((pkg: any) => (
-              <TouchableOpacity
-                key={pkg.identifier}
-                style={[styles.packageCard, { backgroundColor: colors.card, borderColor: colors.border }]}
-                onPress={() => handlePurchase(pkg)}
-                disabled={purchasing || (status?.isActive ?? false)}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.packageTitle, { color: colors.bronzeText }]}>
-                  {/* FIX-088: StoreKit returns Lifetime's reference name "LifetimePremium" (no space). Split camelCase so it renders "Lifetime Premium". Already-spaced titles (Premium Monthly/Annual) are unaffected. */}
-                  {pkg.product.title?.replace(/([a-z])([A-Z])/g, '$1 $2')}
-                </Text>
-                {/* FIX-089 — Patch B: Append billing cadence label so price reads
-                    "$9.99 / month", "$49.99 / year", or "$99.99" (lifetime, no label).
-                    getBillingPeriodLabel returns '' for LIFETIME — no trailing text. */}
-                <Text style={[styles.packagePrice, { color: colors.bronzeText }]}>
-                  {pkg.product.priceString}{getBillingPeriodLabel(pkg)}
-                </Text>
-                <Text style={[styles.packageDesc, { color: colors.mutedText }]}>
-                  {pkg.product.description}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            {offerings.availablePackages.map((pkg: any) => {
+              // FIX-089 lockdown — pin title + price to ASC-matched literals.
+              const display = getHardcodedDisplay(pkg);
+              return (
+                <TouchableOpacity
+                  key={pkg.identifier}
+                  style={[styles.packageCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+                  onPress={() => handlePurchase(pkg)}
+                  disabled={purchasing || (status?.isActive ?? false)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.packageTitle, { color: colors.bronzeText }]}>
+                    {display.title}
+                  </Text>
+                  <Text style={[styles.packagePrice, { color: colors.bronzeText }]}>
+                    {display.price}
+                  </Text>
+                  <Text style={[styles.packageDesc, { color: colors.mutedText }]}>
+                    {pkg.product.description}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         ) : (
           <View style={styles.fallback}>

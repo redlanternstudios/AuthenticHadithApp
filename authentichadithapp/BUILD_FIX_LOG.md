@@ -3462,3 +3462,66 @@ expo-doctor reports "It looks like that you are using a custom metro.config.js t
 4. **Narrator extraction unreliable** — empty for 14,016 / 31,493 (44%; Muslim 99%). Field is regex-extracted from English, not sourced. Empty is honest; any shown value is heuristic.
 
 **Recommended decisions** (KP/Rory): (A) grades — source authoritative gradings (al-Albani/Darussalam), OR stop showing grade labels we can't stand behind, OR ship Bukhari+Muslim only for V1 (the two universally-accepted Sahihayn) and add graded Sunan in v1.x; (B) purge/repair the 203 blank Muslim rows + remaining empties; (C) dedupe the 169 rows; (D) treat narrator as best-effort, never authoritative. None are code bugs — all are content-sourcing / governance calls with religious weight.
+
+---
+
+### [FIX-089] — Paywall titles + prices HARDCODED for Apple Review determinism (2.3.2 / 3.1.2)
+**Date**: 2026-06-16
+**Pattern category**: App Store Review compliance / paywall lockdown
+**Triggered by**: Apple Review rejection 2026-06-16 citing Guidelines 2.3.2, 2.3.7, 3.1.1, and 3.1.2 simultaneously. The annual tier on the in-app paywall rendered as bare `$49.99` with no billing cadence — Apple 3.1.2 requires the subscription term to be visible next to the price before purchase. The Lifetime tier had previously leaked as `LifetimePremium` (camelCase from StoreKit's reference name; mitigated by FIX-088's regex split, but still a dynamic-fetch failure mode). The restore button worked but did not always show a visible loading state or a clear success/error alert tied to the canonical entitlement.
+
+**Why (root cause, two layers)**:
+1. **3.1.2 cadence** — `app/settings/subscription.tsx` rendered `pkg.product.priceString` alone. StoreKit returns the localized price string (e.g. `$49.99`) but never the term (`/year`). Apple compares paywall text against the linked IAP's billing period and rejects if the user cannot see the commitment before tapping the button.
+2. **2.3.2 metadata determinism** — `pkg.product.title` is StoreKit's Display Name. It is dynamic, locale-shifted, and historically returned `LifetimePremium` (no space) when the ASC Display Name was renamed late and StoreKit's reference name leaked through. Even with the FIX-088 camelCase split, any future StoreKit drift would re-introduce the bug. The reviewer must see the EXACT strings Apple's metadata team approved — every single review cycle.
+
+The two earlier patches in commit `0c1edc5` (FIX-089 Patch A/B/C, dynamic billing-period helper + 3-step verified restore) were a first pass against 3.1.1 / 3.1.2. This entry is the **lockdown patch** that supersedes Patch A/B: titles and prices are now pinned per product identifier, removing every dynamic source of reviewer drift. Patch C (3-step verified restore) is retained as-is.
+
+**Files modified**:
+- `app/settings/subscription.tsx` — replaced `getBillingPeriodLabel(pkg)` helper with `getHardcodedDisplay(pkg)`. New helper switches on `pkg.product.identifier`:
+  - `ah_monthly_premium`  → `{ title: 'Premium Monthly',  price: '$9.99 / month' }`
+  - `ah_annual_premium`   → `{ title: 'Premium Annual',   price: '$49.99 / year' }`
+  - `ah_lifetime_premium` → `{ title: 'Lifetime Premium', price: '$99.99' }`
+  - default → falls back to dynamic StoreKit values (camelCase-split title + bare priceString) so the screen never renders blank if a new product is added to the RC offering later.
+  The package-card JSX now reads `display.title` and `display.price` instead of `pkg.product.title` and `pkg.product.priceString{getBillingPeriodLabel(pkg)}`. The FIX-088 camelCase regex still lives inside the default branch as defense-in-depth for any non-pinned product.
+
+**Restore button (3.1.1) — retained from commit `0c1edc5`, no changes in this patch**:
+- `setRestoring(true)` at function entry guarantees the `<ActivityIndicator>` swap fires immediately (UI feedback at lines 226–232 of subscription.tsx).
+- Three-step verify path: `restorePurchases()` (StoreKit + RC receipt refresh) → `refreshCustomerInfo()` (canonical RC provider sync across all `isPro` consumers) → `getSubscriptionStatus()` (re-fetch to confirm the `premium` entitlement is active post-sync).
+- Success branch alerts `'Purchases Restored', 'Your Premium access has been restored successfully.'`; empty branch alerts `'Nothing to Restore', 'No previous purchases were found for this Apple ID.'`; error branch routes through `extractPurchaseError` which prefers RC's structured `readableErrorCode` / `underlyingErrorMessage` fields over raw `err.message` (FIX-042 helper, still load-bearing).
+
+**Exact fix applied** (the lockdown helper, paste-verbatim from `app/settings/subscription.tsx:42–57`):
+```ts
+function getHardcodedDisplay(pkg: any): { title: string; price: string } {
+  const id = pkg?.product?.identifier as string | undefined;
+  switch (id) {
+    case 'ah_monthly_premium':
+      return { title: 'Premium Monthly',  price: '$9.99 / month' };
+    case 'ah_annual_premium':
+      return { title: 'Premium Annual',   price: '$49.99 / year' };
+    case 'ah_lifetime_premium':
+      return { title: 'Lifetime Premium', price: '$99.99' };
+    default:
+      return {
+        title: (pkg?.product?.title ?? '').replace(/([a-z])([A-Z])/g, '$1 $2'),
+        price: pkg?.product?.priceString ?? '',
+      };
+  }
+}
+```
+
+**Verification**:
+- `node node_modules/typescript/bin/tsc --noEmit` → exit 0 against the patched tree (2026-06-16).
+- Spot-read of `app/settings/subscription.tsx:34–57` confirms helper landed; `:185–215` confirms JSX calls `getHardcodedDisplay(pkg)` and renders `display.title` / `display.price`.
+- Pre-existing FIX-089 Patch C restore handler (`handleRestore` at `:120–141`) unchanged; `<ActivityIndicator>` swap at `:226–232` unchanged.
+- **PENDING (must be done before submit)**: (1) `eas build --profile production --platform ios` for Build ≥ 37 attached in ASC; (2) Rule 040 device-QA: paywall renders the three exact hardcoded strings on TestFlight; (3) Restore button tapped on the reviewer device → spinner visible → success alert; (4) App Store Connect IAP Display Name fields updated to match the hardcoded strings exactly (see FIX-089 Task 3 deliverable for the exact ASC paste-blocks and the Resolution Center reply).
+
+**Lesson learned**:
+1. For App Store Review, reviewer determinism beats locale flexibility. Any string Apple compares against ASC metadata (paywall titles, prices, button labels) must be **hardcoded per product identifier**, not fetched dynamically — every dynamic source of truth is a future rejection waiting to happen.
+2. StoreKit `pkg.product.title` returns the IAP reference name when the ASC Display Name is empty, blank, or out of sync. Never trust it as the final user-facing string.
+3. `pkg.product.priceString` is the *localized price* only — it carries no billing-period semantics. The cadence must be appended in code (now hardcoded; previously via `getBillingPeriodLabel`).
+4. The fallback branch in `getHardcodedDisplay` exists so adding a new RC package later doesn't render a blank card — but every new IAP must be added to the pinned switch *before* it ships to TestFlight. Treat the switch as an allowlist.
+5. **Trade-off accepted**: hardcoded `$X.XX` will not auto-localize to other currencies. V1 ships US English / USD only per ASC pricing tier; on V1.1 (multi-locale) the helper must be re-architected to use a per-locale dictionary keyed off `pkg.product.priceString` currency code. Tracked separately, NOT a regression of FIX-089.
+
+**Recurring pattern alert** (Rule 009 candidate): This is the **third** App Review rejection in the FIX-085 → FIX-088 → FIX-089 sequence around paywall metadata determinism (Redeem Code leak, Lifetime camelCase title, missing /year cadence). The pattern: **any dynamic surface that App Review inspects is a latent rejection**. Promoting this into `SYSTEM_RULES.md` as a permanent rule next session: "Any paywall string Apple's metadata team can compare against ASC must be hardcoded in code and unit-tested against ASC values."
+
+**Process note (housekeeping, not a code bug)**: `BUILD_FIX_LOG.md` has gaps for FIX-062 through FIX-088. Those fixes shipped in commits (`0f8259f`, `24c58c6`, `48a5010`, `ef5bb24`, `018ca2c`, `1ce40b5`, `eab0054`, `a7d647e`, `6f7695f`, `db2fe8f`, etc.) but were never mirrored here per the mandatory documentation protocol in root CLAUDE.md. Backfilling them is out of scope for FIX-089 but should be done before V1 submit to keep the repair memory honest.
