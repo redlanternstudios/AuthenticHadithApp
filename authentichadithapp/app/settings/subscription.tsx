@@ -31,6 +31,23 @@ function extractPurchaseError(err: any, fallback: string): string {
   return fallback;
 }
 
+// FIX-089 — Patch A: Apple 3.1.2 — paywall must display price with billing cadence
+// so users know exactly what they are committing to before tapping a purchase button.
+// packageType is RC's normalised enum (MONTHLY, ANNUAL, LIFETIME, etc.).
+function getBillingPeriodLabel(pkg: any): string {
+  switch (pkg.packageType as string) {
+    case 'MONTHLY':     return ' / month';
+    case 'ANNUAL':      return ' / year';
+    case 'WEEKLY':      return ' / week';
+    case 'TWO_MONTH':   return ' / 2 months';
+    case 'THREE_MONTH': return ' / 3 months';
+    case 'SIX_MONTH':   return ' / 6 months';
+    case 'TWO_YEAR':    return ' / 2 years';
+    case 'LIFETIME':    return ''; // one-time purchase — no recurring period
+    default:            return '';
+  }
+}
+
 function SubscriptionScreenInner() {
   const { isDark } = useTheme();
   const colors = getColors(isDark);
@@ -96,19 +113,27 @@ function SubscriptionScreenInner() {
     }
   };
 
+  // FIX-089 — Patch C: Apple 3.1.1 — Restore Purchases must show visible loading
+  // state and a clear success/error alert verified against the canonical entitlement.
+  // Three-step verify: restorePurchases (StoreKit) → refreshCustomerInfo (RC provider
+  // sync) → getSubscriptionStatus (re-fetch to confirm entitlement post-sync).
   const handleRestore = async () => {
+    // setRestoring(true) immediately swaps button text → ActivityIndicator (see render).
     setRestoring(true);
     try {
-      const restoredStatus = await restorePurchases();
-      setStatus(restoredStatus);
-      await refreshCustomerInfo(); // sync canonical isPro (Profile/PremiumGate)
-      if (restoredStatus.isActive) {
-        Alert.alert('Restored!', 'Your subscription has been restored.');
+      await restorePurchases(); // contacts StoreKit and refreshes RC receipt
+      await refreshCustomerInfo(); // syncs canonical isPro across all consumers
+      // Re-verify entitlement post-provider-sync — do not rely on the snapshot
+      // returned by restorePurchases() which may be stale on the first RC call.
+      const verified = await getSubscriptionStatus();
+      setStatus(verified);
+      if (verified.isActive) {
+        Alert.alert('Purchases Restored', 'Your Premium access has been restored successfully.');
       } else {
-        Alert.alert('Nothing to Restore', 'No previous purchases were found for this account.');
+        Alert.alert('Nothing to Restore', 'No previous purchases were found for this Apple ID.');
       }
     } catch (err: any) {
-      const message = extractPurchaseError(err, 'Something went wrong.');
+      const message = extractPurchaseError(err, 'Restore failed. Please try again.');
       if (message) Alert.alert('Restore Failed', message);
     } finally {
       setRestoring(false);
@@ -169,8 +194,11 @@ function SubscriptionScreenInner() {
                   {/* FIX-088: StoreKit returns Lifetime's reference name "LifetimePremium" (no space). Split camelCase so it renders "Lifetime Premium". Already-spaced titles (Premium Monthly/Annual) are unaffected. */}
                   {pkg.product.title?.replace(/([a-z])([A-Z])/g, '$1 $2')}
                 </Text>
+                {/* FIX-089 — Patch B: Append billing cadence label so price reads
+                    "$9.99 / month", "$49.99 / year", or "$99.99" (lifetime, no label).
+                    getBillingPeriodLabel returns '' for LIFETIME — no trailing text. */}
                 <Text style={[styles.packagePrice, { color: colors.bronzeText }]}>
-                  {pkg.product.priceString}
+                  {pkg.product.priceString}{getBillingPeriodLabel(pkg)}
                 </Text>
                 <Text style={[styles.packageDesc, { color: colors.mutedText }]}>
                   {pkg.product.description}
