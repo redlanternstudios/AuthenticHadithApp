@@ -92,6 +92,23 @@ Before any EAS build:
 
 ## FIXES
 
+### [FIX-091] — Revert FIX-089/FIX-090 hardcode: paywall prices back to LIVE StoreKit (2.3.2 / 3.1.2 + "IAP returned")
+**Date**: 2026-06-17 PT · KP-authorized · targeted for the next EAS production build (v1.0.0)
+**Numbering note**: the hardcode "lockdown" shipped as git commit `7ccca44` labeled **FIX-090** (the `BUILD_FIX_LOG` text folded it under the FIX-089 entry). This revert therefore takes the next free number, **FIX-091**, and reverts BOTH `0c1edc5` (FIX-089) and `7ccca44` (FIX-090).
+**Pattern category**: APPSTORE_COMPLIANCE (2.3.2 accurate metadata / 3.1.2 subscription pricing) / MONETIZATION
+**Trigger**: Apple emailed "One or more of your In-App Purchases has been returned — Authentic Hadith 6764673665" (App Review Team, 2026-06-16 ~3:01 PM PT). KP directive: stop hardcoding subscription prices; the App Store must drive the displayed price.
+**Root cause**: FIX-089 (2026-06-16) "locked down" the paywall by HARDCODING titles + prices per product ID (`$9.99 / month`, `$49.99 / year`, `$99.99`) in `app/settings/subscription.tsx`. That defeats the only mechanism that keeps the **3-surface price match** (App Store Connect ↔ in-app paywall ↔ reviewer note) true: StoreKit's localized `priceString`. A hardcoded USD literal is wrong the instant the reviewer's storefront is non-US, or the moment the ASC price is edited — which reads to App Review as inaccurate metadata (2.3.2) / missing-or-mismatched subscription pricing (3.1.2). FIX-089 misdiagnosed the real FIX-088 problems (camelCase `product.title` leak; bare `priceString` with no billing term) as "dynamic = bad" and threw out the live price with them.
+**Fix**: New `getPackageDisplay(pkg)` replaces `getHardcodedDisplay(pkg)`:
+  - **Price** = live `pkg.product.priceString` (StoreKit-localized; equals the ASC price by construction, in any currency) + a **controlled cadence suffix** (`/ month`, `/ year`, `""` for one-time) keyed by product ID. Cadence satisfies 3.1.2 (billing term visible next to price) and describes the package TYPE, not the price, so it is safe to control.
+  - **Title** = a fixed clean label per product ID (`Premium Monthly` / `Premium Annual` / `Lifetime Premium`) — NOT `product.title`, which can leak the camelCase reference name (FIX-088). Title is descriptive copy, not price-bearing metadata, so a fixed string is correct.
+  - **Unknown product** fallback: camelCase-split `product.title` + cadence inferred from `pkg.packageType` so a future RC tier renders with no code change.
+**Files (1)**: `app/settings/subscription.tsx` (lines ~34–95 helper rewrite + call site at ~231; not a locked file — locked `lib/revenuecat/config.ts` and `lib/purchases/revenuecat.ts` untouched).
+**Verification**: `npx tsc --noEmit` exit 0 · `npx eslint app/settings/subscription.tsx` exit 0 · live offering probe `npm run qa:revenuecat` PASS (offering `default`, 3 packages, all 3 product IDs present) so the dynamic path has data to render. The OTHER paywall (`components/premium/PaywallScreen.tsx` → `RevenueCatUI.Paywall`) already renders live prices natively — no code change needed. Repo-wide grep confirms `subscription.tsx` was the ONLY hardcoded-price surface.
+**Status**: Code Verified in working tree (static analysis + live offering). On-device render of localized price+cadence UNKNOWN until the next build runs on a physical device (Rule 040). App Store Connect "IAP returned" clearance is a SEPARATE human action — see runbook; not closeable from code.
+**Lesson**: For App Store pricing, the live StoreKit `priceString` is the *only* source that stays correct across storefronts and ASC price edits — hardcoding it guarantees an eventual 2.3.2/3.1.2 rejection. The narrow real risks (camelCase title leak, missing billing term) are fixed narrowly: control the TITLE label and append the CADENCE; never hardcode the PRICE number. Shipping the code fix alone does not clear an already-returned IAP — the ASC localization/submit half is human-gated and must be done in the ASC UI.
+
+---
+
 ### [FIX-088] — Lifetime tier rendered "LifetimePremium" (no space) on the paywall
 **Date**: 2026-06-16 PT · KP-authorized · targeted for EAS Build 36 (v1.0.0)
 **Pattern category**: APPSTORE_COMPLIANCE (2.3.7 accurate metadata) / UI POLISH
