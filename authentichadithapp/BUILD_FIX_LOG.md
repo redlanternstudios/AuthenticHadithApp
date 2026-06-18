@@ -36,7 +36,7 @@ The #1 recurring bug (6 occurrences). Code was written against an ASSUMED schema
 ### 3. RevenueCat: One File, One Truth
 All RevenueCat config lives in `lib/revenuecat/config.ts`. Period.
 - Entitlement ID: `premium`
-- Product IDs: `ah_premium_monthly`, `ah_premium_annual`, `ah_lifetime`
+- Product IDs: `ah_monthly_premium`, `ah_annual_premium`, `ah_lifetime_premium` (corrected 2026-06-18 from stale `ah_premium_monthly`/`ah_premium_annual`/`ah_lifetime` — verified against `lib/revenuecat/config.ts:14-18` and `forbidden-actions.md`; the old IDs here were wrong. See FIX-093.)
 - API keys come from EAS secrets via `app.config.js extra`. Never hardcode.
 
 ### 4. Native vs Web: Different Worlds
@@ -91,6 +91,21 @@ Before any EAS build:
 -->
 
 ## FIXES
+
+### [FIX-093] — Premium Monthly paywall subtitle: blank (empty ASC Description), then duplicate of Annual; added per-tier description fallback
+**Date**: 2026-06-18 PT · KP-flagged from in-app screenshots · code change in working tree (not committed), ships in the next EAS build
+**Pattern category**: APPSTORE_COMPLIANCE (3.1.2 subscriptions / 4.0 polish) / MONETIZATION-UI
+**Trigger**: KP screenshot of the in-app Subscription screen — the **Premium Monthly** card showed NO description line while Premium Annual ("Unlimited AI assistant, learning paths & quizzes.") and Lifetime Premium ("Unlock all premium features of Authentic Hadith.") both did. After the Monthly ASC Description was set to Annual's exact line, Monthly then read **identically to Annual** (a duplicate).
+**Root cause**: `app/settings/subscription.tsx` renders each tier's subtitle from the LIVE StoreKit/ASC value `pkg.product.description` (`:247`), with **no code fallback** — `getPackageDisplay()` built only `{title, price}`. The Monthly product (`ah_monthly_premium`) had an EMPTY ASC English Description, so the live string was `""` → blank subtitle. Title and price already had fallback maps (`PACKAGE_TITLE`/`PACKAGE_CADENCE`); description did not, so it was the one field exposed to an empty ASC value. Copying Annual's line into Monthly then produced a duplicate.
+**Fix**: Added a `PACKAGE_DESC` per-tier fallback map mirroring the existing title/cadence maps; `getPackageDisplay()` now returns `desc = liveDesc || PACKAGE_DESC[id] || ''` and the card renders `display.desc`. **Live ASC value still wins when present; the fallback fires only when ASC is empty.** Monthly's value is a DISTINCT line — `"Premium access month to month. Cancel anytime."` — so it never duplicates Annual (Monthly/Annual unlock identical features, so we differentiate on the billing term, not the copy). No pricing/savings/"free" language (2.3.7-clean).
+**ASC half (Cowork, no rebuild)**: set the Monthly ASC English Description to the same distinct line so the live/shipped build (41) shows it without a rebuild. Tracked in `docs/appstore/COWORK_SUBMIT_HANDOFF.md` TASK A2 (updated to the distinct value + a "must differ from Annual" guard).
+**Files (1 code)**: `app/settings/subscription.tsx` — added `PACKAGE_DESC` map (after `PACKAGE_TITLE`); `getPackageDisplay` return type now `{title, price, desc}` with the `liveDesc || PACKAGE_DESC[id]` backstop; render line `{pkg.product.description}` → `{display.desc}`. Not a locked file (locked `lib/revenuecat/config.ts` + `lib/purchases/revenuecat.ts` untouched). Also corrected this log's Golden Rule #3 stale product IDs.
+**Verification**: `npx tsc --noEmit` exit 0, 0 errors (none in subscription.tsx) — receipt 2026-06-18. Diagnosis independently confirmed by the App Store Factory compliance agent against source (`subscription.tsx:246-248`, `:65-93`) + live Apple guidelines fetched 2026-06-18.
+**Status**: Code **Verified in working tree** (typecheck clean); on-device render UNKNOWN until the next build runs on a physical device (Rule 040). Live-app (build 41) Monthly subtitle UNKNOWN until the ASC field is set + propagates (Cowork TASK A2). NOT committed.
+**Apple verdict**: a blank subtitle is a quality gap, **not** a 3.1.2 blocker (title/length/price/EULA+Privacy links are what 3.1.2 requires, all present `:240-299`). A duplicate subtitle is a **Guideline 4.0 polish nit, NOT a rejection trigger** — identical Monthly/Annual descriptions are common and Apple-approved. So this was never a build-41 submission blocker.
+**Lesson**: The paywall subtitle reads live from the ASC product Description (`pkg.product.description`) with no safety net — an empty ASC field renders blank in-app. Shipped-build fix = the ASC field (no rebuild); durable fix = a `PACKAGE_DESC` fallback so it can never render blank again. Keep tier descriptions DISTINCT for polish, but identical Monthly/Annual copy is NOT an Apple blocker; never flag a duplicate as RED. Factory net: Stage 11 **Rule C-DESC** (every tier's ASC Description non-empty + 2.3.7-clean; duplicate = 4.0 nit).
+
+---
 
 ### [FIX-092] — Progress screen back-nav dead-end: "‹ Home" header tap was a no-op (Guideline 2.1)
 **Date**: 2026-06-18 PT · KP-authorized (confirmed working on sim) · branch `fix/progress-nav-deadend-20260618`

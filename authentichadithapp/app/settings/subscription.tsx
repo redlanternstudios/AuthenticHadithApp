@@ -61,12 +61,29 @@ const PACKAGE_TITLE: Record<string, string> = {
   ah_annual_premium: 'Premium Annual',
   ah_lifetime_premium: 'Lifetime Premium',
 };
+// FIX-093 — per-tier description fallback. The card subtitle renders the LIVE
+// ASC product Description (`pkg.product.description`); when that ASC field is
+// empty the live string is "" and the card showed a BLANK line (Premium Monthly,
+// build 41). This map is the same safety net title/cadence already have: live ASC
+// value wins, this fixed copy fires only when ASC is empty so a tier can never
+// render blank again. No pricing/savings language here (2.3.7-clean).
+const PACKAGE_DESC: Record<string, string> = {
+  // Distinct per tier — Monthly leads with month-to-month flexibility (same
+  // features as Annual, so we differentiate on the billing term, not the copy)
+  // to avoid a duplicate subtitle with Annual. No pricing/savings language (2.3.7).
+  ah_monthly_premium: 'Premium access month to month. Cancel anytime.',
+  ah_annual_premium: 'Unlimited AI assistant, learning paths & quizzes.',
+  ah_lifetime_premium: 'Unlock all premium features of Authentic Hadith.',
+};
 
-function getPackageDisplay(pkg: any): { title: string; price: string } {
+function getPackageDisplay(pkg: any): { title: string; price: string; desc: string } {
   const id = (pkg?.product?.identifier ?? '') as string;
   // Live, localized price string from StoreKit — equals the App Store Connect
   // price by construction, in the reviewer's/user's own storefront and currency.
   const livePrice = (pkg?.product?.priceString ?? '').trim();
+  // Live ASC product Description. Wins when present; PACKAGE_DESC backstops an
+  // empty ASC field so the subtitle is never blank (FIX-093).
+  const liveDesc = (pkg?.product?.description ?? '').trim();
   const knownTitle = PACKAGE_TITLE[id];
   const knownCadence = PACKAGE_CADENCE[id];
 
@@ -75,6 +92,7 @@ function getPackageDisplay(pkg: any): { title: string; price: string } {
     return {
       title: knownTitle,
       price: livePrice ? `${livePrice}${knownCadence}` : '',
+      desc: liveDesc || PACKAGE_DESC[id] || '',
     };
   }
 
@@ -89,6 +107,7 @@ function getPackageDisplay(pkg: any): { title: string; price: string } {
   return {
     title: (pkg?.product?.title ?? '').replace(/([a-z])([A-Z])/g, '$1 $2'),
     price: livePrice ? `${livePrice}${inferredCadence}` : '',
+    desc: liveDesc,
   };
 }
 
@@ -244,7 +263,7 @@ function SubscriptionScreenInner() {
                     {display.price}
                   </Text>
                   <Text style={[styles.packageDesc, { color: colors.mutedText }]}>
-                    {pkg.product.description}
+                    {display.desc}
                   </Text>
                 </TouchableOpacity>
               );
