@@ -92,6 +92,19 @@ Before any EAS build:
 
 ## FIXES
 
+### [FIX-092] — Progress screen back-nav dead-end: "‹ Home" header tap was a no-op (Guideline 2.1)
+**Date**: 2026-06-18 PT · KP-authorized (confirmed working on sim) · branch `fix/progress-nav-deadend-20260618`
+**Pattern category**: NAVIGATION / APPSTORE_COMPLIANCE (2.1 completeness)
+**Trigger**: KP observed on build 40 (iPhone 16 Pro Max sim) that on the Progress screen the back/Home control did nothing — only the iOS swipe-back gesture returned home. Every other section navigated fine.
+**Root cause**: `app/progress.tsx` is a ROOT `Stack.Screen` pushed over the `(tabs)` group, and at the render site it set `<Stack.Screen options={{ title: 'Progress', headerShown: true }} />`. The native header back button ("‹ Home") tap was a no-op on this pushed screen; only the swipe pop gesture worked. No explicit on-screen back affordance was wired.
+**Fix**: Replaced the native back with an explicit, app-owned control. Added `useRouter` + `TouchableOpacity` imports; added `const goHome = () => (router.canGoBack() ? router.back() : router.replace('/'))`; set a custom `headerLeft` rendering a tappable emerald "‹ Home" `TouchableOpacity` (hitSlop 12, accessibilityRole button) wired to `goHome`. A real RN touchable cannot be a no-op like the native tap was.
+**Files (1)**: `app/progress.tsx` (imports L1-2; `goHome` after the auth hook; `Stack.Screen` headerLeft at the return). Not a locked file.
+**Verification**: `npx tsc --noEmit` exit 0 (no errors in progress.tsx) · Metro Fast Refresh applied clean, no red errors · new emerald "‹ Home" header renders (screenshot) · **KP tapped it on the sim and confirmed it returns to Home without the swipe gesture.**
+**Status**: Verified in working tree + on-sim behavior confirmed by KP. Ships in the next EAS build; re-confirm on-device per Rule 040.
+**Lesson**: A screen pushed as a root `Stack.Screen` over a tab group can leave the native header back / visible tab bar non-functional — only the swipe gesture pops. Always wire an explicit on-screen back/home control (custom `headerLeft` → `router.back()`), and QA must tap back/home on every screen, not rely on the swipe. A swipe-only screen is a Guideline 2.1 completeness risk (reviewer can get stranded).
+
+---
+
 ### [FIX-091] — Revert FIX-089/FIX-090 hardcode: paywall prices back to LIVE StoreKit (2.3.2 / 3.1.2 + "IAP returned")
 **Date**: 2026-06-17 PT · KP-authorized · targeted for the next EAS production build (v1.0.0)
 **Numbering note**: the hardcode "lockdown" shipped as git commit `7ccca44` labeled **FIX-090** (the `BUILD_FIX_LOG` text folded it under the FIX-089 entry). This revert therefore takes the next free number, **FIX-091**, and reverts BOTH `0c1edc5` (FIX-089) and `7ccca44` (FIX-090).
