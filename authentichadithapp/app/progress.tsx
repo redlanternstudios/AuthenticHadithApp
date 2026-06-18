@@ -1,6 +1,6 @@
 import React from 'react'
-import { StyleSheet, View, ScrollView, Text } from 'react-native'
-import { Stack } from 'expo-router'
+import { StyleSheet, View, ScrollView, Text, TouchableOpacity } from 'react-native'
+import { Stack, useRouter } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth/AuthProvider'
@@ -21,6 +21,10 @@ export default function ProgressScreen() {
   const { isDark } = useTheme()
   const colors = getColors(isDark)
   const { user } = useAuth()
+  const router = useRouter()
+  // Guaranteed-working back affordance: the native header back tap was a no-op on this
+  // pushed stack screen; only the swipe gesture popped. This explicit control always works.
+  const goHome = () => (router.canGoBack() ? router.back() : router.replace('/'))
 
   const { data: stats, isLoading: statsLoading, isError: statsError, refetch: refetchStats } = useQuery({
     queryKey: ['user-stats', user?.id],
@@ -118,7 +122,23 @@ export default function ProgressScreen() {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
-      <Stack.Screen options={{ title: 'Progress', headerShown: true }} />
+      <Stack.Screen
+        options={{
+          title: 'Progress',
+          headerShown: true,
+          headerLeft: () => (
+            <TouchableOpacity
+              onPress={goHome}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              accessibilityRole="button"
+              accessibilityLabel="Back to Home"
+              style={{ paddingHorizontal: 8, paddingVertical: 4 }}
+            >
+              <Text style={{ color: colors.emeraldMid, fontSize: 17, fontWeight: '600' }}>‹ Home</Text>
+            </TouchableOpacity>
+          ),
+        }}
+      />
       {statsError && <QueryErrorBanner onRetry={refetchStats} />}
 
       <Text style={[styles.title, { color: colors.bronzeText }]}>Your Progress</Text>
