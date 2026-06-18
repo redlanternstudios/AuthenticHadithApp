@@ -39,6 +39,9 @@ Sign in to keep your account, saved hadiths, and premium access with you across 
 
 Built with care for the Muslim ummah by byRed LLC, San Diego, California.
 
+Terms of Use (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+Privacy Policy: https://byredllc.com/privacy
+
 ## Support URL
 https://byredllc.com
 
@@ -52,6 +55,11 @@ https://byredllc.com/privacy
 
 ## Apple Review Notes
 This app requires account creation to access features. Use the provided demo credentials. The AI assistant feature requires an internet connection. In-app purchases unlock premium features (unlimited AI chat, advanced learning paths). Subscription management is handled through the standard iOS subscription settings.
+
+Subscriptions (Guideline 3.1.2c): The in-app paywall (Profile → Subscription) shows each subscription's title, length, and price, plus functional links to the Terms of Use (EULA) and Privacy Policy. We use Apple's standard EULA, linked in the App Description and here:
+- Terms of Use (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+- Privacy Policy: https://byredllc.com/privacy
+Metadata (Guideline 2.3.7): App Store screenshots contain no price, "free," or discount references.
 
 ## Demo Account for Apple Review
 Email: apple.reviewer@authentichadith.app
@@ -75,7 +83,7 @@ NOTE: Create this account in Supabase with premium entitlement before submitting
    - Product ID: ah_annual_premium
    - Price: $29.99/year
    - Display Name: Premium Annual
-   - Description: Unlimited AI assistant, advanced learning paths, quizzes, and all premium features. Save 50% compared to monthly.
+   - Description: Unlimited AI assistant, advanced learning paths, quizzes, and all premium features. Cancel anytime.
 
 ### Non-Consumable
 
