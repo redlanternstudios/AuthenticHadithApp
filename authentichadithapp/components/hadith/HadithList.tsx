@@ -3,7 +3,8 @@ import { FlatList, StyleSheet, Text, View } from 'react-native'
 import { HadithCard } from './HadithCard'
 import { LoadingSpinner } from '../ui/LoadingSpinner'
 import { Hadith } from '../../types/hadith'
-import { COLORS, SPACING, FONT_SIZES } from '../../lib/styles/colors'
+import { getColors, SPACING, FONT_SIZES } from '../../lib/styles/colors'
+import { useTheme } from '../../lib/theme/ThemeProvider'
 
 interface HadithListProps {
   hadiths: Hadith[]
@@ -13,13 +14,16 @@ interface HadithListProps {
   emptyMessage?: string
 }
 
-export function HadithList({ 
-  hadiths, 
-  isLoading, 
+export function HadithList({
+  hadiths,
+  isLoading,
   onHadithPress,
   onEndReached,
   emptyMessage = 'No hadiths found'
 }: HadithListProps) {
+  const { isDark } = useTheme()
+  const colors = getColors(isDark)
+
   if (isLoading && hadiths.length === 0) {
     return <LoadingSpinner />
   }
@@ -27,7 +31,7 @@ export function HadithList({
   if (!isLoading && hadiths.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>{emptyMessage}</Text>
+        <Text style={[styles.emptyText, { color: colors.mutedText }]}>{emptyMessage}</Text>
       </View>
     )
   }
@@ -37,8 +41,8 @@ export function HadithList({
       data={hadiths}
       keyExtractor={(item) => item.id}
       renderItem={({ item }) => (
-        <HadithCard 
-          hadith={item} 
+        <HadithCard
+          hadith={item}
           onPress={onHadithPress ? () => onHadithPress(item) : undefined}
           compact
         />
@@ -63,7 +67,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: FONT_SIZES.md,
-    color: COLORS.mutedText,
     textAlign: 'center',
   },
 })
