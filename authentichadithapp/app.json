@@ -19,6 +19,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.byred.authentichadith",
       "buildNumber": "5",
+      "associatedDomains": ["applinks:authentichadith.app"],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "CFBundleDisplayName": "Authentic Hadith"
