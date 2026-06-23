@@ -19,7 +19,7 @@ jobs:
       - name: Checkout v0-authentic-hadith (WebView wrapper source)
         uses: actions/checkout@v4
         with:
-          repository: rsemeah/v0-authentic-hadith
+                    repository: redlanternstudios/v0-authentic-hadith
           path: v0-authentic-hadith
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -35,7 +35,6 @@ jobs:
         run: npm install -g eas-cli
 
       - name: Configure App Store Connect API key
-        if: ${{ secrets.APPLE_API_KEY_JSON != '' }}
         run: |
           echo "Writing App Store Connect API key file"
           echo '${{ secrets.APPLE_API_KEY_JSON }}' > ./appstoreconnect.json
