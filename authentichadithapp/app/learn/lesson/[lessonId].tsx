@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { LessonQuiz } from '@/components/learn/LessonQuiz';
 import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors';
 import { useTheme } from '@/lib/theme/ThemeProvider';
 import { Lesson } from '@/types/hadith';
@@ -12,7 +13,7 @@ import { useCompletionStatus } from '@/hooks/useProgress';
 import { usePathLessons, getLessonNeighbors } from '@/hooks/useLearning';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import { trackActivity } from '@/lib/gamification/track-activity';
-import { getStaticLesson } from '@/lib/learning/staticLearningContent';
+import { supabase } from '@/lib/supabase/client';
 
 export default function LessonDetailScreen() {
   const params = useLocalSearchParams<{ lessonId: string; pathId?: string }>();
@@ -33,12 +34,32 @@ export default function LessonDetailScreen() {
   const neighbors = getLessonNeighbors(pathLessons, lessonId);
   const goToLesson = (id: string) => router.replace(`/learn/lesson/${id}?pathId=${pathId}`);
 
+  // V2: lesson content from Supabase `learning_lessons`. content_markdown is
+  // rendered as plain text (no markdown lib dependency).
   const { data: lesson, isLoading } = useQuery({
     queryKey: ['lesson', lessonId],
-    queryFn: async () => {
-      // V1 LOCK: Supabase lessons table is intentionally empty for V1.
-      // Static content is the authoritative source for all lesson data.
-      return getStaticLesson(lessonId) as Lesson | null;
+    queryFn: async (): Promise<Lesson | null> => {
+      if (!lessonId) return null;
+      const { data, error } = await supabase
+        .from('learning_lessons')
+        .select('id, title, description, content_markdown, estimated_minutes, sort_order, has_quiz')
+        .eq('id', lessonId)
+        .single();
+      if (error) {
+        __DEV__ && console.error('[Lesson] query failed:', error);
+        return null;
+      }
+      if (!data) return null;
+      return {
+        id: data.id,
+        title: data.title,
+        description: data.description ?? '',
+        content: data.content_markdown ?? undefined,
+        order_index: data.sort_order ?? 0,
+        estimated_minutes: data.estimated_minutes ?? 0,
+        created_at: '',
+        has_quiz: data.has_quiz ?? false,
+      };
     },
     enabled: !!lessonId,
   });
@@ -106,6 +127,9 @@ export default function LessonDetailScreen() {
             </View>
           ) : null}
         </Card>
+
+        {/* In-lesson quiz (v2) — only when the lesson has questions. */}
+        {lesson.has_quiz ? <LessonQuiz lessonId={lesson.id} /> : null}
 
         {completion.isComplete ? (
           <RNView style={[styles.completedBadge, { backgroundColor: colors.emeraldMid + '15', borderColor: colors.emeraldMid + '30' }]}>

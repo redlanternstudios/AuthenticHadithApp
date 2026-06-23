@@ -86,6 +86,30 @@ export interface Lesson {
   order_index: number
   estimated_minutes: number
   created_at: string
+  // v2 (Supabase learning_lessons): present when lessons are served from the DB.
+  module_id?: string
+  module_title?: string
+  has_quiz?: boolean
+}
+
+export interface LearningModule {
+  id: string
+  path_id: string
+  slug: string
+  title: string
+  description: string
+  sort_order: number
+}
+
+export interface LearningQuizQuestion {
+  id: string
+  lesson_id: string
+  question_text: string
+  question_type: string
+  options: string[]
+  correct_index: number
+  hint_text: string | null
+  sort_order: number
 }
 
 export interface UserLessonProgress {

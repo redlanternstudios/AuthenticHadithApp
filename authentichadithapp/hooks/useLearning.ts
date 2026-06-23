@@ -4,21 +4,63 @@
  * everywhere — the Prev/Next sequence can never disagree with the list the user
  * saw. Same queryKey as the path screen, so the lesson screen reuses the cached
  * result with no extra network round-trip.
+ *
+ * V2: lessons come from Supabase (`learning_modules` -> `learning_lessons`),
+ * ordered by module sort_order then lesson sort_order, and flattened so the
+ * Prev/Next walk is a single linear sequence across the whole path.
  */
 import { useQuery } from '@tanstack/react-query'
 import { Lesson } from '@/types/hadith'
-import { getStaticLessonsForPath } from '@/lib/learning/staticLearningContent'
+import { supabase } from '@/lib/supabase/client'
 
-/** Ordered lessons for a path. V1: static-only — no Supabase dependency. */
+/** Ordered lessons for a path, served from Supabase (modules -> lessons). */
 export function usePathLessons(pathId: string | null | undefined) {
   return useQuery({
     queryKey: ['path-lessons', pathId],
-    queryFn: async () => {
-      // V1 LOCK: always serve bundled static content. Supabase lessons table
-      // is intentionally empty for V1; UUID pathIds from any stale DB rows
-      // would return [] via the join query. Static slugs are the source of
-      // truth for all path/lesson content until V2.
-      return getStaticLessonsForPath(pathId) as Lesson[]
+    queryFn: async (): Promise<Lesson[]> => {
+      if (!pathId) return []
+
+      const { data: modules, error: modErr } = await supabase
+        .from('learning_modules')
+        .select('id, title, sort_order')
+        .eq('path_id', pathId)
+        .order('sort_order', { ascending: true })
+      if (modErr) {
+        __DEV__ && console.error('[useLearning] modules query failed:', modErr)
+        throw modErr
+      }
+      if (!modules?.length) return []
+
+      const moduleOrder = new Map<string, number>(modules.map((m, i) => [m.id, i]))
+      const moduleTitle = new Map<string, string>(modules.map((m) => [m.id, m.title]))
+
+      const { data: rows, error: lesErr } = await supabase
+        .from('learning_lessons')
+        .select('id, module_id, title, description, content_markdown, estimated_minutes, sort_order, has_quiz')
+        .in('module_id', modules.map((m) => m.id))
+        .order('sort_order', { ascending: true })
+      if (lesErr) {
+        __DEV__ && console.error('[useLearning] lessons query failed:', lesErr)
+        throw lesErr
+      }
+
+      const ordered = (rows ?? []).slice().sort((a, b) => {
+        const mo = (moduleOrder.get(a.module_id) ?? 0) - (moduleOrder.get(b.module_id) ?? 0)
+        return mo !== 0 ? mo : (a.sort_order ?? 0) - (b.sort_order ?? 0)
+      })
+
+      return ordered.map((r, i) => ({
+        id: r.id,
+        title: r.title,
+        description: r.description ?? '',
+        content: r.content_markdown ?? undefined,
+        order_index: i,
+        estimated_minutes: r.estimated_minutes ?? 0,
+        created_at: '',
+        module_id: r.module_id,
+        module_title: moduleTitle.get(r.module_id) ?? '',
+        has_quiz: r.has_quiz ?? false,
+      }))
     },
     enabled: !!pathId,
   })

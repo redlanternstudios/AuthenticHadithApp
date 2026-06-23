@@ -10,10 +10,7 @@ import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors';
 import { useTheme } from '@/lib/theme/ThemeProvider';
 import { LearningPath } from '@/types/hadith';
 import { useCompletedItems } from '@/hooks/useProgress';
-import {
-  STATIC_LEARNING_PATHS,
-  STATIC_PATH_LESSON_MAP,
-} from '@/lib/learning/staticLearningContent';
+import { supabase } from '@/lib/supabase/client';
 
 type PathLessonMap = { learning_path_id: string; lesson_id: string };
 
@@ -23,18 +20,53 @@ export default function LearnScreen() {
   const colors = getColors(isDark);
   const insets = useSafeAreaInsets();
 
-  // V1 LOCK: always return static content. Supabase learning_paths rows use
-  // UUIDs which mismatch the slug-keyed static content, producing blank screens.
+  // V2: paths come from Supabase `learning_paths` (6 rows), ordered.
   const { data: paths, isLoading } = useQuery({
     queryKey: ['learning-paths'],
-    queryFn: async () => STATIC_LEARNING_PATHS as LearningPath[],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('learning_paths')
+        .select('id, title, description, level, estimated_hours, is_premium, sort_order')
+        .order('sort_order', { ascending: true });
+      if (error) {
+        __DEV__ && console.error('[Learn] learning_paths query failed:', error);
+        throw error;
+      }
+      return (data ?? []) as LearningPath[];
+    },
   });
 
-  // V1 LOCK: path_lessons join table returns UUIDs; static map uses slugs.
-  // Progress display uses the static map so lesson counts are always correct.
+  // V2: path -> lesson map built from Supabase modules -> lessons, so per-path
+  // progress counts reflect the real DB content (not the old static map).
   const { data: pathLessons } = useQuery({
     queryKey: ['learning-paths-lesson-map'],
-    queryFn: async () => STATIC_PATH_LESSON_MAP as PathLessonMap[],
+    queryFn: async (): Promise<PathLessonMap[]> => {
+      const { data: modules, error: modErr } = await supabase
+        .from('learning_modules')
+        .select('id, path_id');
+      if (modErr) {
+        __DEV__ && console.error('[Learn] modules map query failed:', modErr);
+        throw modErr;
+      }
+      if (!modules?.length) return [];
+      const pathByModule = new Map<string, string>(modules.map((m) => [m.id, m.path_id]));
+
+      const { data: lessons, error: lesErr } = await supabase
+        .from('learning_lessons')
+        .select('id, module_id')
+        .in('module_id', modules.map((m) => m.id));
+      if (lesErr) {
+        __DEV__ && console.error('[Learn] lessons map query failed:', lesErr);
+        throw lesErr;
+      }
+
+      return (lessons ?? [])
+        .map((l) => {
+          const learning_path_id = pathByModule.get(l.module_id);
+          return learning_path_id ? { learning_path_id, lesson_id: l.id } : null;
+        })
+        .filter((x): x is PathLessonMap => x !== null);
+    },
   });
 
   // Subscribes to the local progress store; re-renders when a lesson is
