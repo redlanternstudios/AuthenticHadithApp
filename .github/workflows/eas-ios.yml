@@ -19,7 +19,7 @@ jobs:
       - name: Checkout v0-authentic-hadith (WebView wrapper source)
         uses: actions/checkout@v4
         with:
-                    repository: redlanternstudios/v0-authentic-hadith
+          repository: redlanternstudios/v0-authentic-hadith
           path: v0-authentic-hadith
           token: ${{ secrets.GITHUB_TOKEN }}
 
