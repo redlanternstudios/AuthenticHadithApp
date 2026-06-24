@@ -32,16 +32,17 @@ export const Colors = {
 };
 
 // ─── Font Families ───────────────────────────────────────────────────────────
-// Cinzel = display/heading font (web: --font-serif / --font-cinzel, layout.tsx:8-12)
-// Geist  = body/UI font        (web: --font-geist,                  layout.tsx:14-16)
+// Cinzel = ALL text (web: globals.css:105 --font-sans:"Cinzel" — Cinzel is the
+//          default font for EVERYTHING on the web, not just headings).
+//          KP decision 2026-06-24: match web exactly; Cinzel everywhere.
 // Arabic = kept as-is; not Cinzel or Geist
 export const FONT_FAMILY = {
   heading: 'Cinzel_700Bold',           // H1, hero titles, screen headers
   headingMedium: 'Cinzel_600SemiBold', // H2, card titles
   headingLight: 'Cinzel_400Regular',   // H3, eyebrows in Cinzel
-  body: 'Geist_400Regular',            // default body text
-  bodyMedium: 'Geist_500Medium',       // body emphasis
-  bodySemiBold: 'Geist_600SemiBold',   // body strong, labels
+  body: 'Cinzel_400Regular',           // default body text — web parity (globals.css:105)
+  bodyMedium: 'Cinzel_500Medium',      // body emphasis — web parity
+  bodySemiBold: 'Cinzel_600SemiBold',  // body strong, labels — web parity
   arabic: undefined,                    // falls back to system serif (Amiri not required for demo)
 } as const;
 

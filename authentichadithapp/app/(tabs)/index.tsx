@@ -20,6 +20,7 @@ import { LevelProgressBar } from '@/components/gamification/LevelProgressBar';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { TopBar } from '@/components/layout/TopBar';
 import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors';
 import { FONT_FAMILY } from '@/constants/theme';
 import { getLevelInfo } from '@/lib/gamification/level-calculator';
@@ -128,12 +129,16 @@ export default function HomeScreen() {
   const contentMaxWidth = IS_TABLET ? 680 : undefined;
 
   return (
+    <View style={[styles.screenWrapper, { backgroundColor: colors.background }]}>
+      {/* A#6: Top bar — matches web mobile-top-bar.tsx:89-131 */}
+      <TopBar title="Authentic Hadith" />
+
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={[
         styles.content,
         {
-          paddingTop: insets.top + SPACING.md,
+          paddingTop: SPACING.md,
           paddingBottom: insets.bottom + SPACING.xxl,
           alignSelf: 'center',
           width: '100%',
@@ -151,18 +156,43 @@ export default function HomeScreen() {
     >
       {isError && <QueryErrorBanner onRetry={refetch} />}
 
-      {/* Header */}
+      {/* A#7: Greeting header */}
       <View style={styles.header}>
         <Text style={[styles.greeting, { color: colors.goldMid }]}>
           {user
             ? `Assalamu Alaikum${stats?.xp ? `, ${levelInfo.title}` : ''}`
             : 'Assalamu Alaikum'}
         </Text>
-        <Text style={[styles.title, { color: colors.bronzeText }]}>Authentic Hadith</Text>
         <Text style={[styles.subtitle, { color: colors.mutedText }]}>
           {VISIBLE_HADITH_TOTAL.toLocaleString()} hadiths from {VISIBLE_COLLECTION_COUNT} major collections
         </Text>
       </View>
+
+      {/* A#7 hero: premium daily card leads the feed — matches web app/home/page.tsx:9
+          TodayFeaturedSection renders the gold-bordered Sunnah + Reflection cards */}
+      <TodayFeaturedSection />
+
+      {/* A#7: AI Assistant entry — surfaced prominently after the daily card */}
+      <Pressable
+        style={({ pressed }) => [
+          styles.aiAssistantEntry,
+          {
+            backgroundColor: colors.card,
+            borderColor: colors.goldMid,
+            opacity: pressed ? 0.82 : 1,
+          },
+        ]}
+        onPress={() => router.push('/(tabs)/assistant')}
+        accessibilityRole="button"
+        accessibilityLabel="Open AI Assistant"
+      >
+        <Text style={styles.aiAssistantIcon}>✨</Text>
+        <View style={styles.aiAssistantText}>
+          <Text style={[styles.aiAssistantTitle, { color: colors.bronzeText }]}>AI Assistant</Text>
+          <Text style={[styles.aiAssistantSub, { color: colors.mutedText }]}>Ask anything about hadith</Text>
+        </View>
+        <Text style={[styles.aiAssistantChevron, { color: colors.goldMid }]}>›</Text>
+      </Pressable>
 
       {/* Level + Streak (logged-in users) */}
       {user && stats && (
@@ -176,10 +206,6 @@ export default function HomeScreen() {
           longestStreak={streak.longest_streak || 0}
         />
       )}
-
-      {/* Today's featured slot — surfaces date-driven sunnah + reflection on Home.
-          The full Today screen remains reachable via the CTA and from More → Today. */}
-      <TodayFeaturedSection />
 
       {/* Quick Actions */}
       <Text style={[styles.sectionLabel, { color: colors.mutedText }]}>EXPLORE</Text>
@@ -212,7 +238,7 @@ export default function HomeScreen() {
           Hadith of the Moment
         </Text>
         <Pressable onPress={handleRefresh}>
-          <Text style={[styles.refreshLink, { color: colors.emeraldMid }]}>Refresh</Text>
+          <Text style={[styles.refreshLink, { color: colors.goldMid }]}>Refresh</Text>
         </Pressable>
       </View>
 
@@ -228,10 +254,15 @@ export default function HomeScreen() {
         <Button title="Browse Collections" onPress={() => router.push('/(tabs)/collections')} variant="outline" />
       </View>
     </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // Outer wrapper contains TopBar + ScrollView (flex column)
+  screenWrapper: {
+    flex: 1,
+  },
   container: {
     flex: 1,
   },
@@ -242,17 +273,11 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.lg,
   },
   greeting: {
+    fontFamily: FONT_FAMILY.bodyMedium,
     fontSize: FONT_SIZES.sm,
     fontWeight: '600',
     letterSpacing: 0.3,
     marginBottom: 4,
-  },
-  title: {
-    fontFamily: FONT_FAMILY.heading,
-    fontSize: 30,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-    marginBottom: 6,
   },
   subtitle: {
     fontFamily: FONT_FAMILY.body,
@@ -311,5 +336,36 @@ const styles = StyleSheet.create({
   actions: {
     gap: SPACING.md,
     marginTop: SPACING.sm,
+  },
+  // A#7: AI assistant prominent entry card
+  aiAssistantEntry: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    marginBottom: SPACING.lg,
+    gap: SPACING.sm,
+  },
+  aiAssistantIcon: {
+    fontSize: 24,
+  },
+  aiAssistantText: {
+    flex: 1,
+    gap: 2,
+  },
+  aiAssistantTitle: {
+    fontFamily: FONT_FAMILY.headingMedium,
+    fontSize: FONT_SIZES.md,
+    fontWeight: '600',
+  },
+  aiAssistantSub: {
+    fontFamily: FONT_FAMILY.body,
+    fontSize: FONT_SIZES.sm,
+  },
+  aiAssistantChevron: {
+    fontSize: 24,
+    fontWeight: '300',
+    lineHeight: 28,
   },
 });

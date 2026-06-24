@@ -150,9 +150,11 @@ export const BORDER_RADIUS = {
   sm: 8,
   md: 10,
   lg: 14,    // buttons, inputs, small cards
-  xl: 20,    // primary cards — premium iOS standard
+  xl: 20,    // premium iOS standard (kept for other consumers)
   xxl: 28,   // large hero cards / sheet corners
   full: 9999,
+  // Web-parity token: rounded-2xl = 16px (daily-hadith-card.tsx, hadith-card-condensed.tsx)
+  card: 16,
 } as const
 
 // ─── Shadows ─────────────────────────────────────────────────────────────────

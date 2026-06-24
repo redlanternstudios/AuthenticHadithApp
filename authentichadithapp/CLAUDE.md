@@ -44,6 +44,45 @@ if a step failed, was skipped, or could not be verified, say so in the same mess
 
 ---
 
+## Web↔Mobile Parity Discipline (STANDING RULE — runs on every parity/restyle task)
+
+Hardcoded 2026-06-24 via CTP. This is how visual/data parity between this iOS app and the
+web app is ALWAYS done — no re-deciding the process each time, no improvising quality.
+
+### CTP framing (the why, so it isn't cargo-culted)
+- DRIVER: keep the app and the web app looking and syncing like one product, repeatably, at quality.
+- MECHANISM: the web app is the design Source Of Truth; the mobile app is brought to it.
+- REAL CONSTRAINT: not the styling — it's (a) not breaking the shared data layer, and (b) proving
+  the cross-device sync actually works before anyone claims it does. Those are where it fails.
+
+### The standing rule (always applies)
+1. SSOT = the WEB app `v0-authentic-hadith` (repo `/Users/kp/Projects/v0-authentic-hadith`). Its
+   `app/globals.css` tokens + `app/layout.tsx` fonts (Cinzel headings / Geist body) define the look.
+   Parity work changes the MOBILE app to match the web, never the reverse, unless KP says otherwise.
+2. RUN IT THROUGH THE asf PIPELINE WITH CTP GATES, each stage in its lane, upstream→downstream:
+   asf-architect (lock the data/sync contract) → asf-designer (parity spec) → asf-builder
+   (implement) → asf-qa-gate (tsc + expo-doctor + `expo export` boot proof + font-name match).
+   No stage advances on the prior stage's word — the orchestrator ZERO-TRUST verifies every
+   load-bearing claim against ground truth (re-run the command, read the diff, hit the API).
+3. NEVER TOUCH THE DATA LAYER IN A RESTYLE. `lib/services/bookmark-service.ts`, `hooks/use-hadith.ts`,
+   and anything under the forbidden-actions auth/db/purchase zones stay byte-identical. Prove it with
+   `git status` showing those files unchanged. A restyle that edits data logic is a failed restyle.
+4. THE SYNC TRUTH (verified 2026-06-24): both apps ship against Supabase project
+   `nqklipakrfuwebkdnhwg` (NOT the `lwklog…` project in the MCP org). The cross-device bookmark
+   sync table is `saved_hadiths` (both write `{user_id, hadith_id}` keyed on `hadiths.id`). The web
+   "My Hadith" screen uses a SEPARATE `user_bookmarks` table the phone never writes — DEMO THE SYNC
+   FROM THE HADITH DETAIL SCREEN, never from My Hadith.
+5. READINESS IS A PROBE, NOT A DOC (ties to Rule 034/040 below). "Parity is done / sync works" is a
+   CLAIM until: `expo export` exits 0 (compile proof) AND a live same-account round-trip (bookmark on
+   web detail → appears on phone) is shown on a physical device. The device round-trip is KP's, and
+   it is the last 10% no simulator can prove.
+
+### Where it lives + how it fires + undo
+LIVES HERE in this root `CLAUDE.md`, which the Mandatory Session Startup below forces every operator
+to read before touching code — so it loads itself, it is not a passive doc. UNIVERSAL pieces (the asf
+pipeline, CTP gates, the zero-trust return gate) already live in KP's global `~/.claude/CLAUDE.md`;
+this section is the app-specific binding. UNDO: delete this section.
+
 ## Mandatory Session Startup
 
 Before modifying code, Claude Code must read:

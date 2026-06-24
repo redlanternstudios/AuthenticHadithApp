@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     marginBottom: SPACING.md,
-    marginHorizontal: -SPACING.md,  // bleed to card edges
+    marginHorizontal: -20,  // bleed to card edges (matches card padding = 20px)
   },
   arabicText: {
     fontSize: FONT_SIZES.xl,

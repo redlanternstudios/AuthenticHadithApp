@@ -23,6 +23,9 @@ export function Card({ children, variant = 'default', style, ...props }: CardPro
       style={[
         styles.card,
         { backgroundColor: colors.card, borderColor: colors.border },
+        // Web parity A#3: elevated cards get a gold left accent border
+        // (hadith-card-condensed.tsx:141 border-l-4 border-l-[#C5A059])
+        variant === 'elevated' && { borderLeftWidth: 4, borderLeftColor: colors.goldMid },
         variant === 'ghost' && styles.ghost,
         shadowStyle,
         style,
@@ -36,8 +39,10 @@ export function Card({ children, variant = 'default', style, ...props }: CardPro
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: BORDER_RADIUS.xl,  // 20 — premium iOS card radius
-    padding: SPACING.md,
+    // A#5: 16px radius matches web rounded-2xl (daily-hadith-card.tsx, hadith-card-condensed.tsx)
+    borderRadius: BORDER_RADIUS.card,
+    // A#4: 20px padding matches web p-5 / daily-hadith-card.tsx roomier cards (up from 16px SPACING.md)
+    padding: 20,
     borderWidth: StyleSheet.hairlineWidth,
   },
   ghost: {

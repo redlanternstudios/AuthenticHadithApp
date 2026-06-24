@@ -10,6 +10,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase/client';
 import { Input } from '@/components/ui/Input';
 import { HadithList } from '@/components/hadith/HadithList';
+import { TopBar } from '@/components/layout/TopBar';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { getSearchTerms } from '@/lib/search/topics';
 import {
@@ -108,17 +109,9 @@ export default function SearchScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* insets.top clears the status bar / Dynamic Island — this tab has no
-          native header (matches Home/Collections/More). */}
-      <View style={[styles.header, { paddingTop: insets.top + SPACING.md }]}>
-        <View style={styles.titleRow}>
-          <Text style={[styles.title, { color: colors.bronzeText }]}>Search Hadiths</Text>
-          {activeFilterCount > 0 && (
-            <View style={[styles.filterBadge, { backgroundColor: colors.emeraldMid }]}>
-              <Text style={[styles.filterBadgeText, { color: colors.white }]}>{activeFilterCount}</Text>
-            </View>
-          )}
-        </View>
+      {/* A#6: TopBar — web parity top navigation */}
+      <TopBar title="Search" />
+      <View style={styles.header}>
         <Text style={[styles.subtitle, { color: colors.mutedText }]}>
           Search in English, Arabic, or transliteration
         </Text>

@@ -1,16 +1,138 @@
-import React from 'react'
-import { StyleSheet, View, ScrollView, Text } from 'react-native'
+/**
+ * Prophet Story Reader — multi-part, per-part progress, references,
+ * share-to-social.
+ *
+ * Mirrors web `stories/prophets/[slug]/page.tsx` (SSOT).
+ * Prophet stories use `prophet_stories` table (not `story_parts`).
+ * References schema: quran_references[] / hadith_references[] (array
+ * of {collection, reference, text} objects vs the sahaba's JSONB shape).
+ *
+ * Forbidden layers untouched: bookmark-service.ts, use-hadith.ts, auth/*,
+ * purchases/*, hadiths/saved_hadiths schema.
+ */
+
+import React, { useState, useEffect, useRef, useCallback } from 'react'
+import {
+  StyleSheet,
+  View,
+  ScrollView,
+  Text,
+  Pressable,
+  Share,
+  ActivityIndicator,
+} from 'react-native'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth/AuthProvider'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
-import { Card } from '@/components/ui/Card'
-import { Button } from '@/components/ui/Button'
 import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
 import { useTheme } from '@/lib/theme/ThemeProvider'
 import { trackActivity } from '@/lib/gamification/track-activity'
-import { useCompletionStatus } from '@/hooks/useProgress'
+import {
+  advanceStoryPart,
+  toggleStoryBookmark,
+  getStoryPartProgress,
+  StoryPartProgress,
+} from '@/lib/progress/progressService'
+import { markComplete as svcMarkComplete } from '@/lib/progress/progressService'
+
+// ─── Types ──────────────────────────────────────────────────────────
+
+interface Prophet {
+  id: string
+  slug: string
+  name_en: string
+  name_ar: string | null
+  title_en: string | null
+  era: string | null
+  quran_mentions: number | null
+  total_parts: number
+  estimated_read_time_minutes: number | null
+  theme_primary: string
+  theme_secondary: string | null
+}
+
+interface QuranRef {
+  surah: string
+  ayah: string
+  text?: string
+}
+
+interface HadithRef {
+  collection: string
+  reference: string
+  text?: string
+}
+
+interface ProphetStoryPart {
+  id: string
+  part_number: number
+  title_en: string
+  title_ar: string | null
+  content_en: string
+  opening_hook: string | null
+  key_lesson: string | null
+  historical_context: string | null
+  quran_references: QuranRef[] | null
+  hadith_references: HadithRef[] | null
+  estimated_read_minutes: number | null
+}
+
+// ─── Content renderer ─────────────────────────────────────────────
+
+function renderContentParagraphs(
+  content: string,
+  themeColor: string,
+  mutedText: string,
+  bronzeText: string,
+  goldMid: string
+): React.ReactElement[] {
+  return content.split('\n\n').map((p, i) => {
+    const isQuranQuote =
+      (/Quran \d+:\d+/.test(p) || /Surah/.test(p)) &&
+      (p.includes('"') || p.includes("'"))
+    const isHadithQuote =
+      p.includes('Prophet') &&
+      (p.includes('said:') || p.includes('peace be upon him'))
+
+    if (isQuranQuote) {
+      return (
+        <View
+          key={i}
+          style={[
+            styles.quoteBlock,
+            { borderLeftColor: themeColor, backgroundColor: themeColor + '14' },
+          ]}
+        >
+          <Text style={[styles.quoteText, { color: bronzeText, fontStyle: 'italic' }]}>
+            {p}
+          </Text>
+        </View>
+      )
+    }
+    if (isHadithQuote) {
+      return (
+        <View
+          key={i}
+          style={[
+            styles.quoteBlock,
+            { borderLeftColor: goldMid, backgroundColor: goldMid + '0d' },
+          ]}
+        >
+          <Text style={[styles.quoteText, { color: bronzeText }]}>{p}</Text>
+        </View>
+      )
+    }
+    return (
+      <Text key={i} style={[styles.bodyParagraph, { color: mutedText }]}>
+        {p}
+      </Text>
+    )
+  })
+}
+
+// ─── Screen ──────────────────────────────────────────────────────────
 
 export default function ProphetStoryScreen() {
   const { isDark } = useTheme()
@@ -18,12 +140,16 @@ export default function ProphetStoryScreen() {
   const router = useRouter()
   const { slug } = useLocalSearchParams<{ slug: string }>()
   const { user } = useAuth()
-  // Local-first completion. Authoritative for UI state. Supabase mirror happens
-  // best-effort inside the progress service when the user is logged in.
-  const completion = useCompletionStatus('story', slug ?? null)
+  const scrollRef = useRef<ScrollView>(null)
 
-  // Use maybeSingle() — a deep-link with a stale or invalid slug must NOT
-  // throw PGRST116 and crash the screen (Rule 028).
+  // ── local state ──────────────────────────────────────────────────
+  const [currentPart, setCurrentPart] = useState(1)
+  const [partProgress, setPartProgress] = useState<StoryPartProgress | null>(null)
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAdvancing, setIsAdvancing] = useState(false)
+  const [progressLoaded, setProgressLoaded] = useState(false)
+
+  // ── data fetching ────────────────────────────────────────────────
   const { data: prophet, isLoading } = useQuery({
     queryKey: ['prophet', slug],
     queryFn: async () => {
@@ -36,7 +162,7 @@ export default function ProphetStoryScreen() {
         __DEV__ && console.warn('[ProphetStory] prophets query failed (non-fatal):', error.message)
         return null
       }
-      return data
+      return data as Prophet | null
     },
     enabled: !!slug,
   })
@@ -49,38 +175,114 @@ export default function ProphetStoryScreen() {
         .from('prophet_stories')
         .select('*')
         .eq('prophet_id', prophet.id)
+        .eq('is_published', true)
         .order('part_number')
       if (error) {
-        __DEV__ && console.warn('[ProphetStory] prophet_stories query failed (non-fatal):', error.message)
+        __DEV__ && console.warn('[ProphetStory] prophet_stories query failed:', error.message)
         return []
       }
-      return data || []
+      return (data || []) as ProphetStoryPart[]
     },
     enabled: !!prophet?.id,
   })
 
-  const handleMarkComplete = async () => {
-    if (!slug) return
-    // Local-first write. Updates UI immediately via the hook's subscribe path.
-    // Service handles best-effort Supabase mirror when user is authenticated.
-    await completion.markComplete({
-      entityKind: 'prophet',
-      entityId: prophet?.id,
-      slug,
-      title: prophet?.name_en,
-    })
-    // Best-effort XP/streak tracking. Wrapped in catch so a missing user_stats
-    // row or missing table never throws into the void.
-    if (user) {
-      try {
-        await trackActivity(user.id, 'complete_story')
-      } catch (err) {
-        __DEV__ && console.warn('[ProphetStory] trackActivity failed (non-fatal):', err)
+  // ── load local per-part progress once prophet is resolved ────────
+  useEffect(() => {
+    if (!prophet?.id) return
+    getStoryPartProgress('prophet', prophet.id).then((p) => {
+      if (p) {
+        setPartProgress(p)
+        setCurrentPart(p.currentPart)
+        setIsBookmarked(p.isBookmarked)
       }
-    }
-  }
+      setProgressLoaded(true)
+    })
+  }, [prophet?.id])
 
-  if (isLoading) {
+  // ── derived ──────────────────────────────────────────────────────
+  const parts = storyParts || []
+  const totalParts = prophet?.total_parts ?? parts.length
+  const themeColor = prophet?.theme_primary ?? colors.emeraldMid
+  const themeSecondary = prophet?.theme_secondary ?? themeColor
+  const progressPercent = totalParts > 0 ? (currentPart / totalParts) * 100 : 0
+  const partsCompleted = partProgress?.partsCompleted ?? []
+  const isCurrentPartCompleted = partsCompleted.includes(currentPart)
+  const part = parts[currentPart - 1] as ProphetStoryPart | undefined
+
+  // ── navigation handlers ──────────────────────────────────────────
+  const handleNext = useCallback(async () => {
+    if (!prophet || isAdvancing) return
+    setIsAdvancing(true)
+    try {
+      const next = currentPart + 1
+      const updated = await advanceStoryPart({
+        entityKind: 'prophet',
+        entityId: prophet.id,
+        totalParts,
+        nextPart: next,
+        completedPart: currentPart,
+        isBookmarked,
+      })
+      setPartProgress(updated)
+      setCurrentPart(next)
+      scrollRef.current?.scrollTo({ y: 0, animated: true })
+    } finally {
+      setIsAdvancing(false)
+    }
+  }, [prophet, currentPart, isAdvancing, isBookmarked, totalParts])
+
+  const handlePrev = useCallback(() => {
+    if (currentPart <= 1) return
+    setCurrentPart(currentPart - 1)
+    scrollRef.current?.scrollTo({ y: 0, animated: true })
+  }, [currentPart])
+
+  const handleDone = useCallback(async () => {
+    if (!prophet || isAdvancing) return
+    setIsAdvancing(true)
+    try {
+      const updated = await advanceStoryPart({
+        entityKind: 'prophet',
+        entityId: prophet.id,
+        totalParts,
+        nextPart: currentPart,
+        completedPart: currentPart,
+        isBookmarked,
+      })
+      setPartProgress(updated)
+      await svcMarkComplete('story', slug ?? prophet.slug, {
+        entityKind: 'prophet',
+        entityId: prophet.id,
+      })
+      if (user) {
+        try { await trackActivity(user.id, 'complete_story') } catch { /* non-fatal */ }
+      }
+      router.push('/stories')
+    } finally {
+      setIsAdvancing(false)
+    }
+  }, [prophet, currentPart, isAdvancing, isBookmarked, totalParts, slug, user, router])
+
+  const handleShare = useCallback(async () => {
+    const text = `Read the story of Prophet ${prophet?.name_en} on Authentic Hadith`
+    try {
+      await Share.share({
+        title: prophet?.name_en ?? 'Story',
+        message: text,
+      })
+    } catch (err) {
+      __DEV__ && console.warn('[ProphetStory] Share failed (non-fatal):', err)
+    }
+  }, [prophet])
+
+  const handleBookmark = useCallback(async () => {
+    if (!prophet) return
+    const newVal = await toggleStoryBookmark('prophet', prophet.id)
+    setIsBookmarked(newVal)
+  }, [prophet])
+
+  // ── loading / not found guards ───────────────────────────────────
+  if (isLoading || !progressLoaded) {
     return <LoadingSpinner />
   }
 
@@ -93,115 +295,421 @@ export default function ProphetStoryScreen() {
     )
   }
 
-  const parts = storyParts || []
-  // Local progress is the source of truth — no auth required, persists across
-  // restarts, syncs to Supabase opportunistically.
-  const isComplete = completion.isComplete
-
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
-      <Stack.Screen options={{ title: prophet.name_en, headerShown: true }} />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Stack.Screen options={{ headerShown: false }} />
 
-      <View style={styles.backRow}>
-        <Button title="← Back" onPress={() => router.back()} variant="ghost" />
+      {/* ── Sticky header ─────────────────────────────────────────── */}
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+        <View style={styles.headerRow}>
+          <Pressable
+            onPress={() => router.push('/stories')}
+            style={[styles.iconBtn, { backgroundColor: colors.background }]}
+            accessibilityLabel="Back to stories"
+          >
+            <Text style={[styles.chevronLeft, { color: colors.bronzeText }]}>‹</Text>
+          </Pressable>
+          <View style={styles.headerMid}>
+            <Text style={[styles.headerTitle, { color: colors.bronzeText }]} numberOfLines={1}>
+              Prophet {prophet.name_en}
+            </Text>
+            <Text style={[styles.headerSub, { color: colors.mutedText }]}>
+              Part {currentPart} of {parts.length || totalParts}
+            </Text>
+          </View>
+          <View style={styles.headerActions}>
+            {/* Bookmark */}
+            <Pressable
+              onPress={handleBookmark}
+              style={[
+                styles.iconBtn,
+                isBookmarked && { backgroundColor: themeColor + '1a' },
+              ]}
+              accessibilityLabel={isBookmarked ? 'Remove bookmark' : 'Bookmark story'}
+            >
+              <Text style={{ fontSize: 18, color: isBookmarked ? themeColor : colors.mutedText }}>
+                {isBookmarked ? '★' : '☆'}
+              </Text>
+            </Pressable>
+            {/* Share */}
+            <Pressable
+              onPress={handleShare}
+              style={styles.iconBtn}
+              accessibilityLabel="Share story"
+            >
+              <Text style={{ fontSize: 16, color: colors.mutedText }}>{'↑'}</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        {/* Progress bar */}
+        <View style={[styles.progressTrack, { backgroundColor: colors.border }]}>
+          <View
+            style={[
+              styles.progressFill,
+              { width: `${progressPercent}%` as any, backgroundColor: themeColor },
+            ]}
+          />
+        </View>
       </View>
 
-      {/* Hero Header */}
-      <View style={[styles.hero, { backgroundColor: prophet.theme_primary || colors.emeraldMid + '15' }]}>
-        <Text style={[styles.heroName, { color: colors.bronzeText }]}>{prophet.name_en}</Text>
-        {prophet.name_ar && (
-          <Text style={[styles.heroArabic, { color: colors.goldMid }]}>{prophet.name_ar}</Text>
+      {/* ── Scrollable content ────────────────────────────────────── */}
+      <ScrollView
+        ref={scrollRef}
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {part ? (
+          <>
+            {/* Part header */}
+            <View style={styles.partHeader}>
+              <View style={styles.partLabelRow}>
+                <Text style={[styles.partLabel, { color: themeColor }]}>
+                  PART {part.part_number}
+                </Text>
+                {prophet.name_ar ? (
+                  <Text style={[styles.partLabelAr, { color: colors.mutedText }]}>
+                    {prophet.name_ar}
+                  </Text>
+                ) : null}
+                {isCurrentPartCompleted && (
+                  <Text style={[styles.checkmark, { color: colors.success }]}>✓</Text>
+                )}
+              </View>
+              <Text style={[styles.partTitle, { color: colors.bronzeText }]}>
+                {part.title_en}
+              </Text>
+              {part.title_ar ? (
+                <Text style={[styles.partTitleAr, { color: colors.mutedText }]}>
+                  {part.title_ar}
+                </Text>
+              ) : null}
+              <View style={styles.metaRow}>
+                {part.estimated_read_minutes != null && (
+                  <Text style={[styles.metaBadge, { color: colors.mutedText }]}>
+                    {part.estimated_read_minutes} min
+                  </Text>
+                )}
+                {prophet.era ? (
+                  <Text style={[styles.metaBadge, { color: colors.mutedText }]}>
+                    {prophet.era}
+                  </Text>
+                ) : null}
+                {(prophet.quran_mentions ?? 0) > 0 && (
+                  <Text style={[styles.metaBadge, { color: colors.mutedText }]}>
+                    {prophet.quran_mentions} Quran mentions
+                  </Text>
+                )}
+              </View>
+            </View>
+
+            {/* Opening hook */}
+            {part.opening_hook ? (
+              <View
+                style={[
+                  styles.openingHook,
+                  { borderLeftColor: themeColor, backgroundColor: themeColor + '14' },
+                ]}
+              >
+                <Text style={[styles.openingHookText, { color: colors.bronzeText }]}>
+                  {part.opening_hook}
+                </Text>
+              </View>
+            ) : null}
+
+            {/* Historical context */}
+            {part.historical_context ? (
+              <View style={[styles.historyBox, { backgroundColor: colors.border + '44' }]}>
+                <Text style={[styles.historyLabel, { color: colors.mutedText }]}>
+                  HISTORICAL CONTEXT
+                </Text>
+                <Text style={[styles.historyText, { color: colors.bronzeText + 'cc' }]}>
+                  {part.historical_context}
+                </Text>
+              </View>
+            ) : null}
+
+            {/* Main content */}
+            <View style={styles.articleBody}>
+              {renderContentParagraphs(
+                part.content_en,
+                themeColor,
+                colors.mutedText,
+                colors.bronzeText,
+                colors.goldMid
+              )}
+            </View>
+
+            {/* Key Lesson */}
+            {part.key_lesson ? (
+              <View
+                style={[
+                  styles.lessonBox,
+                  {
+                    backgroundColor: colors.emeraldMid + '0d',
+                    borderColor: colors.emeraldMid + '1a',
+                  },
+                ]}
+              >
+                <Text style={[styles.lessonLabel, { color: colors.emeraldMid }]}>
+                  KEY LESSON
+                </Text>
+                <Text style={[styles.lessonText, { color: colors.bronzeText }]}>
+                  {part.key_lesson}
+                </Text>
+              </View>
+            ) : null}
+
+            {/* B#3 — Quran References */}
+            {part.quran_references && part.quran_references.length > 0 ? (
+              <View style={styles.refSection}>
+                <Text style={[styles.refSectionLabel, { color: colors.mutedText }]}>
+                  QURAN REFERENCES
+                </Text>
+                {part.quran_references.map((ref, i) => (
+                  <View key={i} style={styles.refRow}>
+                    <Text style={[styles.refIcon, { color: themeColor }]}>{'◆'}</Text>
+                    <Text style={[styles.refText, { color: colors.mutedText }]}>
+                      Surah {ref.surah}:{ref.ayah}
+                      {ref.text ? ` — ${ref.text}` : ''}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+
+            {/* B#3 — Hadith References */}
+            {part.hadith_references && part.hadith_references.length > 0 ? (
+              <View style={styles.refSection}>
+                <Text style={[styles.refSectionLabel, { color: colors.mutedText }]}>
+                  HADITH REFERENCES
+                </Text>
+                <View style={styles.tagsRow}>
+                  {part.hadith_references.map((ref, i) => (
+                    <View
+                      key={i}
+                      style={[
+                        styles.refTag,
+                        { backgroundColor: colors.goldMid + '1a' },
+                      ]}
+                    >
+                      <Text style={[styles.refTagText, { color: colors.goldShadow }]}>
+                        {ref.collection} {ref.reference}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ) : null}
+          </>
+        ) : (
+          <View style={styles.emptyPart}>
+            <Text style={[styles.emptyText, { color: colors.mutedText }]}>
+              This part is not available yet.
+            </Text>
+          </View>
         )}
-        <View style={styles.metaRow}>
-          {prophet.era && (
-            <View style={[styles.metaBadge, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <Text style={[styles.metaBadgeText, { color: colors.mutedText }]}>{prophet.era}</Text>
-            </View>
-          )}
-          <View style={[styles.metaBadge, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.metaBadgeText, { color: colors.mutedText }]}>
-              {prophet.quran_mentions || 0} Quran mentions
-            </Text>
-          </View>
-          <View style={[styles.metaBadge, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.metaBadgeText, { color: colors.mutedText }]}>
-              {prophet.estimated_read_time_minutes || 5} min read
-            </Text>
-          </View>
+
+        <View style={{ height: 120 }} />
+      </ScrollView>
+
+      {/* ── Fixed bottom navigation ───────────────────────────────── */}
+      <View
+        style={[
+          styles.bottomNav,
+          { backgroundColor: colors.card, borderTopColor: colors.border },
+        ]}
+      >
+        {/* Previous */}
+        <Pressable
+          onPress={handlePrev}
+          disabled={currentPart <= 1}
+          style={[styles.navBtn, currentPart <= 1 && styles.navBtnDisabled]}
+        >
+          <Text
+            style={[
+              styles.navBtnText,
+              { color: currentPart <= 1 ? colors.mutedText + '60' : colors.bronzeText },
+            ]}
+          >
+            ‹ Previous
+          </Text>
+        </Pressable>
+
+        {/* Part dots */}
+        <View style={styles.dots}>
+          {Array.from({ length: parts.length || totalParts }, (_, i) => i + 1).map((num) => {
+            const active = num === currentPart
+            const done = partsCompleted.includes(num)
+            return (
+              <Pressable
+                key={num}
+                onPress={() => {
+                  setCurrentPart(num)
+                  scrollRef.current?.scrollTo({ y: 0, animated: true })
+                }}
+                accessibilityLabel={`Go to part ${num}`}
+                style={[
+                  styles.dot,
+                  active && [styles.dotActive, { backgroundColor: themeColor }],
+                  !active && done && { backgroundColor: colors.success + '66' },
+                  !active && !done && { backgroundColor: colors.border },
+                ]}
+              />
+            )
+          })}
         </View>
+
+        {/* Next / Done */}
+        {currentPart >= parts.length ? (
+          <Pressable
+            onPress={handleDone}
+            disabled={isAdvancing}
+            style={[styles.navBtnPrimary, { backgroundColor: themeColor }]}
+          >
+            {isAdvancing ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.navBtnPrimaryText}>Done ✓</Text>
+            )}
+          </Pressable>
+        ) : (
+          <Pressable
+            onPress={handleNext}
+            disabled={isAdvancing}
+            style={[styles.navBtnPrimary, { backgroundColor: themeColor }]}
+          >
+            {isAdvancing ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.navBtnPrimaryText}>Next ›</Text>
+            )}
+          </Pressable>
+        )}
       </View>
-
-      {/* Description */}
-      {prophet.title_en && (
-        <Text style={[styles.description, { color: colors.bronzeText }]}>{prophet.title_en}</Text>
-      )}
-
-      {/* Content Parts */}
-      {parts.map((part: any) => (
-        <Card key={part.id} variant="elevated" style={styles.partCard}>
-          <Text style={[styles.partTitle, { color: colors.goldMid }]}>{part.title_en || `Part ${part.part_number}`}</Text>
-          {part.opening_hook && (
-            <Text style={[styles.partHook, { color: colors.goldMid }]}>{part.opening_hook}</Text>
-          )}
-          <Text style={[styles.partContent, { color: colors.bronzeText }]}>{part.content_en}</Text>
-          {part.key_lesson && (
-            <View style={[styles.lessonBox, { backgroundColor: colors.emeraldMid + '10', borderLeftColor: colors.emeraldMid }]}>
-              <Text style={[styles.lessonLabel, { color: colors.emeraldMid }]}>Key Lesson</Text>
-              <Text style={[styles.lessonText, { color: colors.bronzeText }]}>{part.key_lesson}</Text>
-            </View>
-          )}
-        </Card>
-      ))}
-
-      {/* Mark Complete — available to all users (local-first persistence). */}
-      {!isComplete && parts.length > 0 && (
-        <Button
-          title={completion.isMarking ? 'Marking…' : 'Mark as Complete'}
-          variant="primary"
-          size="large"
-          onPress={handleMarkComplete}
-          isLoading={completion.isMarking}
-          style={styles.completeButton}
-        />
-      )}
-      {isComplete && (
-        <View style={styles.completeBadge}>
-          <Text style={[styles.completeText, { color: colors.emeraldMid }]}>✅ Completed</Text>
-        </View>
-      )}
-    </ScrollView>
+    </View>
   )
 }
 
+// ─── Styles ──────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { paddingBottom: SPACING.xxl },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+
+  header: { borderBottomWidth: 1, paddingTop: SPACING.xl + SPACING.md },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.md,
+    paddingBottom: SPACING.sm,
+    gap: SPACING.sm,
+  },
+  headerMid: { flex: 1 },
+  headerTitle: { fontSize: FONT_SIZES.sm, fontWeight: '700' },
+  headerSub: { fontSize: FONT_SIZES.xs },
+  headerActions: { flexDirection: 'row', gap: SPACING.xs },
+  iconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chevronLeft: { fontSize: 26, lineHeight: 32 },
+  progressTrack: { height: 3 },
+  progressFill: { height: 3 },
+
+  scroll: { flex: 1 },
+  scrollContent: { paddingHorizontal: SPACING.md, paddingTop: SPACING.lg },
+
+  partHeader: { marginBottom: SPACING.lg },
+  partLabelRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, marginBottom: SPACING.xs, flexWrap: 'wrap' },
+  partLabel: { fontSize: FONT_SIZES.xs, fontWeight: '700', letterSpacing: 1.2 },
+  partLabelAr: { fontSize: FONT_SIZES.xs },
+  checkmark: { fontSize: FONT_SIZES.sm, fontWeight: '700' },
+  partTitle: { fontSize: FONT_SIZES.xxl, fontWeight: '700', lineHeight: 32, marginBottom: SPACING.xs },
+  partTitleAr: { fontSize: FONT_SIZES.lg, textAlign: 'right', marginBottom: SPACING.xs },
+  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, marginTop: SPACING.xs },
+  metaBadge: { fontSize: FONT_SIZES.xs },
+
+  openingHook: {
+    marginBottom: SPACING.lg,
+    borderLeftWidth: 4,
+    borderRadius: BORDER_RADIUS.sm,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.md,
+  },
+  openingHookText: { fontSize: FONT_SIZES.md, fontStyle: 'italic', lineHeight: 26 },
+
+  historyBox: {
+    marginBottom: SPACING.md,
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.md,
+  },
+  historyLabel: { fontSize: FONT_SIZES.xs, fontWeight: '700', letterSpacing: 1.2, marginBottom: SPACING.xs },
+  historyText: { fontSize: FONT_SIZES.sm, lineHeight: 20 },
+
+  articleBody: { marginBottom: SPACING.md },
+  bodyParagraph: { fontSize: FONT_SIZES.base, lineHeight: 26, marginBottom: SPACING.md },
+  quoteBlock: {
+    borderLeftWidth: 4,
+    borderRadius: BORDER_RADIUS.sm,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.md,
+    marginVertical: SPACING.md,
+  },
+  quoteText: { fontSize: FONT_SIZES.base, lineHeight: 24 },
+
+  lessonBox: {
+    marginTop: SPACING.lg,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+    padding: SPACING.md,
+    marginBottom: SPACING.md,
+  },
+  lessonLabel: { fontSize: FONT_SIZES.xs, fontWeight: '700', letterSpacing: 1.2, marginBottom: SPACING.xs },
+  lessonText: { fontSize: FONT_SIZES.base, fontWeight: '500', lineHeight: 24 },
+
+  refSection: { marginTop: SPACING.md, marginBottom: SPACING.sm },
+  refSectionLabel: { fontSize: FONT_SIZES.xs, fontWeight: '700', letterSpacing: 1.2, marginBottom: SPACING.sm },
+  refRow: { flexDirection: 'row', alignItems: 'flex-start', gap: SPACING.sm, marginBottom: SPACING.xs },
+  refIcon: { fontSize: FONT_SIZES.xs, marginTop: 3 },
+  refText: { flex: 1, fontSize: FONT_SIZES.sm, lineHeight: 20 },
+  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.xs },
+  refTag: {
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    borderRadius: BORDER_RADIUS.full,
+  },
+  refTagText: { fontSize: FONT_SIZES.xs, fontWeight: '500' },
+
+  emptyPart: { alignItems: 'center', paddingVertical: SPACING.xxl },
   emptyText: { fontSize: FONT_SIZES.base },
-  backRow: { paddingHorizontal: SPACING.md, paddingTop: SPACING.sm },
-  hero: {
-    padding: SPACING.xl, alignItems: 'center', gap: SPACING.sm,
+
+  bottomNav: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderTopWidth: 1,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    paddingBottom: SPACING.lg,
   },
-  heroName: { fontSize: FONT_SIZES.xxxl, fontWeight: '700' },
-  heroArabic: { fontSize: FONT_SIZES.xl },
-  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, marginTop: SPACING.sm },
-  metaBadge: {
-    paddingHorizontal: SPACING.md, paddingVertical: SPACING.xs,
-    borderRadius: BORDER_RADIUS.full, borderWidth: 1,
+  navBtn: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, borderRadius: BORDER_RADIUS.lg },
+  navBtnDisabled: { opacity: 0.3 },
+  navBtnText: { fontSize: FONT_SIZES.sm, fontWeight: '500' },
+  navBtnPrimary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderRadius: BORDER_RADIUS.lg,
   },
-  metaBadgeText: { fontSize: FONT_SIZES.sm },
-  description: {
-    fontSize: FONT_SIZES.md, lineHeight: 26,
-    padding: SPACING.md, marginBottom: SPACING.md,
-  },
-  partCard: { marginHorizontal: SPACING.md, marginBottom: SPACING.md },
-  partTitle: { fontSize: FONT_SIZES.md, fontWeight: '700', marginBottom: SPACING.sm },
-  partHook: { fontSize: FONT_SIZES.base, fontStyle: 'italic', marginBottom: SPACING.sm, lineHeight: 22 },
-  partContent: { fontSize: FONT_SIZES.base, lineHeight: 24 },
-  lessonBox: { marginTop: SPACING.md, padding: SPACING.sm, borderRadius: BORDER_RADIUS.md, borderLeftWidth: 3 },
-  lessonLabel: { fontSize: FONT_SIZES.xs, fontWeight: '700', marginBottom: 4, textTransform: 'uppercase' },
-  lessonText: { fontSize: FONT_SIZES.sm, lineHeight: 20 },
-  completeButton: { marginHorizontal: SPACING.md, marginTop: SPACING.md },
-  completeBadge: { alignItems: 'center', padding: SPACING.lg },
-  completeText: { fontSize: FONT_SIZES.md, fontWeight: '600' },
+  navBtnPrimaryText: { fontSize: FONT_SIZES.sm, fontWeight: '600', color: '#ffffff' },
+  dots: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  dot: { width: 8, height: 8, borderRadius: 4 },
+  dotActive: { width: 20, height: 8, borderRadius: 4 },
 })
