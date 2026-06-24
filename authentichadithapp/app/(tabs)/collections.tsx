@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase/client';
 import { Card } from '@/components/ui/Card';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors';
+import { FONT_FAMILY } from '@/constants/theme';
 import { useTheme } from '@/lib/theme/ThemeProvider';
 import { Collection } from '@/types/hadith';
 import { QueryErrorBanner } from '@/components/common/QueryErrorBanner';
@@ -80,11 +81,13 @@ const styles = StyleSheet.create({
     paddingTop: SPACING.xl,
   },
   title: {
+    fontFamily: FONT_FAMILY.heading,
     fontSize: FONT_SIZES.xxxl,
     fontWeight: '700',
     marginBottom: SPACING.sm,
   },
   subtitle: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.base,
   },
   grid: {
@@ -101,12 +104,14 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.sm,
   },
   collectionName: {
+    fontFamily: FONT_FAMILY.bodySemiBold,
     fontSize: FONT_SIZES.md,
     fontWeight: '600',
     textAlign: 'center',
     marginBottom: SPACING.xs,
   },
   collectionCount: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.sm,
     textAlign: 'center',
   },

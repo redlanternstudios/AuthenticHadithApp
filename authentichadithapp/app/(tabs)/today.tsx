@@ -20,6 +20,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
+import { FONT_FAMILY } from '@/constants/theme'
 import { useDeviceLayout } from '@/lib/hooks/use-device-layout'
 import { trackActivity } from '@/lib/gamification/track-activity'
 import { Hadith } from '@/types/hadith'
@@ -312,6 +313,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.lg,
   },
   dateText: {
+    fontFamily: FONT_FAMILY.bodySemiBold,
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1.2,
@@ -319,6 +321,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   title: {
+    fontFamily: FONT_FAMILY.heading,
     fontSize: 30,
     fontWeight: '700',
     letterSpacing: -0.5,
@@ -353,6 +356,7 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   cardEyebrow: {
+    fontFamily: FONT_FAMILY.bodySemiBold,
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1,
@@ -369,6 +373,7 @@ const styles = StyleSheet.create({
     gap: SPACING.xs,
   },
   sunnahAction: {
+    fontFamily: FONT_FAMILY.bodySemiBold,
     fontSize: FONT_SIZES.md,
     fontWeight: '600',
     lineHeight: 24,

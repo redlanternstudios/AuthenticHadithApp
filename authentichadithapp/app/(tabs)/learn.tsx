@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/Card';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { PremiumGate } from '@/components/premium/PremiumGate';
 import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors';
+import { FONT_FAMILY } from '@/constants/theme';
 import { useTheme } from '@/lib/theme/ThemeProvider';
 import { LearningPath } from '@/types/hadith';
 import { useCompletedItems } from '@/hooks/useProgress';
@@ -179,11 +180,13 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
   },
   title: {
+    fontFamily: FONT_FAMILY.heading,
     fontSize: FONT_SIZES.xxxl,
     fontWeight: '700',
     marginBottom: SPACING.sm,
   },
   subtitle: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.base,
     marginBottom: SPACING.md,
   },
@@ -200,11 +203,13 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.sm,
   },
   pathName: {
+    fontFamily: FONT_FAMILY.headingMedium,
     fontSize: FONT_SIZES.lg,
     fontWeight: '600',
     flex: 1,
   },
   difficultyBadge: {
+    fontFamily: FONT_FAMILY.bodySemiBold,
     fontSize: FONT_SIZES.xs,
     paddingHorizontal: SPACING.sm,
     paddingVertical: SPACING.xs,
@@ -214,10 +219,12 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   pathDescription: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.base,
     marginBottom: SPACING.sm,
   },
   pathDuration: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.sm,
   },
   progressRow: {
@@ -237,6 +244,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   progressText: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.xs,
     fontVariant: ['tabular-nums'],
   },

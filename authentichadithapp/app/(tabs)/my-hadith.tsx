@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { ScreenHeader } from '@/components/ui/ScreenHeader'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors'
+import { FONT_FAMILY } from '@/constants/theme'
 import { useTheme } from '@/lib/theme/ThemeProvider'
 import { QueryErrorBanner } from '@/components/common/QueryErrorBanner'
 
@@ -114,12 +115,14 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.sm,
   },
   folderName: {
+    fontFamily: FONT_FAMILY.bodySemiBold,
     fontSize: FONT_SIZES.md,
     fontWeight: '600',
     textAlign: 'center',
     marginBottom: SPACING.xs,
   },
   folderCount: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.sm,
     textAlign: 'center',
   },
@@ -129,6 +132,7 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xs,
   },
   authPrompt: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.lg,
     textAlign: 'center',
     marginBottom: SPACING.lg,
@@ -138,11 +142,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyText: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.lg,
     fontWeight: '600',
     marginBottom: SPACING.sm,
   },
   emptySubtext: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.base,
     textAlign: 'center',
   },

@@ -21,6 +21,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors';
+import { FONT_FAMILY } from '@/constants/theme';
 import { getLevelInfo } from '@/lib/gamification/level-calculator';
 import { TodayFeaturedSection } from '@/components/home/TodayFeaturedSection';
 import { Hadith } from '@/types/hadith';
@@ -247,12 +248,14 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   title: {
+    fontFamily: FONT_FAMILY.heading,
     fontSize: 30,
     fontWeight: '700',
     letterSpacing: -0.5,
     marginBottom: 6,
   },
   subtitle: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.sm,
     lineHeight: 18,
   },
@@ -260,6 +263,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
   sectionLabel: {
+    fontFamily: FONT_FAMILY.bodySemiBold,
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1.2,
@@ -273,6 +277,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
   sectionTitle: {
+    fontFamily: FONT_FAMILY.heading,
     fontSize: FONT_SIZES.lg,
     fontWeight: '700',
     letterSpacing: -0.2,
@@ -299,6 +304,7 @@ const styles = StyleSheet.create({
     fontSize: 26,
   },
   quickActionLabel: {
+    fontFamily: FONT_FAMILY.bodySemiBold,
     fontSize: 12,
     fontWeight: '600',
   },

@@ -5,6 +5,10 @@
 
 import { Platform } from 'react-native';
 
+// Re-export typography tokens from the canonical source so that components
+// can import FONT_SIZES, LINE_HEIGHTS, and FONT_FAMILY from a single path.
+export { FONT_SIZES, LINE_HEIGHTS } from '@/lib/styles/colors';
+
 const tintColorLight = '#0a7ea4';
 const tintColorDark = '#fff';
 
@@ -26,6 +30,20 @@ export const Colors = {
     tabIconSelected: tintColorDark,
   },
 };
+
+// ─── Font Families ───────────────────────────────────────────────────────────
+// Cinzel = display/heading font (web: --font-serif / --font-cinzel, layout.tsx:8-12)
+// Geist  = body/UI font        (web: --font-geist,                  layout.tsx:14-16)
+// Arabic = kept as-is; not Cinzel or Geist
+export const FONT_FAMILY = {
+  heading: 'Cinzel_700Bold',           // H1, hero titles, screen headers
+  headingMedium: 'Cinzel_600SemiBold', // H2, card titles
+  headingLight: 'Cinzel_400Regular',   // H3, eyebrows in Cinzel
+  body: 'Geist_400Regular',            // default body text
+  bodyMedium: 'Geist_500Medium',       // body emphasis
+  bodySemiBold: 'Geist_600SemiBold',   // body strong, labels
+  arabic: undefined,                    // falls back to system serif (Amiri not required for demo)
+} as const;
 
 export const Fonts = Platform.select({
   ios: {
