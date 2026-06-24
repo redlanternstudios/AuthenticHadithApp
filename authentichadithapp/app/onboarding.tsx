@@ -79,7 +79,7 @@ export default function OnboardingScreen() {
   const handleComplete = async () => {
     if (!user) {
       await AsyncStorage.setItem('onboarded', '1')
-      router.replace('/(tabs)')
+      router.replace('/paywall')
       return
     }
 
@@ -107,17 +107,12 @@ export default function OnboardingScreen() {
         })
 
       await AsyncStorage.setItem('onboarded', '1')
-      router.replace('/(tabs)')
+      router.replace('/paywall')
     } catch {
       Alert.alert('Error', 'Something went wrong. Please try again.')
     } finally {
       setLoading(false)
     }
-  }
-
-  const handleSkip = async () => {
-    await AsyncStorage.setItem('onboarded', '1')
-    router.replace('/(tabs)')
   }
 
   // Derived labels based on selected language
@@ -401,9 +396,7 @@ export default function OnboardingScreen() {
       {/* Navigation */}
       <View style={[styles.navRow, { borderTopColor: colors.border }, isRTL && styles.navRowRTL]}>
         {currentStep === 1 ? (
-          <Pressable onPress={handleSkip}>
-            <Text style={[styles.skipText, { color: colors.mutedText }]}>{stepLabels.skip}</Text>
-          </Pressable>
+          <View style={{ width: 80 }} />
         ) : (
           <Button
             title={stepLabels.back}

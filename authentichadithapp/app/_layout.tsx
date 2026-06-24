@@ -1,11 +1,12 @@
 import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import 'react-native-reanimated';
 
 import {
@@ -25,7 +26,7 @@ import { AuthProvider, useAuth } from '@/lib/auth/AuthProvider';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { ThemeProvider, useTheme } from '@/lib/theme/ThemeProvider';
 import { LanguageProvider } from '@/lib/i18n/LanguageProvider';
-import { RevenueCatProvider } from '@/lib/revenuecat/RevenueCatProvider';
+import { RevenueCatProvider, useRevenueCat } from '@/lib/revenuecat/RevenueCatProvider';
 
 // FIX-071: preventAutoHideAsync at module level ensures the splash is held
 // from the very first JS frame — must remain unconditional and at top-level.
@@ -46,6 +47,54 @@ function AppReadySignal({ onReady }: { onReady: () => void }) {
       onReady()
     }
   }, [authLoading, onReady])
+  return null
+}
+
+// Pure side-effect component — renders nothing, only redirects.
+// Enforces auth → onboarding → subscription gate on every launch.
+function NavigationGate() {
+  const { user, isLoading: authLoading } = useAuth()
+  const { isPro, isLoading: rcLoading } = useRevenueCat()
+  const router = useRouter()
+  const segments = useSegments()
+  const [onboarded, setOnboarded] = useState<boolean | null>(null)
+
+  // Read onboarding flag from AsyncStorage once on mount
+  useEffect(() => {
+    AsyncStorage.getItem('onboarded').then((value) => {
+      setOnboarded(value === 'true')
+    })
+  }, [])
+
+  useEffect(() => {
+    // Wait until auth, RevenueCat, and AsyncStorage have all resolved
+    if (authLoading || rcLoading || onboarded === null) return
+
+    const inAuth = segments[0] === 'auth'
+    const inOnboarding = segments[0] === 'onboarding'
+    const inPaywall = segments[0] === 'paywall'
+
+    if (!user) {
+      // No session — send to signup
+      if (!inAuth) router.replace('/auth/signup')
+      return
+    }
+
+    if (!onboarded) {
+      // Logged in but hasn't completed onboarding
+      if (!inOnboarding) router.replace('/onboarding')
+      return
+    }
+
+    if (!isPro) {
+      // Onboarded but no active subscription
+      if (!inPaywall) router.replace('/paywall')
+      return
+    }
+
+    // All gates passed — stay on (tabs), no redirect needed
+  }, [authLoading, rcLoading, onboarded, user, isPro, segments, router])
+
   return null
 }
 
@@ -70,6 +119,7 @@ function AppContent() {
         <Stack.Screen name="my-hadith" options={{ headerShown: false }} />
         <Stack.Screen name="settings" options={{ headerShown: false }} />
         <Stack.Screen name="onboarding" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="paywall" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
         <Stack.Screen name="progress" options={{ headerShown: false }} />
         <Stack.Screen name="achievements" options={{ headerShown: false }} />
         <Stack.Screen name="quiz" options={{ headerShown: false }} />
@@ -79,6 +129,7 @@ function AppContent() {
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style={isDark ? 'light' : 'dark'} />
+      <NavigationGate />
     </NavigationThemeProvider>
   );
 }

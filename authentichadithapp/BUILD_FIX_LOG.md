@@ -3570,3 +3570,28 @@ function getHardcodedDisplay(pkg: any): { title: string; price: string } {
 **Recurring pattern alert** (Rule 009 candidate): This is the **third** App Review rejection in the FIX-085 → FIX-088 → FIX-089 sequence around paywall metadata determinism (Redeem Code leak, Lifetime camelCase title, missing /year cadence). The pattern: **any dynamic surface that App Review inspects is a latent rejection**. Promoting this into `SYSTEM_RULES.md` as a permanent rule next session: "Any paywall string Apple's metadata team can compare against ASC must be hardcoded in code and unit-tested against ASC values."
 
 **Process note (housekeeping, not a code bug)**: `BUILD_FIX_LOG.md` has gaps for FIX-062 through FIX-088. Those fixes shipped in commits (`0f8259f`, `24c58c6`, `48a5010`, `ef5bb24`, `018ca2c`, `1ce40b5`, `eab0054`, `a7d647e`, `6f7695f`, `db2fe8f`, etc.) but were never mirrored here per the mandatory documentation protocol in root CLAUDE.md. Backfilling them is out of scope for FIX-089 but should be done before V1 submit to keep the repair memory honest.
+
+---
+
+### [FIX-094] — Universal Links build blocked by stale provisioning profile missing Associated Domains
+**Date**: 2026-06-23
+**Pattern category**: iOS credentials / EAS provisioning-profile sync
+
+**Why**: After adding `ios.associatedDomains: ["applinks:authentichadith.app"]` to `app.json` (commit fc8f1fd, the site→app continuity spine for Universal Links), production iOS builds 45, 46, and 47 ALL errored on the same Xcode build error:
+`Provisioning profile "*[expo] com.byred.authentichadith AppStore 2026-05-05T07:51:23.998Z" doesn't support the Associated Domains capability / doesn't include the com.apple.developer.associated-domains entitlement.`
+The profile in use was dated **2026-05-05** — the OLD profile. EAS kept reusing the cached profile instead of regenerating one that carries the new entitlement. The first attempt (build 45) was run `--non-interactive` with no Apple auth, so EAS could not regenerate. The two interactive retries (46, 47) still reused the stale profile.
+
+**Root cause**: An EAS iOS build will only mint a fresh provisioning profile (and push the Associated Domains capability to the App ID via Apple's API) when it is run INTERACTIVELY and the operator actually authenticates to the Apple Developer account during the credentials step. Adding an entitlement to `app.json` does NOT, by itself, force a profile regen — the cached profile is reused until credentials are explicitly regenerated under Apple auth. Same commit, same code: the wall was the credential, not the build.
+
+**Files modified**: none (credential-layer fix, not a code change). `app.json` already carried the entitlement at commit fc8f1fd.
+
+**Exact fix applied**: Re-ran `eas build --platform ios --profile production` INTERACTIVELY and completed the Apple Developer login (Team LXL3ZMHHK6, By red llc). EAS then regenerated the provisioning profile — new Developer Portal ID `N3S2J9YNGD`, Status active, "Updated 2 seconds ago" (vs the stale 2026-05-05 profile) — which now carries the Associated Domains capability. Build proceeded and finished clean.
+
+**Verification (live EAS receipts)**:
+- `eas build:view 616a1c6a-f325-4b72-b7d9-783fc79fdc6e --json` → status **FINISHED**, error **None**, appVersion 1.1.0, build number **49**, commit `fc8f1fdffbb5` (the identical commit that errored on 45/46/47).
+- Artifact: `https://expo.dev/artifacts/eas/6i5w6pztC5T_E0R_U19C41RVJz-kUliBlgZobKY0VtQ.ipa` — real .ipa produced.
+- Proof the fix is causal: builds 45/46/47 (`eas build:view 40a3780d --json` = XCODE_BUILD_ERROR on the entitlement) vs build 49 FINISHED — only the regenerated profile changed.
+
+**Lesson learned**: (1) Adding ANY new iOS entitlement/capability to `app.json` (associated-domains, push, app groups, etc.) requires a provisioning-profile REGEN, not just a rebuild — and EAS only regenerates under interactive Apple auth. (2) Read the profile DATE in the error: a stale date means "reused cached profile," not "capability genuinely unavailable." (3) `--non-interactive` cannot fix a credential gap — it has no Apple session to regenerate with. (4) Re-running the same build without changing the credential just burns build minutes failing identically (3 errored builds = the tell).
+
+**Still UNKNOWN (not closed by this fix)**: Universal Links behavior ON DEVICE — does tapping an `authentichadith.app/shared/<token>` link open the app and land on the shared-folder viewer? The entitlement is in the binary (Verified) but the runtime deep-link path is unproven until the build is on a physical iPhone. Blocked by Rule 040 device QA (`docs/QA_BUILD45_MIGRATION.md`), which also requires the AASA file live at the apex (already confirmed 200/json in a prior session).
