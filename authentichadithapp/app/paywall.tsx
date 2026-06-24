@@ -1,0 +1,492 @@
+import React, { useState, useEffect } from 'react'
+import {
+  StyleSheet,
+  View,
+  ScrollView,
+  Text,
+  Pressable,
+  ActivityIndicator,
+  Alert,
+  Linking,
+} from 'react-native'
+import { Stack, useRouter } from 'expo-router'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import Purchases, { PurchasesPackage } from 'react-native-purchases'
+import { useTheme } from '@/lib/theme/ThemeProvider'
+import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
+import { Button } from '@/components/ui/Button'
+import { useRevenueCat } from '@/lib/revenuecat/RevenueCatProvider'
+import { ENTITLEMENT_ID } from '@/lib/revenuecat/config'
+
+// ─── Value Props ──────────────────────────────────────────────────────────────
+const VALUE_PROPS = [
+  {
+    icon: '📚',
+    title: 'Complete Collection',
+    desc: 'All 6 major hadith books — over 30,000 authenticated hadiths',
+  },
+  {
+    icon: '🤖',
+    title: 'AI Hadith Assistant',
+    desc: 'Ask questions, get guidance rooted in verified sources',
+  },
+  {
+    icon: '📈',
+    title: 'Learn & Track',
+    desc: 'Structured courses with progress tracking across topics',
+  },
+]
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function getPlanLabel(packageType: string): string {
+  switch (packageType) {
+    case 'ANNUAL':
+      return 'Annual'
+    case 'MONTHLY':
+      return 'Monthly'
+    case 'LIFETIME':
+      return 'Lifetime'
+    default:
+      return packageType.charAt(0) + packageType.slice(1).toLowerCase()
+  }
+}
+
+function getAnnualPackage(packages: PurchasesPackage[]): PurchasesPackage | null {
+  return packages.find((p) => p.packageType === 'ANNUAL') ?? null
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+export default function PaywallScreen() {
+  const router = useRouter()
+  const { isDark } = useTheme()
+  const colors = getColors(isDark)
+  const { currentOffering, isLoading, restorePurchases } = useRevenueCat()
+
+  const packages = currentOffering?.availablePackages ?? []
+
+  const [selectedPackage, setSelectedPackage] = useState<PurchasesPackage | null>(null)
+  const [purchasing, setPurchasing] = useState(false)
+  const [restoring, setRestoring] = useState(false)
+
+  // Auto-select ANNUAL on mount / when packages load
+  useEffect(() => {
+    if (packages.length > 0 && selectedPackage === null) {
+      const annual = getAnnualPackage(packages)
+      setSelectedPackage(annual ?? packages[0])
+    }
+  }, [packages])
+
+  // ─── Purchase ───────────────────────────────────────────────────────────────
+  const handlePurchase = async () => {
+    if (!selectedPackage) return
+    setPurchasing(true)
+    try {
+      const { customerInfo } = await Purchases.purchasePackage(selectedPackage)
+      if (customerInfo.entitlements.active[ENTITLEMENT_ID]?.isActive) {
+        await AsyncStorage.setItem('subscribed', '1')
+        router.replace('/(tabs)')
+      }
+    } catch (error: any) {
+      if (!error.userCancelled) {
+        Alert.alert('Purchase Failed', error.message || 'Something went wrong. Please try again.')
+      }
+    } finally {
+      setPurchasing(false)
+    }
+  }
+
+  // ─── Restore ────────────────────────────────────────────────────────────────
+  const handleRestore = async () => {
+    setRestoring(true)
+    try {
+      const info = await restorePurchases()
+      if (info?.entitlements.active[ENTITLEMENT_ID]?.isActive) {
+        await AsyncStorage.setItem('subscribed', '1')
+        router.replace('/(tabs)')
+      } else {
+        Alert.alert('No Active Subscription', 'No active subscription found for this Apple ID.')
+      }
+    } catch {
+      Alert.alert('Restore Failed', 'Could not restore purchases. Please try again.')
+    } finally {
+      setRestoring(false)
+    }
+  }
+
+  // ─── Loading state ──────────────────────────────────────────────────────────
+  if (isLoading) {
+    return (
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <ActivityIndicator size="large" color={colors.goldMid} />
+      </View>
+    )
+  }
+
+  // ─── No offerings state ─────────────────────────────────────────────────────
+  if (!currentOffering || packages.length === 0) {
+    return (
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <Text style={[styles.unavailableTitle, { color: colors.bronzeText }]}>
+          Plans Temporarily Unavailable
+        </Text>
+        <Text style={[styles.unavailableDesc, { color: colors.mutedText }]}>
+          Subscription plans could not be loaded. Please try again later.
+        </Text>
+        <Pressable onPress={handleRestore} disabled={restoring} style={styles.restoreButton}>
+          <Text style={[styles.restoreText, { color: colors.goldMid }]}>
+            {restoring ? 'Restoring...' : 'Restore Purchases'}
+          </Text>
+        </Pressable>
+      </View>
+    )
+  }
+
+  // ─── Full paywall UI ─────────────────────────────────────────────────────────
+  return (
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+    >
+      <Stack.Screen options={{ headerShown: false }} />
+
+      {/* ── Header ── */}
+      <View style={styles.headerSection}>
+        <View style={[styles.iconCircle, { backgroundColor: colors.goldMid + '20', borderColor: colors.goldMid + '40' }]}>
+          <Text style={styles.iconEmoji}>📖</Text>
+        </View>
+        <Text style={[styles.title, { color: colors.bronzeText }]}>
+          Unlock Authentic Hadith
+        </Text>
+        <Text style={[styles.subtitle, { color: colors.mutedText }]}>
+          Access the full library of verified hadiths
+        </Text>
+      </View>
+
+      {/* ── Value Props ── */}
+      <View style={[styles.valuePropsContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        {VALUE_PROPS.map((prop, index) => (
+          <View key={prop.title}>
+            <View style={styles.valuePropRow}>
+              <View style={[styles.valuePropIconWrap, { backgroundColor: colors.goldMid + '18' }]}>
+                <Text style={styles.valuePropIcon}>{prop.icon}</Text>
+              </View>
+              <View style={styles.valuePropText}>
+                <Text style={[styles.valuePropTitle, { color: colors.bronzeText }]}>
+                  {prop.title}
+                </Text>
+                <Text style={[styles.valuePropDesc, { color: colors.mutedText }]}>
+                  {prop.desc}
+                </Text>
+              </View>
+            </View>
+            {index < VALUE_PROPS.length - 1 && (
+              <View style={[styles.divider, { backgroundColor: colors.border }]} />
+            )}
+          </View>
+        ))}
+      </View>
+
+      {/* ── Plan Cards ── */}
+      <View style={styles.plansSection}>
+        <Text style={[styles.plansLabel, { color: colors.bronzeText }]}>Choose Your Plan</Text>
+        {packages.map((pkg) => {
+          const isSelected = selectedPackage?.identifier === pkg.identifier
+          const isAnnual = pkg.packageType === 'ANNUAL'
+          return (
+            <Pressable
+              key={pkg.identifier}
+              style={[
+                styles.planCard,
+                { backgroundColor: colors.card, borderColor: colors.border },
+                isSelected && {
+                  borderColor: colors.goldMid,
+                  backgroundColor: colors.goldMid + '10',
+                },
+              ]}
+              onPress={() => setSelectedPackage(pkg)}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: isSelected }}
+            >
+              {/* Best Value badge */}
+              {isAnnual && (
+                <View style={[styles.badge, { backgroundColor: colors.emeraldMid }]}>
+                  <Text style={[styles.badgeText, { color: colors.white }]}>Best Value</Text>
+                </View>
+              )}
+
+              <View style={styles.planCardInner}>
+                {/* Selection indicator */}
+                <View
+                  style={[
+                    styles.radioCircle,
+                    { borderColor: isSelected ? colors.goldMid : colors.border },
+                    isSelected && { backgroundColor: colors.goldMid },
+                  ]}
+                >
+                  {isSelected && <View style={[styles.radioInner, { backgroundColor: colors.white }]} />}
+                </View>
+
+                {/* Plan info */}
+                <View style={styles.planInfo}>
+                  <Text style={[styles.planName, { color: colors.bronzeText }]}>
+                    {getPlanLabel(pkg.packageType)}
+                  </Text>
+                  {pkg.product.description ? (
+                    <Text style={[styles.planDescription, { color: colors.mutedText }]} numberOfLines={1}>
+                      {pkg.product.description}
+                    </Text>
+                  ) : null}
+                </View>
+
+                {/* Price */}
+                <Text style={[styles.planPrice, { color: isSelected ? colors.goldShadow : colors.bronzeText }]}>
+                  {pkg.product.priceString}
+                </Text>
+              </View>
+            </Pressable>
+          )
+        })}
+      </View>
+
+      {/* ── CTA Button ── */}
+      <View style={styles.ctaSection}>
+        <Button
+          title={purchasing ? 'Processing...' : 'Start My Plan'}
+          variant="primary"
+          size="large"
+          onPress={handlePurchase}
+          disabled={!selectedPackage || purchasing}
+          isLoading={purchasing}
+        />
+
+        {/* ── Restore Link ── */}
+        <Pressable
+          onPress={handleRestore}
+          disabled={restoring}
+          style={styles.restoreButton}
+          accessibilityRole="button"
+        >
+          <Text style={[styles.restoreText, { color: colors.goldMid }]}>
+            {restoring ? 'Restoring...' : 'Restore Purchases'}
+          </Text>
+        </Pressable>
+
+        {/* ── Legal ── */}
+        <View style={styles.legalRow}>
+          <Text
+            style={[styles.legalLink, { color: colors.mutedText }]}
+            onPress={() => Linking.openURL('https://byredllc.com/terms')}
+          >
+            Terms of Service
+          </Text>
+          <Text style={[styles.legalDot, { color: colors.mutedText }]}> · </Text>
+          <Text
+            style={[styles.legalLink, { color: colors.mutedText }]}
+            onPress={() => Linking.openURL('https://byredllc.com/privacy')}
+          >
+            Privacy Policy
+          </Text>
+        </View>
+      </View>
+    </ScrollView>
+  )
+}
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
+const styles = StyleSheet.create({
+  // Layout
+  container: {
+    flex: 1,
+  },
+  content: {
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.xxl,
+    paddingBottom: SPACING.xxl,
+  },
+  centered: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: SPACING.xl,
+  },
+
+  // Header
+  headerSection: {
+    alignItems: 'center',
+    marginBottom: SPACING.xl,
+  },
+  iconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.md,
+  },
+  iconEmoji: {
+    fontSize: 36,
+  },
+  title: {
+    fontSize: FONT_SIZES.xxxl,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: SPACING.sm,
+    letterSpacing: -0.3,
+  },
+  subtitle: {
+    fontSize: FONT_SIZES.base,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+
+  // Value props card
+  valuePropsContainer: {
+    borderRadius: BORDER_RADIUS.card,
+    borderWidth: 1,
+    marginBottom: SPACING.xl,
+    overflow: 'hidden',
+  },
+  valuePropRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.md,
+  },
+  valuePropIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: BORDER_RADIUS.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  valuePropIcon: {
+    fontSize: 22,
+  },
+  valuePropText: {
+    flex: 1,
+  },
+  valuePropTitle: {
+    fontSize: FONT_SIZES.base,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  valuePropDesc: {
+    fontSize: FONT_SIZES.sm,
+    lineHeight: 18,
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: SPACING.md + 44 + SPACING.md,
+  },
+
+  // Plans
+  plansSection: {
+    marginBottom: SPACING.xl,
+  },
+  plansLabel: {
+    fontSize: FONT_SIZES.md,
+    fontWeight: '700',
+    marginBottom: SPACING.md,
+    letterSpacing: -0.1,
+  },
+  planCard: {
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 2,
+    marginBottom: SPACING.sm,
+    overflow: 'hidden',
+  },
+  planCardInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.md,
+    gap: SPACING.md,
+  },
+  badge: {
+    alignSelf: 'flex-end',
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 3,
+    borderBottomLeftRadius: BORDER_RADIUS.sm,
+  },
+  badgeText: {
+    fontSize: FONT_SIZES.xs,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  radioCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioInner: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  planInfo: {
+    flex: 1,
+  },
+  planName: {
+    fontSize: FONT_SIZES.md,
+    fontWeight: '600',
+  },
+  planDescription: {
+    fontSize: FONT_SIZES.sm,
+    marginTop: 2,
+  },
+  planPrice: {
+    fontSize: FONT_SIZES.lg,
+    fontWeight: '700',
+  },
+
+  // CTA section
+  ctaSection: {
+    alignItems: 'center',
+    gap: SPACING.md,
+  },
+  restoreButton: {
+    paddingVertical: SPACING.xs,
+  },
+  restoreText: {
+    fontSize: FONT_SIZES.base,
+    fontWeight: '500',
+    textDecorationLine: 'underline',
+  },
+  legalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    marginTop: SPACING.xs,
+  },
+  legalLink: {
+    fontSize: FONT_SIZES.xs,
+    textDecorationLine: 'underline',
+  },
+  legalDot: {
+    fontSize: FONT_SIZES.xs,
+  },
+
+  // Unavailable state
+  unavailableTitle: {
+    fontSize: FONT_SIZES.xl,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: SPACING.sm,
+  },
+  unavailableDesc: {
+    fontSize: FONT_SIZES.base,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: SPACING.lg,
+  },
+})
