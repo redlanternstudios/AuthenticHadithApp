@@ -1,11 +1,11 @@
 import React from 'react';
 import { StyleSheet, View, FlatList, Text, Pressable } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase/client';
 import { Card } from '@/components/ui/Card';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { TopBar } from '@/components/layout/TopBar';
 import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors';
 import { FONT_FAMILY } from '@/constants/theme';
 import { useTheme } from '@/lib/theme/ThemeProvider';
@@ -17,7 +17,6 @@ export default function CollectionsScreen() {
   const router = useRouter();
   const { isDark } = useTheme();
   const colors = getColors(isDark);
-  const insets = useSafeAreaInsets();
 
   const { data: collections, isLoading, isError, refetch } = useQuery({
     queryKey: ['collections'],
@@ -38,13 +37,13 @@ export default function CollectionsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* A#6: TopBar — web parity top navigation */}
+      <TopBar title="Collections" />
       {isError && <QueryErrorBanner onRetry={refetch} />}
-      {/* insets.top keeps the title clear of the status bar / Dynamic Island —
-          this tab screen has no native header to do it for us. */}
-      <View style={[styles.header, { paddingTop: insets.top + SPACING.md }]}>
-        <Text style={[styles.title, { color: colors.bronzeText }]}>{'\u{1F4DA}'} Hadith Collections</Text>
+      {/* Subtitle shown below the TopBar */}
+      <View style={styles.header}>
         <Text style={[styles.subtitle, { color: colors.mutedText }]}>
-          Browse hadiths from {VISIBLE_COLLECTION_COUNT} major authentic collections
+          {VISIBLE_COLLECTION_COUNT} major authentic collections
         </Text>
       </View>
 
@@ -77,18 +76,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    padding: SPACING.md,
-    paddingTop: SPACING.xl,
-  },
-  title: {
-    fontFamily: FONT_FAMILY.heading,
-    fontSize: FONT_SIZES.xxxl,
-    fontWeight: '700',
-    marginBottom: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    paddingTop: SPACING.sm,
+    paddingBottom: SPACING.xs,
   },
   subtitle: {
     fontFamily: FONT_FAMILY.body,
-    fontSize: FONT_SIZES.base,
+    fontSize: FONT_SIZES.sm,
+    color: '#6b5d4d',
   },
   grid: {
     padding: SPACING.sm,

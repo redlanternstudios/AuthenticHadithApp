@@ -3,6 +3,7 @@ import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from '@/lib/theme/ThemeProvider'
+import { TopBar } from '@/components/layout/TopBar'
 import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
 
 type MoreItem = {
@@ -66,23 +67,20 @@ export default function MoreScreen() {
   const insets = useSafeAreaInsets()
 
   return (
+    <View style={[styles.screenWrapper, { backgroundColor: colors.background }]}>
+      {/* A#6: TopBar — web parity top navigation */}
+      <TopBar title="More" />
     <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
+      style={styles.container}
       contentContainerStyle={[
         styles.content,
         {
-          paddingTop: insets.top + SPACING.md,
+          paddingTop: SPACING.md,
           paddingBottom: insets.bottom + SPACING.xxl,
         },
       ]}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.bronzeText }]}>More</Text>
-        <Text style={[styles.subtitle, { color: colors.mutedText }]}>
-          Everything else in Authentic Hadith
-        </Text>
-      </View>
 
       {SECTIONS.map(section => (
         <View key={section.title} style={styles.section}>
@@ -119,28 +117,19 @@ export default function MoreScreen() {
         </View>
       ))}
     </ScrollView>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
+  screenWrapper: {
+    flex: 1,
+  },
   container: {
     flex: 1,
   },
   content: {
     paddingHorizontal: 20,
-  },
-  header: {
-    marginBottom: SPACING.lg,
-  },
-  title: {
-    fontSize: 30,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: FONT_SIZES.sm,
-    lineHeight: 18,
   },
   section: {
     marginBottom: SPACING.lg,

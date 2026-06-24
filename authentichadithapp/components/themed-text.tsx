@@ -6,14 +6,14 @@ export type ThemedTextProps = TextProps & {
   lightColor?: string;
   darkColor?: string;
   /**
-   * default      — Geist 400, 16pt body
-   * defaultSemiBold — Geist 600, 16pt body strong
-   * title        — Cinzel 700, 32pt display (hero headings)
-   * heading      — Cinzel 700, 24pt section heading
-   * headingMd    — Cinzel 600, 20pt sub-heading
-   * subtitle     — Geist 500, 20pt body subtitle
-   * label        — Geist 600, 12pt uppercase label / eyebrow
-   * link         — Geist 400, 16pt link
+   * default         — Cinzel 400, 16pt body (web parity: globals.css:105 Cinzel everywhere)
+   * defaultSemiBold — Cinzel 600, 16pt body strong
+   * title           — Cinzel 700, 32pt display (hero headings)
+   * heading         — Cinzel 700, 24pt section heading
+   * headingMd       — Cinzel 600, 20pt sub-heading
+   * subtitle        — Cinzel 500, 20pt body subtitle
+   * label           — Cinzel 600, 12pt uppercase label / eyebrow
+   * link            — Cinzel 400, 16pt link
    */
   type?: 'default' | 'defaultSemiBold' | 'title' | 'heading' | 'headingMd' | 'subtitle' | 'label' | 'link';
 };

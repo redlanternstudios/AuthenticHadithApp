@@ -17,6 +17,11 @@
  *
  * This module is consumed via hooks in `hooks/useProgress.ts`. Screens
  * should never read AsyncStorage or query progress tables directly.
+ *
+ * Extended (Section B#2): per-part progress for stories.
+ * StoryPartProgress tracks current_part + parts_completed[] per sahabi/prophet.
+ * Local-first; best-effort upsert to sahaba_reading_progress /
+ * prophet_reading_progress on advance.
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage'
@@ -69,7 +74,224 @@ interface ProgressStoreV1 {
   lastUpdated: string
 }
 
-// ─── Storage ───────────────────────────────────────────────────────
+// ─── Per-part story progress (B#2) ─────────────────────────────────
+
+/**
+ * Per-part reading progress for a single story (companion or prophet).
+ * Stored separately from the boolean completion records so we never
+ * break the existing completion flow.
+ */
+export interface StoryPartProgress {
+  /** 'sahaba' | 'prophet' — matches the Supabase FK column prefix */
+  entityKind: 'sahaba' | 'prophet'
+  /** Supabase UUID of the sahabi / prophet row (for Supabase sync) */
+  entityId: string
+  /** Which part the user is currently reading (1-based) */
+  currentPart: number
+  /** Array of part numbers the user has visited / advanced past */
+  partsCompleted: number[]
+  /** Whether the whole story is fully done */
+  isCompleted: boolean
+  /** Whether bookmarked */
+  isBookmarked: boolean
+  /** Total seconds spent reading (accumulated on each advance) */
+  totalTimeSpentSeconds: number
+  /** ISO timestamp of last read */
+  lastReadAt: string
+}
+
+const PART_PROGRESS_KEY = '@authentic_hadith/story_part_progress/v1'
+
+// In-memory cache for part progress: keyed by `${entityKind}::${entityId}`
+let partProgressCache: Record<string, StoryPartProgress> | null = null
+
+function partKey(entityKind: 'sahaba' | 'prophet', entityId: string) {
+  return `${entityKind}::${entityId}`
+}
+
+async function loadPartProgress(): Promise<Record<string, StoryPartProgress>> {
+  if (partProgressCache) return partProgressCache
+  try {
+    const raw = await AsyncStorage.getItem(PART_PROGRESS_KEY)
+    if (!raw) {
+      partProgressCache = {}
+      return partProgressCache
+    }
+    const parsed = JSON.parse(raw)
+    partProgressCache =
+      parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+        ? (parsed as Record<string, StoryPartProgress>)
+        : {}
+    return partProgressCache
+  } catch {
+    partProgressCache = {}
+    return partProgressCache
+  }
+}
+
+async function persistPartProgress(
+  store: Record<string, StoryPartProgress>
+): Promise<void> {
+  try {
+    await AsyncStorage.setItem(PART_PROGRESS_KEY, JSON.stringify(store))
+  } catch (err) {
+    __DEV__ && console.warn('[progressService] persistPartProgress failed:', err)
+  }
+}
+
+/**
+ * Read per-part progress for a story. Returns null if none recorded yet.
+ */
+export async function getStoryPartProgress(
+  entityKind: 'sahaba' | 'prophet',
+  entityId: string
+): Promise<StoryPartProgress | null> {
+  const store = await loadPartProgress()
+  return store[partKey(entityKind, entityId)] ?? null
+}
+
+/**
+ * Advance to a new part (or update bookmarking/completion). Persists locally
+ * and fires a best-effort Supabase upsert in the background.
+ *
+ * @param entityKind  'sahaba' | 'prophet'
+ * @param entityId    Supabase UUID of the row
+ * @param totalParts  Total part count — used to set is_completed
+ * @param nextPart    The part number being navigated TO
+ * @param completedPart  The part number just READ (may differ from nextPart on init)
+ * @param isBookmarked  Current bookmark state
+ */
+export async function advanceStoryPart(opts: {
+  entityKind: 'sahaba' | 'prophet'
+  entityId: string
+  totalParts: number
+  nextPart: number
+  completedPart?: number
+  isBookmarked?: boolean
+}): Promise<StoryPartProgress> {
+  const {
+    entityKind,
+    entityId,
+    totalParts,
+    nextPart,
+    completedPart,
+    isBookmarked = false,
+  } = opts
+  const store = await loadPartProgress()
+  const key = partKey(entityKind, entityId)
+  const existing: StoryPartProgress = store[key] ?? {
+    entityKind,
+    entityId,
+    currentPart: 1,
+    partsCompleted: [],
+    isCompleted: false,
+    isBookmarked: false,
+    totalTimeSpentSeconds: 0,
+    lastReadAt: new Date().toISOString(),
+  }
+
+  const partsCompleted = [...existing.partsCompleted]
+  if (completedPart !== undefined && !partsCompleted.includes(completedPart)) {
+    partsCompleted.push(completedPart)
+  }
+
+  const updated: StoryPartProgress = {
+    ...existing,
+    currentPart: nextPart,
+    partsCompleted,
+    isCompleted: partsCompleted.length >= totalParts,
+    isBookmarked,
+    lastReadAt: new Date().toISOString(),
+  }
+
+  store[key] = updated
+  partProgressCache = store
+  await persistPartProgress(store)
+  notify()
+
+  // Best-effort Supabase sync — does not block caller
+  void syncPartProgressToSupabase(updated)
+
+  return updated
+}
+
+/**
+ * Toggle the bookmark for a story without changing the current part.
+ */
+export async function toggleStoryBookmark(
+  entityKind: 'sahaba' | 'prophet',
+  entityId: string
+): Promise<boolean> {
+  const store = await loadPartProgress()
+  const key = partKey(entityKind, entityId)
+  const existing = store[key]
+  const newVal = existing ? !existing.isBookmarked : true
+
+  if (existing) {
+    store[key] = { ...existing, isBookmarked: newVal }
+  } else {
+    store[key] = {
+      entityKind,
+      entityId,
+      currentPart: 1,
+      partsCompleted: [],
+      isCompleted: false,
+      isBookmarked: newVal,
+      totalTimeSpentSeconds: 0,
+      lastReadAt: new Date().toISOString(),
+    }
+  }
+  partProgressCache = store
+  await persistPartProgress(store)
+  notify()
+
+  void syncPartProgressToSupabase(store[key])
+  return newVal
+}
+
+async function syncPartProgressToSupabase(progress: StoryPartProgress): Promise<void> {
+  try {
+    const { supabase } = await import('@/lib/supabase/client')
+    const { data: sessionData } = await supabase.auth.getSession()
+    const userId = sessionData?.session?.user?.id
+    if (!userId) return
+
+    const table =
+      progress.entityKind === 'sahaba'
+        ? 'sahaba_reading_progress'
+        : 'prophet_reading_progress'
+    const fkColumn =
+      progress.entityKind === 'sahaba' ? 'sahabi_id' : 'prophet_id'
+    const conflictCol =
+      progress.entityKind === 'sahaba'
+        ? 'user_id,sahabi_id'
+        : 'user_id,prophet_id'
+
+    await supabase
+      .from(table)
+      .upsert(
+        {
+          user_id: userId,
+          [fkColumn]: progress.entityId,
+          current_part: progress.currentPart,
+          parts_completed: progress.partsCompleted,
+          is_completed: progress.isCompleted,
+          is_bookmarked: progress.isBookmarked,
+          total_time_spent_seconds: progress.totalTimeSpentSeconds,
+          last_read_at: progress.lastReadAt,
+        },
+        { onConflict: conflictCol }
+      )
+  } catch (err) {
+    __DEV__ &&
+      console.warn(
+        '[progressService] syncPartProgressToSupabase failed (non-fatal):',
+        err instanceof Error ? err.message : String(err)
+      )
+  }
+}
+
+// ─── Storage (existing) ────────────────────────────────────────────
 
 const STORAGE_KEY = '@authentic_hadith/progress/v1'
 
