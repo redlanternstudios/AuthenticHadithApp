@@ -18,6 +18,7 @@ import {
   FONT_SIZES,
   BORDER_RADIUS,
 } from '@/lib/styles/colors';
+import { FONT_FAMILY } from '@/constants/theme';
 import { useTheme } from '@/lib/theme/ThemeProvider';
 import { Hadith } from '@/types/hadith';
 import { useRouter } from 'expo-router';
@@ -246,6 +247,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.sm,
   },
   title: {
+    fontFamily: FONT_FAMILY.heading,
     fontSize: FONT_SIZES.xxxl,
     fontWeight: '700',
   },
@@ -261,6 +263,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   subtitle: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.base,
     marginBottom: SPACING.md,
   },
@@ -281,6 +284,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   chipText: {
+    fontFamily: FONT_FAMILY.bodySemiBold,
     fontSize: FONT_SIZES.sm,
     fontWeight: '600',
   },

@@ -22,11 +22,11 @@ export const LIGHT_COLORS = {
   daif: '#b91c1c',
 
   // UI colors
-  background: '#f5f3ef',
+  background: '#f8f6f2',
   card: '#fffefb',
   cardElevated: '#ffffff',
-  border: '#e4dfd7',
-  borderSubtle: '#ede9e3',
+  border: '#d4cfc7',
+  borderSubtle: '#ebe7e0',
   white: '#ffffff',
   black: '#000000',
 
@@ -41,12 +41,12 @@ export const LIGHT_COLORS = {
   destructiveText: '#ffffff',
 
   // Chat colors
-  chatUserBubble: '#D4A574',
-  chatAiBubble: '#50C878',
+  chatUserBubble: '#c5a059',
+  chatAiBubble: '#1b5e43',
 
   // Tab bar
   tabBar: '#fffefb',
-  tabBarBorder: '#e4dfd7',
+  tabBarBorder: '#d4cfc7',
   tabBarInactive: '#a39d94',
 } as const
 

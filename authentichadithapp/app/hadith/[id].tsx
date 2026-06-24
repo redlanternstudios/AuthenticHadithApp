@@ -15,6 +15,7 @@ import { useHadith } from '@/hooks/use-hadith'
 import { useAuth } from '@/lib/auth/AuthProvider'
 import { useTheme } from '@/lib/theme/ThemeProvider'
 import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS, SHADOWS, LAYOUT } from '@/lib/styles/colors'
+import { FONT_FAMILY } from '@/constants/theme'
 import { useDeviceLayout } from '@/lib/hooks/use-device-layout'
 import { shareHadith } from '@/components/share/ShareSheet'
 import { SaveHadithModal } from '@/components/my-hadith/SaveHadithModal'
@@ -630,6 +631,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   collectionName: {
+    fontFamily: FONT_FAMILY.headingMedium,
     fontSize: FONT_SIZES.lg,
     fontWeight: '700',
     letterSpacing: -0.2,
@@ -651,11 +653,13 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.full,
   },
   gradeText: {
+    fontFamily: FONT_FAMILY.bodySemiBold,
     fontSize: FONT_SIZES.sm,
     fontWeight: '700',
     letterSpacing: 0.3,
   },
   narrator: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.sm,
     fontStyle: 'italic',
     flex: 1,
@@ -666,6 +670,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   sectionLabel: {
+    fontFamily: FONT_FAMILY.bodySemiBold,
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 1.2,
@@ -679,6 +684,7 @@ const styles = StyleSheet.create({
     writingDirection: 'rtl',
   },
   englishText: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.md,
     lineHeight: 28,
   },
@@ -695,6 +701,7 @@ const styles = StyleSheet.create({
     minHeight: LAYOUT.touchTarget,
   },
   summarizeBtnText: {
+    fontFamily: FONT_FAMILY.bodySemiBold,
     fontSize: FONT_SIZES.base,
     fontWeight: '600',
   },
@@ -777,6 +784,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.lg,
   },
   keyTeachingTitle: {
+    fontFamily: FONT_FAMILY.bodySemiBold,
     fontSize: FONT_SIZES.sm,
     fontWeight: '700',
     letterSpacing: 0.5,
@@ -805,6 +813,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   referenceValue: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.sm,
     fontWeight: '600',
     flexShrink: 1,

@@ -8,6 +8,18 @@ import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
 
+import {
+  Cinzel_400Regular,
+  Cinzel_500Medium,
+  Cinzel_600SemiBold,
+  Cinzel_700Bold,
+} from '@expo-google-fonts/cinzel';
+import {
+  Geist_400Regular,
+  Geist_500Medium,
+  Geist_600SemiBold,
+} from '@expo-google-fonts/geist';
+
 import { ReactQueryProvider } from '@/lib/providers/react-query-provider';
 import { AuthProvider, useAuth } from '@/lib/auth/AuthProvider';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
@@ -74,6 +86,13 @@ function AppContent() {
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     Ionicons: require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Ionicons.ttf'),
+    Cinzel_400Regular,
+    Cinzel_500Medium,
+    Cinzel_600SemiBold,
+    Cinzel_700Bold,
+    Geist_400Regular,
+    Geist_500Medium,
+    Geist_600SemiBold,
   });
   const [authReady, setAuthReady] = useState(false)
   const handleAuthReady = useCallback(() => setAuthReady(true), [])

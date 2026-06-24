@@ -3,6 +3,7 @@ import { StyleSheet, View, Text, ScrollView, TextInput, TouchableOpacity, Activi
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors';
+import { FONT_FAMILY } from '@/constants/theme';
 import { useTheme } from '@/lib/theme/ThemeProvider';
 import { usePremiumStatus } from '@/hooks/usePremiumStatus';
 import { ChatMessage, sendChatMessage, AI_REQUEST_FAILED } from '@/lib/api/groq';
@@ -71,7 +72,7 @@ function AssistantScreenInner() {
   // Markdown typography for AI bubbles — white text on chatAiBubble, gold accents
   // for headers per the premium theme. Built from getColors per Rule 017.
   const markdownStyles = {
-    body: { color: colors.white, fontSize: FONT_SIZES.base, lineHeight: 20 },
+    body: { fontFamily: FONT_FAMILY.body, color: colors.white, fontSize: FONT_SIZES.base, lineHeight: 20 },
     paragraph: { marginTop: 0, marginBottom: SPACING.sm },
     heading1: { color: colors.goldHighlight, fontSize: FONT_SIZES.xl, fontWeight: '700' as const, marginBottom: SPACING.xs },
     heading2: { color: colors.goldHighlight, fontSize: FONT_SIZES.lg, fontWeight: '700' as const, marginBottom: SPACING.xs },
@@ -305,11 +306,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   title: {
+    fontFamily: FONT_FAMILY.heading,
     fontSize: FONT_SIZES.xxxl,
     fontWeight: '700',
     marginBottom: SPACING.sm,
   },
   subtitle: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.base,
   },
   messagesContainer: {
@@ -330,11 +333,13 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.lg,
   },
   emptyText: {
+    fontFamily: FONT_FAMILY.heading,
     fontSize: FONT_SIZES.lg,
     fontWeight: '600',
     marginBottom: SPACING.sm,
   },
   emptySubtext: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.base,
     textAlign: 'center',
     paddingHorizontal: SPACING.xl,
@@ -366,10 +371,12 @@ const styles = StyleSheet.create({
     marginRight: SPACING.xs,
   },
   messageRole: {
+    fontFamily: FONT_FAMILY.bodySemiBold,
     fontSize: FONT_SIZES.xs,
     fontWeight: '600',
   },
   messageContent: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.base,
     lineHeight: 20,
   },
@@ -447,10 +454,12 @@ const styles = StyleSheet.create({
     fontSize: 22,
   },
   suggestedText: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.sm,
     lineHeight: 18,
   },
   disclaimer: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.sm,
     fontStyle: 'italic',
     textAlign: 'center',
