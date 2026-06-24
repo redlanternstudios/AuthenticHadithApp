@@ -59,12 +59,12 @@ function NavigationGate() {
   const segments = useSegments()
   const [onboarded, setOnboarded] = useState<boolean | null>(null)
 
-  // Read onboarding flag from AsyncStorage once on mount
+  // Read onboarding flag from AsyncStorage on mount and on every route change
   useEffect(() => {
     AsyncStorage.getItem('onboarded').then((value) => {
       setOnboarded(value === 'true')
     })
-  }, [])
+  }, [segments])
 
   useEffect(() => {
     // Wait until auth, RevenueCat, and AsyncStorage have all resolved

@@ -78,7 +78,7 @@ export default function OnboardingScreen() {
 
   const handleComplete = async () => {
     if (!user) {
-      await AsyncStorage.setItem('onboarded', '1')
+      await AsyncStorage.setItem('onboarded', 'true')
       router.replace('/paywall')
       return
     }
@@ -106,7 +106,7 @@ export default function OnboardingScreen() {
           safety_agreed_at: new Date().toISOString(),
         })
 
-      await AsyncStorage.setItem('onboarded', '1')
+      await AsyncStorage.setItem('onboarded', 'true')
       router.replace('/paywall')
     } catch {
       Alert.alert('Error', 'Something went wrong. Please try again.')
