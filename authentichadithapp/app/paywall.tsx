@@ -55,6 +55,19 @@ function getAnnualPackage(packages: PurchasesPackage[]): PurchasesPackage | null
   return packages.find((p) => p.packageType === 'ANNUAL') ?? null
 }
 
+function getPlanDescription(packageType: string): string {
+  switch (packageType) {
+    case 'MONTHLY':
+      return 'Full library access, AI assistant, and structured learning. Billed monthly — cancel anytime.'
+    case 'ANNUAL':
+      return 'Complete access for the full year. All features, all content, all updates included.'
+    case 'LIFETIME':
+      return 'One-time purchase. Unlimited access to the complete collection, forever — no recurring fees.'
+    default:
+      return 'Full access to Authentic Hadith and all features.'
+  }
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function PaywallScreen() {
   const router = useRouter()
@@ -218,32 +231,29 @@ export default function PaywallScreen() {
               )}
 
               <View style={styles.planCardInner}>
-                {/* Selection indicator */}
-                <View
-                  style={[
-                    styles.radioCircle,
-                    { borderColor: isSelected ? colors.goldMid : colors.border },
-                    isSelected && { backgroundColor: colors.goldMid },
-                  ]}
-                >
-                  {isSelected && <View style={[styles.radioInner, { backgroundColor: colors.white }]} />}
-                </View>
-
-                {/* Plan info */}
-                <View style={styles.planInfo}>
-                  <Text style={[styles.planName, { color: colors.bronzeText }]}>
-                    {getPlanLabel(pkg.packageType)}
-                  </Text>
-                  {pkg.product.description ? (
-                    <Text style={[styles.planDescription, { color: colors.mutedText }]} numberOfLines={1}>
-                      {pkg.product.description}
+                {/* Top row: radio + label + price */}
+                <View style={styles.planCardRow}>
+                  <View style={styles.planCardLeft}>
+                    <View
+                      style={[
+                        styles.radioCircle,
+                        { borderColor: isSelected ? colors.goldMid : colors.border },
+                        isSelected && { backgroundColor: colors.goldMid },
+                      ]}
+                    >
+                      {isSelected && <View style={[styles.radioInner, { backgroundColor: colors.white }]} />}
+                    </View>
+                    <Text style={[styles.planName, { color: isSelected ? colors.goldMid : colors.bronzeText }]}>
+                      {getPlanLabel(pkg.packageType)}
                     </Text>
-                  ) : null}
+                  </View>
+                  <Text style={[styles.planPrice, { color: isSelected ? colors.goldMid : colors.bronzeText }]}>
+                    {pkg.product.priceString}
+                  </Text>
                 </View>
-
-                {/* Price */}
-                <Text style={[styles.planPrice, { color: isSelected ? colors.goldShadow : colors.bronzeText }]}>
-                  {pkg.product.priceString}
+                {/* Description — full text, no truncation */}
+                <Text style={[styles.planDescription, { color: colors.mutedText }]}>
+                  {getPlanDescription(pkg.packageType)}
                 </Text>
               </View>
             </Pressable>
@@ -401,11 +411,21 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   planCardInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'column',
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.md,
-    gap: SPACING.md,
+  },
+  planCardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: SPACING.xs,
+  },
+  planCardLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    flex: 1,
   },
   badge: {
     alignSelf: 'flex-end',
@@ -441,7 +461,9 @@ const styles = StyleSheet.create({
   },
   planDescription: {
     fontSize: FONT_SIZES.sm,
-    marginTop: 2,
+    lineHeight: 20,
+    marginTop: SPACING.xs,
+    paddingLeft: 30,
   },
   planPrice: {
     fontSize: FONT_SIZES.lg,
