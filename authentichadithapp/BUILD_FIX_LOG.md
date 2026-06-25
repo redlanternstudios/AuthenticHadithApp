@@ -4097,3 +4097,89 @@ Auth header: `expo-session: <sessionSecret from ~/.expo/state.json auth.sessionS
 `IosAppBuildCredentials.provisioningProfile { id developerPortalIdentifier }` to find the EAS internal
 ID, then run `mutation { appleProvisioningProfile { deleteAppleProvisioningProfile(id: "...") { id } } }`.
 EAS auto-creates a fresh profile on the next build trigger.
+
+---
+
+### [FIX-114] — Apple Developer Portal App ID missing Push Notifications capability
+**Date**: 2026-06-25 PT · Cowork session
+**Pattern category**: EAS_BUILD / PROVISIONING_PROFILE / PUSH_NOTIFICATIONS / APPLE_DEV_PORTAL
+**EAS Build**: Build 73 — ID `d426dcf3-cca7-4e6d-8507-783b0767d495` (IN_QUEUE)
+**Build failed**: Build 72 (`d6b46069`) — errored with same class of error as Builds 70+71
+
+**Error Message (Build 72)**:
+```
+Provisioning profile "*[expo] com.byred.authentichadith AppStore 2026-06-25T23:10:19.243Z"
+doesn't support the Push Notifications capability.
+```
+
+**Root Cause**:
+Build 72 used a **brand-new** provisioning profile `ZX7SXD9ZUL` (created 0 seconds before the build,
+not a stale cached profile). Yet it still failed with the same Push Notifications error. This proved
+the issue was NOT a stale EAS cache — it was the Apple Developer Portal App ID itself.
+
+The App ID `com.byred.authentichadith` at developer.apple.com had Push Notifications capability
+**DISABLED**. EAS Managed Credentials creates provisioning profiles that mirror the capabilities
+enabled on the Apple App ID. If Push Notifications is not enabled on the App ID, no profile EAS
+creates will ever include it — regardless of what is in `app.json` or `expo.ios.entitlements`.
+
+Three failed builds, three different profiles, same error → App ID is the common denominator.
+
+**Fix Applied**:
+1. Navigated to developer.apple.com → Certificates, Identifiers & Profiles → Identifiers
+2. Clicked **Authentic Hadith** (`com.byred.authentichadith`)
+3. Searched capabilities for "Push Notifications" → found it UNCHECKED
+4. Checked the Push Notifications checkbox
+5. Clicked Save → confirmed "Modify App Capabilities" dialog → Confirmed
+6. Apple confirmed: capability enabled, all existing provisioning profiles for this App ID invalidated
+
+7. Deleted stale EAS profile `ZX7SXD9ZUL` (EAS ID `f86a1c36-db14-4bd0-8e32-ad84fb7eb460`) via
+   GraphQL (same pattern as FIX-113):
+   ```graphql
+   mutation { appleProvisioningProfile {
+     deleteAppleProvisioningProfile(id: "f86a1c36-db14-4bd0-8e32-ad84fb7eb460") { id }
+   }}
+   # Result: { "id": "f86a1c36-db14-4bd0-8e32-ad84fb7eb460" } ✓
+   ```
+
+8. Triggered Build 73:
+   ```bash
+   cd /Users/kp/Projects/AuthenticHadithApp/authentichadithapp
+   npx eas-cli build --platform ios --profile production --non-interactive
+   # Build 73 ID: d426dcf3-cca7-4e6d-8507-783b0767d495  Status: IN_QUEUE
+   # New provisioning profile: NL525N2NTR (created 1 minute after Push Notifications enabled)
+   ```
+
+EAS credential output for Build 73:
+```
+Provisioning Profile
+Developer Portal ID   NL525N2NTR
+Status                active
+Expiration            Wed, 05 May 2027 00:41:15 PDT
+Apple Team            LXL3ZMHHK6 (By red llc)
+Updated               1 minute ago
+```
+
+**Files Changed**: None — credential management + Apple Developer Portal fix only.
+
+**Verification**:
+- Apple Developer Portal: Push Notifications capability enabled on `com.byred.authentichadith` ✓
+- Confirmation dialog dismissed: "existing provisioning profiles invalidated" ✓
+- Old EAS profile `f86a1c36` deleted via GraphQL ✓
+- New EAS profile `NL525N2NTR` created by EAS during Build 73 credential setup (1 minute after capability enabled) ✓
+- Build 73 status: IN_QUEUE at `2026-06-25T23:44:48Z` ✓
+
+**KP manual actions still pending (from FIX-112)**:
+1. Supabase Dashboard → SQL Editor → project `nqklipakrfuwebkdnhwg`:
+   ```sql
+   ALTER TABLE profiles ADD COLUMN IF NOT EXISTS expo_push_token TEXT DEFAULT NULL;
+   CREATE INDEX IF NOT EXISTS idx_profiles_expo_push_token ON profiles(expo_push_token) WHERE expo_push_token IS NOT NULL;
+   ```
+2. Supabase Dashboard → Edge Functions → Secrets:
+   `ANNOUNCEMENT_SECRET = 49D3DBEB-65D5-43C0-98B4-3260A4118275`
+
+**Lesson**: If EAS creates a **fresh** provisioning profile and it STILL lacks a capability, the problem
+is upstream of EAS — the Apple Developer Portal App ID does not have that capability enabled. EAS
+cannot enable App ID capabilities; it only reflects what the App ID already has. Fix: go to
+developer.apple.com → Identifiers → [your bundle ID] → enable the capability → Save. Then delete the
+EAS profile (via GraphQL) so the next build creates a fresh profile that inherits the new capability.
+Two-layer fix: Apple Dev Portal first, EAS profile cache second.
