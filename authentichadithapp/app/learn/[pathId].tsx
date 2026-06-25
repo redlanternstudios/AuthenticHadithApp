@@ -92,12 +92,35 @@ export default function LearningPathDetailScreen() {
     );
   }
 
+  // H-2: Not-found guard — fires when pathId is missing OR when the query resolves
+  // to null (invalid pathId, DB error that returned null, or no sections found).
+  if (!data || !data.sections || data.sections.length === 0) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <Stack.Screen options={{ title: 'Not Found' }} />
+        <View style={styles.notFound}>
+          <Text style={[styles.notFoundText, { color: colors.mutedText }]}>
+            Learning path not found.
+          </Text>
+          <Pressable
+            onPress={() => router.back()}
+            accessibilityLabel="Go back to learning paths"
+            accessibilityRole="button"
+            style={[styles.backButton, { borderColor: colors.emeraldMid }]}
+          >
+            <Text style={[styles.backButtonText, { color: colors.emeraldMid }]}>Go Back</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen options={{ title: pathTitle }} />
 
       <SectionList
-        sections={data?.sections ?? []}
+        sections={data.sections}
         keyExtractor={(item) => item.id}
         renderSectionHeader={({ section }) => (
           <Text style={[styles.moduleHeader, { color: colors.emeraldMid, backgroundColor: colors.background }]}>
@@ -105,7 +128,11 @@ export default function LearningPathDetailScreen() {
           </Text>
         )}
         renderItem={({ item }) => (
-          <Pressable onPress={() => router.push(`/learn/lesson/${item.id}?pathId=${pathId}`)}>
+          <Pressable
+            onPress={() => router.push(`/learn/lesson/${item.id}?pathId=${pathId}`)}
+            accessibilityLabel={`Start lesson ${item.globalIndex + 1}: ${item.title}`}
+            accessibilityRole="button"
+          >
             <Card variant="elevated" style={styles.lessonCard}>
               <View style={styles.lessonHeader}>
                 <Text style={[styles.lessonNumber, { color: colors.emeraldMid }]}>Lesson {item.globalIndex + 1}</Text>
@@ -162,5 +189,27 @@ const styles = StyleSheet.create({
   },
   lessonDescription: {
     fontSize: FONT_SIZES.base,
+  },
+  notFound: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: SPACING.lg,
+  },
+  notFoundText: {
+    fontSize: FONT_SIZES.lg,
+    textAlign: 'center',
+    marginBottom: SPACING.md,
+  },
+  backButton: {
+    marginTop: SPACING.sm,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.lg,
+    borderWidth: 1,
+    borderRadius: 8,
+  },
+  backButtonText: {
+    fontSize: FONT_SIZES.base,
+    fontWeight: '600',
   },
 });
