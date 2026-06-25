@@ -11,7 +11,8 @@ import {
 } from 'react-native'
 import { Stack, useRouter } from 'expo-router'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import Purchases, { PurchasesPackage } from 'react-native-purchases'
+import { PurchasesPackage } from 'react-native-purchases'
+import { purchasePackage as safePurchasePackage } from '../lib/purchases/revenuecat'
 import { useTheme } from '@/lib/theme/ThemeProvider'
 import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
 import { FONT_FAMILY } from '@/constants/theme'
@@ -69,6 +70,13 @@ function getPlanDescription(packageType: string): string {
   }
 }
 
+// ─── Billing cadence map (Apple 3.1.2 — billing term must appear next to price) ──
+const PACKAGE_CADENCE: Record<string, string> = {
+  MONTHLY: ' / month',
+  ANNUAL: ' / year',
+  LIFETIME: '',
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function PaywallScreen() {
   const router = useRouter()
@@ -95,8 +103,8 @@ export default function PaywallScreen() {
     if (!selectedPackage) return
     setPurchasing(true)
     try {
-      const { customerInfo } = await Purchases.purchasePackage(selectedPackage)
-      if (customerInfo.entitlements.active[ENTITLEMENT_ID]?.isActive) {
+      const success = await safePurchasePackage(selectedPackage)
+      if (success) {
         router.replace('/(tabs)')
       }
     } catch (error: any) {
@@ -148,7 +156,13 @@ export default function PaywallScreen() {
         <Text style={[styles.unavailableDesc, { color: colors.mutedText }]}>
           Subscription plans could not be loaded. Please try again later.
         </Text>
-        <Pressable onPress={handleRestore} disabled={restoring} style={styles.restoreButton}>
+        <Pressable
+          onPress={handleRestore}
+          disabled={restoring}
+          style={styles.restoreButton}
+          accessibilityRole="button"
+          accessibilityLabel="Restore previous purchases"
+        >
           <Text style={[styles.restoreText, { color: colors.goldMid }]}>
             {restoring ? 'Restoring...' : 'Restore Purchases'}
           </Text>
@@ -223,6 +237,7 @@ export default function PaywallScreen() {
               onPress={() => setSelectedPackage(pkg)}
               accessibilityRole="radio"
               accessibilityState={{ checked: isSelected }}
+              accessibilityLabel={`Select ${getPlanLabel(pkg.packageType)} plan`}
             >
               {/* Best Value badge */}
               {isAnnual && (
@@ -249,7 +264,7 @@ export default function PaywallScreen() {
                     </Text>
                   </View>
                   <Text style={[styles.planPrice, { color: isSelected ? colors.goldMid : colors.bronzeText }]}>
-                    {pkg.product.priceString}
+                    {pkg.product.priceString}{PACKAGE_CADENCE[pkg.packageType] !== undefined ? PACKAGE_CADENCE[pkg.packageType] : ''}
                   </Text>
                 </View>
                 {/* Description — full text, no truncation */}
@@ -279,6 +294,7 @@ export default function PaywallScreen() {
           disabled={restoring}
           style={styles.restoreButton}
           accessibilityRole="button"
+          accessibilityLabel="Restore previous purchases"
         >
           <Text style={[styles.restoreText, { color: colors.goldMid }]}>
             {restoring ? 'Restoring...' : 'Restore Purchases'}
