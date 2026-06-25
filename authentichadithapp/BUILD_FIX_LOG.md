@@ -3823,3 +3823,66 @@ git log: 6a2eafb fix(a11y): FIX-102 — accessibilityLabel sweep across tabs + s
 **Result**: Verified in working tree (tsc clean, committed).
 
 **Lesson**: Every `Pressable` and `TouchableOpacity` must have `accessibilityLabel` + `accessibilityRole="button"` before App Store submission. Tab screens and reader screens (stories) are highest priority — they are primary navigation surfaces that VoiceOver users traverse constantly. Sweep all new Pressables at code-review time, not at pre-submit time.
+
+---
+
+### [FIX-107] — Splash screen shows Expo calibration circles+grid on cold launch (palette PNG + missing imageWidth)
+**Date**: 2026-06-24 PT · Cowork session
+**Pattern category**: SPLASH_SCREEN_CONFIG (E-1) / ASSET_FORMAT (E-2)
+
+**Root cause (two bugs, one symptom)**:
+1. `assets/images/splash-icon.png` was saved in Mode P (8-bit palette/colormap). iOS storyboard splash renderer cannot render palette-mode PNGs — it falls back to the Expo calibration template (concentric circles + grid on black background).
+2. The `expo-splash-screen` plugin's `dark` config block in `app.json` was missing `imageWidth: 200`, causing the dark-mode splash to use unconstrained sizing.
+
+**Fix Applied**:
+- Converted `splash-icon.png` from Mode P → Mode RGBA using `PIL.Image.convert('RGBA')`. Verified: `mode=RGBA, size=(1024, 1024)`.
+- Added `"imageWidth": 200` to the `"dark"` section of the `expo-splash-screen` plugin config in `app.json`.
+- Replaced JS `ActivityIndicator` spinner with a plain `<View>` in `app/_layout.tsx` font-loading fallback — the native splash covers this window, no spinner should be visible.
+
+**Files Changed**:
+- `assets/images/splash-icon.png` — P mode → RGBA mode (binary asset re-saved)
+- `app.json` — `expo-splash-screen.dark.imageWidth: 200` added
+- `app/_layout.tsx` — font-loading fallback: `ActivityIndicator` → `<View style={{ flex: 1, backgroundColor: ... }}/>`
+
+**Verification**:
+```
+python3: PIL Image.open('splash-icon.png').mode → 'RGBA' (was 'P')
+npx tsc --noEmit → exit 0 (2026-06-24)
+```
+
+**Receipt**: TypeScript clean. PNG mode confirmed RGBA. Next receipt: cold launch on physical device (TF build) — circles+grid must NOT appear.
+
+**Lesson**: Splash images for iOS storyboard MUST be RGBA PNG. Palette-mode (Mode P) PNGs silently fall back to the Expo calibration template. Always verify PNG mode with PIL before including in any mobile asset pipeline. Also: never render a JS spinner during the font-loading window — the native splash screen covers it and the spinner creates a flash artifact on launch.
+
+---
+
+### [FIX-108] — Global font parity sweep: 80+ text styles missing fontFamily across 11 files
+**Date**: 2026-06-24 PT · Cowork session
+**Pattern category**: FONT_CONSISTENCY (U-1) / WEB_PARITY (U-2)
+
+**Root cause**: Cinzel font family was loaded and defined in `constants/theme.ts` (FONT_FAMILY constants), but the majority of StyleSheet.create() blocks across the app used only `fontSize` and `fontWeight` without `fontFamily`. iOS falls back to San Francisco (system font) when `fontFamily` is omitted — producing visible inconsistency vs the web app which uses Cinzel for all text.
+
+**Scope**: 80+ text style blocks across 11 files had no `fontFamily`. ScreenHeader is the single source of truth for 10 screens — fixing it cascades to all.
+
+**Fix Applied**: Added `fontFamily: FONT_FAMILY.heading` (Cinzel_700Bold) to all heading/label styles and `fontFamily: FONT_FAMILY.body` (Cinzel_400Regular) to all body/caption styles. Arabic text fields (`partTitleAr`, `partLabelAr`) were intentionally skipped — `FONT_FAMILY.arabic` is `undefined` by design.
+
+**Files Changed**:
+- `components/ui/ScreenHeader.tsx` — FONT_FAMILY import + fontFamily on title + subtitle (propagates to 10 screens)
+- `app/(tabs)/_layout.tsx` — FONT_FAMILY import + fontFamily on tabBarLabelStyle
+- `app/settings/notifications.tsx` — FONT_FAMILY import + fontFamily on title + subtitle
+- `app/settings/sync.tsx` — FONT_FAMILY import + fontFamily on title + description
+- `app/settings/privacy.tsx` — FONT_FAMILY import + fontFamily on headerTitle, headerSubtitle, infoTitle, infoText
+- `app/settings/credits.tsx` — FONT_FAMILY import + fontFamily on headerTitle, headerSubtitle, collectionName, collectionMeta
+- `app/my-hadith/create-folder.tsx` — FONT_FAMILY import + fontFamily on label + input
+- `app/stories/prophet/[slug].tsx` — FONT_FAMILY import + fontFamily sweep (20 style blocks + 2 inline styles)
+- `app/stories/companion/[slug].tsx` — FONT_FAMILY import + fontFamily sweep (21 style blocks + 2 inline styles)
+- `app/learn/lesson/[lessonId].tsx` — FONT_FAMILY import + fontFamily sweep (8 style blocks)
+
+**Verification**:
+```
+npx tsc --noEmit → exit 0 (zero errors, 2026-06-24)
+```
+
+**Receipt**: TypeScript clean. Device verification pending — all text must render in Cinzel after next TF build.
+
+**Lesson**: A fontFamily defined in theme.ts means nothing unless explicitly applied in every StyleSheet.create() block. iOS has no CSS-style font inheritance — each Text element renders in the system font unless fontFamily is explicitly set. RULE: every `Text` style in this app requires an explicit `fontFamily` from `FONT_FAMILY`. Enforce at code-review time — grep for `fontSize:` blocks missing `fontFamily:` before any PR merges.

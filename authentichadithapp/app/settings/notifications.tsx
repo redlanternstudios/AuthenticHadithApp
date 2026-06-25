@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Stack } from 'expo-router';
 import { SPACING, FONT_SIZES , getColors } from '@/lib/styles/colors';
+import { FONT_FAMILY } from '@/constants/theme';
 import { useTheme } from '@/lib/theme/ThemeProvider';
 
 export default function NotificationsScreen() {
@@ -45,6 +46,6 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
   },
   rowText: { flex: 1 },
-  title: { fontSize: FONT_SIZES.md, fontWeight: '600', marginBottom: SPACING.xs },
-  subtitle: { fontSize: FONT_SIZES.sm, lineHeight: 20 },
+  title: { fontFamily: FONT_FAMILY.heading, fontSize: FONT_SIZES.md, fontWeight: '600', marginBottom: SPACING.xs },
+  subtitle: { fontFamily: FONT_FAMILY.body, fontSize: FONT_SIZES.sm, lineHeight: 20 },
 });

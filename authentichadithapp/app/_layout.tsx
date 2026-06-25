@@ -4,7 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { View, useColorScheme } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import 'react-native-reanimated';
@@ -149,6 +149,9 @@ export default function RootLayout() {
   });
   const [authReady, setAuthReady] = useState(false)
   const handleAuthReady = useCallback(() => setAuthReady(true), [])
+  // FIX-107: Match native splash background so there is zero visible gap if
+  // preventAutoHideAsync races and the JS layer surfaces before fonts settle.
+  const colorScheme = useColorScheme()
 
   // FIX-071: Hide splash only after BOTH fonts have settled AND Supabase auth
   // has hydrated. Prevents FOUC and asymmetric layout shifts on cold boot.
@@ -175,11 +178,11 @@ export default function RootLayout() {
                   {/* Fires handleAuthReady once Supabase session resolves */}
                   <AppReadySignal onReady={handleAuthReady} />
                   {(!fontsLoaded && !fontError) ? (
-                    // Brand-matched fallback: #121212 bg prevents white flash while
-                    // fonts load; #4caf84 emerald spinner is on-theme.
-                    <View style={{ flex: 1, backgroundColor: '#121212', justifyContent: 'center', alignItems: 'center' }}>
-                      <ActivityIndicator size="large" color="#4caf84" />
-                    </View>
+                    // FIX-107: No spinner — the native splash covers this window.
+                    // Plain background matching the splash prevents the "black
+                    // circle with line" artifact that appears when
+                    // preventAutoHideAsync races on cold launch.
+                    <View style={{ flex: 1, backgroundColor: colorScheme === 'dark' ? '#000000' : '#1b5e43' }} />
                   ) : (
                     <AppContent />
                   )}

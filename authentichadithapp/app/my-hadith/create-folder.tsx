@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth/AuthProvider'
 import { Button } from '@/components/ui/Button'
 import { ScreenHeader } from '@/components/ui/ScreenHeader'
 import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors'
+import { FONT_FAMILY } from '@/constants/theme'
 import { useTheme } from '@/lib/theme/ThemeProvider'
 
 const ICONS = ['📚', '⭐', '❤️', '🕌', '🤲', '📖', '✨', '🌙']
@@ -119,12 +120,14 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
   },
   label: {
+    fontFamily: FONT_FAMILY.heading,
     fontSize: FONT_SIZES.md,
     fontWeight: '600',
     marginBottom: SPACING.sm,
     marginTop: SPACING.md,
   },
   input: {
+    fontFamily: FONT_FAMILY.body,
     borderRadius: 8,
     padding: SPACING.md,
     fontSize: FONT_SIZES.base,

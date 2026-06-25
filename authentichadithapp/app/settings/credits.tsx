@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Linking, Pressable } from 'react-native';
 import { Stack } from 'expo-router';
 import { SPACING, FONT_SIZES, BORDER_RADIUS, getColors } from '@/lib/styles/colors';
+import { FONT_FAMILY } from '@/constants/theme';
 import { useTheme } from '@/lib/theme/ThemeProvider';
 import { SettingsSection } from '@/components/settings/SettingsSection';
 
@@ -113,8 +114,8 @@ const styles = StyleSheet.create({
   scrollView: { flex: 1 },
   scrollContent: { padding: SPACING.md },
   header: { marginBottom: SPACING.lg },
-  headerTitle: { fontSize: FONT_SIZES.xxxl, fontWeight: '700', marginBottom: SPACING.xs },
-  headerSubtitle: { fontSize: FONT_SIZES.base },
+  headerTitle: { fontFamily: FONT_FAMILY.heading, fontSize: FONT_SIZES.xxxl, fontWeight: '700', marginBottom: SPACING.xs },
+  headerSubtitle: { fontFamily: FONT_FAMILY.body, fontSize: FONT_SIZES.base },
   card: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: BORDER_RADIUS.lg,
@@ -123,8 +124,8 @@ const styles = StyleSheet.create({
   row: {
     paddingVertical: SPACING.sm,
   },
-  collectionName: { fontSize: FONT_SIZES.base, fontWeight: '600' },
-  collectionMeta: { fontSize: FONT_SIZES.sm, marginTop: 2 },
+  collectionName: { fontFamily: FONT_FAMILY.heading, fontSize: FONT_SIZES.base, fontWeight: '600' },
+  collectionMeta: { fontFamily: FONT_FAMILY.body, fontSize: FONT_SIZES.sm, marginTop: 2 },
   cardFootnote: {
     fontSize: FONT_SIZES.xs,
     fontStyle: 'italic',

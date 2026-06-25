@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { LessonQuiz } from '@/components/learn/LessonQuiz';
 import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors';
+import { FONT_FAMILY } from '@/constants/theme';
 import { useTheme } from '@/lib/theme/ThemeProvider';
 import { Lesson } from '@/types/hadith';
 import { useCompletionStatus } from '@/hooks/useProgress';
@@ -207,6 +208,7 @@ const styles = StyleSheet.create({
     marginVertical: SPACING.lg,
   },
   position: {
+    fontFamily: FONT_FAMILY.heading,
     fontSize: FONT_SIZES.sm,
     fontWeight: '700',
     textTransform: 'uppercase',
@@ -214,15 +216,18 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xs,
   },
   title: {
+    fontFamily: FONT_FAMILY.heading,
     fontSize: FONT_SIZES.xxl,
     fontWeight: '700',
     marginBottom: SPACING.sm,
   },
   duration: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.sm,
     marginBottom: SPACING.md,
   },
   description: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.base,
     lineHeight: 24,
     marginBottom: SPACING.md,
@@ -233,6 +238,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   contentText: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.base,
     lineHeight: 24,
   },
@@ -243,6 +249,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   completedText: {
+    fontFamily: FONT_FAMILY.heading,
     fontSize: FONT_SIZES.md,
     fontWeight: '600',
   },
@@ -263,10 +270,12 @@ const styles = StyleSheet.create({
   },
   notFoundEmoji: { fontSize: 48 },
   notFoundTitle: {
+    fontFamily: FONT_FAMILY.heading,
     fontSize: FONT_SIZES.xl,
     fontWeight: '700',
   },
   notFoundText: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.base,
     textAlign: 'center',
     lineHeight: 22,
