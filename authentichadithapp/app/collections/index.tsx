@@ -1,17 +1,21 @@
 import React from 'react'
-import { FlatList, View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native'
+import { FlatList, View, Text, TouchableOpacity, ActivityIndicator, StyleSheet, useColorScheme } from 'react-native'
 import { Stack, useRouter } from 'expo-router'
 import { useCollections } from '@/hooks/use-hadiths'
 import { Ionicons } from '@expo/vector-icons'
+import { getColors } from '@/lib/styles/colors'
+import { FONT_FAMILY } from '@/constants/theme'
 
 export default function CollectionsScreen() {
   const router = useRouter()
   const { data: collections, isLoading } = useCollections()
+  const isDark = useColorScheme() === 'dark'
+  const colors = getColors(isDark)
 
   if (isLoading) {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" />
+      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.emeraldMid} />
       </View>
     )
   }
@@ -22,29 +26,31 @@ export default function CollectionsScreen() {
       <FlatList
         data={collections}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, { backgroundColor: colors.background }]}
         renderItem={({ item }) => (
           <TouchableOpacity
-            style={styles.card}
+            style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}
             onPress={() => router.push(`/collection/${item.slug}`)}
+            accessibilityLabel={`Open ${item.name_en} collection`}
+            accessibilityRole="button"
           >
             <View style={styles.cardContent}>
-              <View style={styles.iconContainer}>
-                <Ionicons name="book" size={32} color="#1B5E43" />
+              <View style={[styles.iconContainer, { backgroundColor: colors.background }]}>
+                <Ionicons name="book" size={32} color={colors.emeraldMid} />
               </View>
               <View style={styles.textContainer}>
-                <Text style={styles.collectionName}>{item.name_en}</Text>
-                <Text style={styles.arabicName}>{item.name_ar}</Text>
+                <Text style={[styles.collectionName, { color: colors.bronzeText, fontFamily: FONT_FAMILY.headingMedium }]}>{item.name_en}</Text>
+                <Text style={[styles.arabicName, { color: colors.emeraldMid }]}>{item.name_ar}</Text>
                 {item.description_en && (
-                  <Text style={styles.description} numberOfLines={2}>
+                  <Text style={[styles.description, { color: colors.mutedText }]} numberOfLines={2}>
                     {item.description_en}
                   </Text>
                 )}
-                <Text style={styles.count}>
+                <Text style={[styles.count, { color: colors.mutedText }]}>
                   {item.total_hadiths?.toLocaleString() || 0} hadiths
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={24} color="#ccc" />
+              <Ionicons name="chevron-forward" size={24} color={colors.border} />
             </View>
           </TouchableOpacity>
         )}
@@ -58,18 +64,15 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
   },
   list: {
     padding: 16,
   },
   card: {
-    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -84,7 +87,6 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 12,
-    backgroundColor: '#F8F6F2',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -95,21 +97,17 @@ const styles = StyleSheet.create({
   collectionName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
     marginBottom: 4,
   },
   arabicName: {
     fontSize: 14,
-    color: '#1B5E43',
     marginBottom: 4,
   },
   description: {
     fontSize: 12,
-    color: '#666',
     marginBottom: 4,
   },
   count: {
     fontSize: 12,
-    color: '#999',
   },
 })
