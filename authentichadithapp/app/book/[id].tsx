@@ -1,5 +1,5 @@
 import React from 'react'
-import { StyleSheet, View, Text } from 'react-native'
+import { StyleSheet, View, Text, Pressable } from 'react-native'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
@@ -58,6 +58,26 @@ export default function BookDetailScreen() {
 
   if (isLoading) {
     return <LoadingSpinner />
+  }
+
+  // H-3: Not-found / empty guard — renders a safe fallback instead of a blank list
+  if (!isLoading && hadiths.length === 0) {
+    return (
+      <View style={[styles.emptyContainer, { backgroundColor: colors.background }]}>
+        <Stack.Screen options={{ title, headerShown: true }} />
+        <Text style={[styles.emptyText, { color: colors.mutedText }]}>
+          No hadiths found for this book.
+        </Text>
+        <Pressable
+          onPress={() => router.back()}
+          accessibilityLabel="Go back"
+          accessibilityRole="button"
+          style={styles.emptyBackButton}
+        >
+          <Text style={[styles.emptyBackText, { color: colors.bronzeText }]}>Go Back</Text>
+        </Pressable>
+      </View>
+    )
   }
 
   return (
@@ -170,5 +190,15 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: FONT_SIZES.md,
     textAlign: 'center',
+  },
+  emptyBackButton: {
+    marginTop: SPACING.lg,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.xl,
+    borderRadius: 8,
+  },
+  emptyBackText: {
+    fontSize: FONT_SIZES.md,
+    fontWeight: '600',
   },
 })
