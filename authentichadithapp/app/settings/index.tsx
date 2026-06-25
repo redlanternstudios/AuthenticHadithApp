@@ -52,6 +52,13 @@ export default function SettingsScreen() {
             showArrow
             onPress={() => router.push('/settings/appearance')}
             isFirst
+          />
+          <SettingsItem
+            icon="notifications"
+            title="Notifications"
+            subtitle="Alerts and reminders"
+            showArrow
+            onPress={() => router.push('/settings/notifications')}
             isLast
           />
           {/* Language row hidden for v1.0 — Arabic/RTL i18n deferred to v1.1.
