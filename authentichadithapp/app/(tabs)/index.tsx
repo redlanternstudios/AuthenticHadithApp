@@ -236,6 +236,8 @@ export default function HomeScreen() {
               },
             ]}
             onPress={() => router.push(action.route as any)}
+            accessibilityRole="button"
+            accessibilityLabel={`Go to ${action.label}`}
           >
             <Text style={styles.quickActionIcon}>{action.icon}</Text>
             <Text style={[styles.quickActionLabel, { color: colors.bronzeText }]}>
@@ -266,7 +268,11 @@ export default function HomeScreen() {
         <Text style={[styles.sectionTitle, { color: colors.bronzeText }]}>
           Hadith of the Moment
         </Text>
-        <Pressable onPress={handleRefresh}>
+        <Pressable
+          onPress={handleRefresh}
+          accessibilityRole="button"
+          accessibilityLabel="Refresh hadith"
+        >
           <Text style={[styles.refreshLink, { color: colors.goldMid }]}>Refresh</Text>
         </Pressable>
       </View>

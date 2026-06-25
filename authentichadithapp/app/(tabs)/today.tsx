@@ -234,6 +234,8 @@ export default function TodayScreen() {
                 { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.7 : 1 },
               ]}
               onPress={handleSave}
+              accessibilityRole="button"
+              accessibilityLabel="Save today's hadith"
             >
               <Text style={styles.actionIcon}>🔖</Text>
               <Text style={[styles.actionLabel, { color: colors.bronzeText }]}>Save</Text>
@@ -244,6 +246,8 @@ export default function TodayScreen() {
                 { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.7 : 1 },
               ]}
               onPress={handleShare}
+              accessibilityRole="button"
+              accessibilityLabel="Share today's hadith"
             >
               <Text style={styles.actionIcon}>📤</Text>
               <Text style={[styles.actionLabel, { color: colors.bronzeText }]}>Share</Text>
@@ -292,6 +296,8 @@ export default function TodayScreen() {
               { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.7 : 1 },
             ]}
             onPress={() => router.push(item.route as any)}
+            accessibilityRole="button"
+            accessibilityLabel={`Go to ${item.label}`}
           >
             <Text style={styles.quickLinkIcon}>{item.icon}</Text>
             <Text style={[styles.quickLinkText, { color: colors.bronzeText }]}>{item.label}</Text>

@@ -136,6 +136,8 @@ export default function SearchScreen() {
                   isActive && { backgroundColor: colors.emeraldMid, borderColor: colors.emeraldMid },
                 ]}
                 onPress={() => setGradeFilter(grade)}
+                accessibilityRole="button"
+                accessibilityLabel={`Filter by ${grade}`}
               >
                 <Text
                   style={[
@@ -164,6 +166,8 @@ export default function SearchScreen() {
                 !collectionFilter && { backgroundColor: colors.emeraldMid, borderColor: colors.emeraldMid },
               ]}
               onPress={() => setCollectionFilter(null)}
+              accessibilityRole="button"
+              accessibilityLabel="Show all collections"
             >
               <Text
                 style={[
@@ -188,6 +192,8 @@ export default function SearchScreen() {
                   onPress={() =>
                     setCollectionFilter(isActive ? null : col.slug)
                   }
+                  accessibilityRole="button"
+                  accessibilityLabel={`Filter by ${col.name_en}`}
                 >
                   <Text
                     style={[

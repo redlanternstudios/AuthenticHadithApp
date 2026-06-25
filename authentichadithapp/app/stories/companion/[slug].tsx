@@ -346,6 +346,7 @@ export default function CompanionStoryScreen() {
           <Pressable
             onPress={() => router.canGoBack() ? router.back() : router.push('/stories')}
             style={[styles.iconBtn, { backgroundColor: colors.background }]}
+            accessibilityRole="button"
             accessibilityLabel="Back to stories"
           >
             <Text style={[styles.chevronLeft, { color: colors.bronzeText }]}>‹</Text>
@@ -366,6 +367,7 @@ export default function CompanionStoryScreen() {
                 styles.iconBtn,
                 isBookmarked && { backgroundColor: themeColor + '1a' },
               ]}
+              accessibilityRole="button"
               accessibilityLabel={isBookmarked ? 'Remove bookmark' : 'Bookmark story'}
             >
               <Text style={{ fontSize: 18, color: isBookmarked ? themeColor : colors.mutedText }}>
@@ -376,6 +378,7 @@ export default function CompanionStoryScreen() {
             <Pressable
               onPress={() => handleShare()}
               style={styles.iconBtn}
+              accessibilityRole="button"
               accessibilityLabel="Share story"
             >
               <Text style={{ fontSize: 16, color: colors.mutedText }}>{'↑'}</Text>
@@ -533,6 +536,8 @@ export default function CompanionStoryScreen() {
                         `"${snippet.text_en}"${snippet.attribution_en ? ` — ${snippet.attribution_en}` : ''}`
                       )
                     }
+                    accessibilityRole="button"
+                    accessibilityLabel="Share this snippet"
                     style={[
                       styles.snippetCard,
                       { backgroundColor: snippet.background_color },
@@ -579,6 +584,8 @@ export default function CompanionStoryScreen() {
             styles.navBtn,
             currentPart <= 1 && styles.navBtnDisabled,
           ]}
+          accessibilityRole="button"
+          accessibilityLabel="Previous part"
         >
           <Text
             style={[
@@ -602,6 +609,7 @@ export default function CompanionStoryScreen() {
                   setCurrentPart(num)
                   scrollRef.current?.scrollTo({ y: 0, animated: true })
                 }}
+                accessibilityRole="button"
                 accessibilityLabel={`Go to part ${num}`}
                 style={[
                   styles.dot,
@@ -623,6 +631,8 @@ export default function CompanionStoryScreen() {
               styles.navBtnPrimary,
               { backgroundColor: themeColor },
             ]}
+            accessibilityRole="button"
+            accessibilityLabel="Complete story"
           >
             {isAdvancing ? (
               <ActivityIndicator size="small" color="#fff" />
@@ -638,6 +648,8 @@ export default function CompanionStoryScreen() {
               styles.navBtnPrimary,
               { backgroundColor: themeColor },
             ]}
+            accessibilityRole="button"
+            accessibilityLabel="Next part"
           >
             {isAdvancing ? (
               <ActivityIndicator size="small" color="#fff" />
