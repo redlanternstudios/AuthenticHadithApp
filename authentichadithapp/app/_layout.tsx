@@ -71,12 +71,13 @@ function NavigationGate() {
     if (authLoading || rcLoading || onboarded === null) return
 
     const inAuth = segments[0] === 'auth'
+    const inShared = segments[0] === 'shared'
     const inOnboarding = segments[0] === 'onboarding'
     const inPaywall = segments[0] === 'paywall'
 
     if (!user) {
       // No session — send to signup
-      if (!inAuth) router.replace('/auth/signup')
+      if (!inAuth && !inShared) router.replace('/auth/signup')
       return
     }
 
@@ -126,6 +127,7 @@ function AppContent() {
         <Stack.Screen name="stories" options={{ headerShown: false }} />
         <Stack.Screen name="sunnah" options={{ headerShown: false }} />
         <Stack.Screen name="reflections" options={{ headerShown: false }} />
+        <Stack.Screen name="shared/[token]" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style={isDark ? 'light' : 'dark'} />
