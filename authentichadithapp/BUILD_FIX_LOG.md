@@ -3954,3 +3954,59 @@ npx tsc --noEmit → exit 0 (zero errors, 2026-06-24)
 **Verification**: TruthSerum receipts from all 5 agents — all 18 autonomous fixes verified by file:line citation from the editing agents. P1-4 and P1-7 status: Blocked (awaiting KP approval).
 
 **Lesson**: Pre-submission intentional bug hunt is mandatory and must run before any EAS submit. This pass caught: 1 paywall trap (App Store rejection guaranteed), 1 hidden-collection leak, 1 dual-alert crash on account deletion, 1 infinite spinner, 2 null crashes in story reader, 1 missing Apple-required sign-out, 1 missing "Manage Subscription" link, 1 factually incorrect Islamic content in quiz, 1 cross-account conversation leak. None would have been caught by functional QA of the happy path alone.
+
+---
+
+### [FIX-112] — Notification layer: local reminders + push token sync + Edge Function
+**Date**: 2026-06-25 PT · Cowork session
+**Pattern category**: FEATURE / PUSH_NOTIFICATIONS / SUPABASE_EDGE_FUNCTION
+**EAS Build**: Build 70 — ID `42103975-31a4-401e-a941-77b72c789a4e`
+**Commit**: `320f7b2` on `main` (redlanternstudios/AuthenticHadithApp)
+
+**Root cause**: App had zero notification infrastructure. No local reminders, no push token registration, no server-side broadcast capability. Required for post-launch engagement and collection announcement feature.
+
+**Files Changed**:
+
+**New — Notification Library**
+- `lib/notifications/NotificationService.ts` — Full local notification engine: streak reminder (daily repeating), lesson reminder (one-shot 24h), push token registration, foreground handler with `shouldShowBanner` + `shouldShowList` fields (Expo SDK 54 required). `markAppOpened()` resets streak reminder so today's already-fired occurrence cancels.
+- `lib/notifications/useNotifications.ts` — React hook: permission status, streak/lesson toggles, time picker state, notification tap routing via expo-router (streak→tabs, lesson→/learn, collection→/collection/:slug).
+- `lib/notifications/pushService.ts` — Expo push token registration with `Device.isDevice` guard + Android notification channel + Supabase `profiles.expo_push_token` upsert.
+- `lib/notifications/index.ts` — Barrel export.
+
+**Modified — Integration**
+- `app/_layout.tsx` — Added `PushTokenSync` (renders null): registers push token on auth, upserts to Supabase, calls `markAppOpened()`. Clears token + cancels all local notifications on logout.
+- `app/settings/notifications.tsx` — Full settings UI: permission banner, streak toggle + time picker (15-min snaps), lesson toggle, collection push info row.
+- `app.json` — expo-notifications plugin (icon + color) + `aps-environment: production` entitlement.
+- `package.json` — `expo-notifications@~0.32.17`, `expo-device@~8.0.10` (installed via `npx expo install`).
+- `tsconfig.json` — Added `"exclude": ["supabase/functions"]` to suppress Deno false-positive TypeScript errors.
+- `lib/revenuecat/RevenueCatProvider.tsx` — `user.id` → `user?.id` at line 138 (pre-existing null narrowing issue surfaced by full devDependencies reinstall after `npm omit=dev` config removed TypeScript).
+
+**New — Supabase Edge Function**
+- `supabase/functions/send-collection-announcement/index.ts` — Deno Edge Function (deployed to project `nqklipakrfuwebkdnhwg`). Auth-gated via `ANNOUNCEMENT_SECRET` header. Fetches all non-null `expo_push_token` from profiles, chunks at 100, sends via Expo Push API, handles `DeviceNotRegistered` cleanup. Hidden collections guard (6 slugs blocked). Returns `{ sent, failed, cleaned }`.
+- `supabase/functions/send-collection-announcement/README.md` — Deploy docs, curl test command, secrets setup.
+
+**TypeScript errors fixed before commit**:
+1. `app/_layout.tsx(102)` — `.catch()` on `PostgrestFilterBuilder` (doesn't exist) → replaced with `.then(() => {})`.
+2. `lib/notifications/NotificationService.ts(41)` — `NotificationBehavior` missing `shouldShowBanner` + `shouldShowList` (Expo SDK 54 required fields) → added both `true`.
+3. `tsconfig.json` — Deno URLs + `Deno` global caused 4 false-positive TS errors in `supabase/functions/` → excluded via `"exclude"` array.
+4. `lib/revenuecat/RevenueCatProvider.tsx(138)` — Pre-existing `user` possibly null after unreachable-code narrowing → `user?.id`.
+
+**Verification**:
+```
+node_modules/typescript/bin/tsc --noEmit
+# Exit: 0 errors (confirmed)
+git push origin main  # 01fd044..320f7b2
+npx eas-cli build --platform ios --profile production --non-interactive
+# Build 70 queued: 42103975-31a4-401e-a941-77b72c789a4e
+```
+
+**KP manual actions still required (cannot be automated)**:
+1. Supabase Dashboard → SQL Editor → project `nqklipakrfuwebkdnhwg`:
+   ```sql
+   ALTER TABLE profiles ADD COLUMN IF NOT EXISTS expo_push_token TEXT DEFAULT NULL;
+   CREATE INDEX IF NOT EXISTS idx_profiles_expo_push_token ON profiles(expo_push_token) WHERE expo_push_token IS NOT NULL;
+   ```
+2. Supabase Dashboard → Edge Functions → Secrets:
+   `ANNOUNCEMENT_SECRET = 49D3DBEB-65D5-43C0-98B4-3260A4118275`
+
+**Lesson**: `npm omit=dev` global npm config silently strips all devDependencies (including TypeScript) when `npx expo install` runs `npm install`. Fix: `npm install --include=dev`. Expo SDK 54's `NotificationBehavior` type requires 5 fields — `shouldShowAlert`, `shouldShowBanner`, `shouldShowList`, `shouldPlaySound`, `shouldSetBadge`. Missing `shouldShowBanner`/`shouldShowList` causes TS2322. Always exclude `supabase/functions/` from tsconfig when using Deno Edge Functions in a TypeScript React Native monorepo.
