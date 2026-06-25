@@ -7,7 +7,7 @@
 
 ## CURRENT ERROR
 
-**Status**: 🔴 ACTIVE — CONTENT INTEGRITY review open (see top section). BUG-A resolved-by-hide for V1 (FIX-060); BUG-B resolved 2026-06-05; BUG-C RESOLVED 2026-06-09 (FIX-062 — AI route deployed to prod, verified HTTP 200 + real response).
+**Status**: 🟡 PENDING DECISION — CONTENT INTEGRITY review open (see section below); no active code bugs as of 2026-06-24. BUG-A resolved-by-hide for V1 (FIX-060); BUG-B resolved 2026-06-05; BUG-C RESOLVED 2026-06-09 (FIX-062 — AI route deployed to prod, verified HTTP 200 + real response). FIX-095 through FIX-102 (parity/friday-demo batch) committed 2026-06-24, tsc TSCEXIT:0. Next action: KP authorizes git push → trigger EAS build.
 
 ---
 

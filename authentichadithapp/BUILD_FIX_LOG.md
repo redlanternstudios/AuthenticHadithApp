@@ -3595,3 +3595,231 @@ The profile in use was dated **2026-05-05** — the OLD profile. EAS kept reusin
 **Lesson learned**: (1) Adding ANY new iOS entitlement/capability to `app.json` (associated-domains, push, app groups, etc.) requires a provisioning-profile REGEN, not just a rebuild — and EAS only regenerates under interactive Apple auth. (2) Read the profile DATE in the error: a stale date means "reused cached profile," not "capability genuinely unavailable." (3) `--non-interactive` cannot fix a credential gap — it has no Apple session to regenerate with. (4) Re-running the same build without changing the credential just burns build minutes failing identically (3 errored builds = the tell).
 
 **Still UNKNOWN (not closed by this fix)**: Universal Links behavior ON DEVICE — does tapping an `authentichadith.app/shared/<token>` link open the app and land on the shared-folder viewer? The entitlement is in the binary (Verified) but the runtime deep-link path is unproven until the build is on a physical iPhone. Blocked by Rule 040 device QA (`docs/QA_BUILD45_MIGRATION.md`), which also requires the AASA file live at the apex (already confirmed 200/json in a prior session).
+
+---
+
+### [FIX-095] — paywall.tsx: Direct RevenueCat import bypassing safe wrapper + missing billing cadence (Apple 3.1.2)
+**Date**: 2026-06-24 PT · SwarmClaw specialist agent · branch `parity/friday-demo`
+**Pattern category**: REVENUECAT_SAFE_WRAPPER_ENFORCEMENT (C-1) / APPSTORE_COMPLIANCE (C-2, Apple 3.1.2)
+**Commit**: 45059eb
+
+**Root cause**: `app/paywall.tsx` imported `Purchases` directly from `react-native-purchases`, bypassing the project's safe wrapper at `lib/purchases/revenuecat.ts` (crash risk on purchase failure). Additionally, billing cadence was not displayed alongside the price, violating Apple 3.1.2 (auto-renewable subscription billing term must be visible). `pkg.packageType` returns uppercase enum strings (MONTHLY/ANNUAL/LIFETIME) — different from the subscription screen which uses $rc_monthly strings.
+
+**Fix Applied**:
+- Replaced `import Purchases` with `import { purchasePackage as safePurchasePackage }` from `lib/purchases/revenuecat`
+- Added boolean return value check on the safe wrapper result
+- Added `PACKAGE_CADENCE` map keyed on uppercase enum values (MONTHLY/ANNUAL/LIFETIME) to display billing term alongside price
+
+**Files Changed**:
+- `app/paywall.tsx` — safe RC wrapper; PACKAGE_CADENCE map; boolean return check; accessibility labels added
+
+**Verification**:
+```
+npx tsc --noEmit → TSCEXIT:0 (2026-06-24)
+git log: 45059eb fix(paywall): FIX-095 — safe RC wrapper (C-1) + billing cadence (C-2) + accessibility labels (M-6)
+```
+
+**Result**: Verified in working tree (tsc clean, committed).
+
+**Lesson**: `paywall.tsx` MUST use the safe wrapper only — direct RevenueCat import bypasses crash protection. `pkg.packageType` returns uppercase enum strings (MONTHLY/ANNUAL/LIFETIME); billing cadence must always be appended next to price for Apple 3.1.2 compliance.
+
+---
+
+### [FIX-096] — collections/index.tsx: Hardcoded hex colors break dark mode + FONT_FAMILY not applied
+**Date**: 2026-06-24 PT · SwarmClaw specialist agent · branch `parity/friday-demo`
+**Pattern category**: SILENT_DARK_MODE_VIOLATION (H-1, Rule 017)
+**Commit**: 78b5f0f
+
+**Root cause**: `app/collections/index.tsx` used hardcoded hex colors (#fff, #E5E7EB, #1B5E43, etc.) throughout, which renders incorrectly in dark mode. `FONT_FAMILY` was not applied to collection names, breaking the parity design system.
+
+**Fix Applied**:
+- Added `useColorScheme` + `getColors(isDark)` + `FONT_FAMILY` imports
+- Replaced all hardcoded hex literals with theme tokens from `getColors(isDark)`
+- Applied `FONT_FAMILY.headingMedium` to collection name text
+- Added accessibility labels on interactive elements
+
+**Files Changed**:
+- `app/collections/index.tsx` — theme tokens throughout; FONT_FAMILY applied; accessibility labels
+
+**Verification**:
+```
+npx tsc --noEmit → TSCEXIT:0 (2026-06-24)
+git log: 78b5f0f fix(collections): FIX-096 — dark mode theming (H-1) + accessibility labels (M-6)
+```
+
+**Result**: Verified in working tree (tsc clean, committed).
+
+**Lesson**: Any screen with hardcoded hex colors will fail dark mode. Always use `getColors(isDark)` and `FONT_FAMILY` constants. (Note: `app/collections/index.tsx` was flagged as potentially dead by FIX-077; this fix makes it correct regardless.)
+
+---
+
+### [FIX-097] — _layout.tsx: NavigationGate redirected deep links to /shared/[token] to auth/signup
+**Date**: 2026-06-24 PT · SwarmClaw specialist agent · branch `parity/friday-demo`
+**Pattern category**: NAVIGATION / DEEP_LINK_AUTH_GATE
+**Commit**: 7868c02
+
+**Root cause**: `app/_layout.tsx` NavigationGate redirected ALL unauthenticated users to `/auth/signup`, including those navigating to `/shared/[token]` deep links. The `shared/[token]` route was also not registered in the root Stack, making it unreachable.
+
+**Fix Applied**:
+- Added `inShared = segments[0] === 'shared'` guard in the NavigationGate `useEffect`
+- Redirect only fires when `!inAuth && !inShared`
+- Added `Stack.Screen` registration for `shared/[token]`
+- Note: `inShared` is NOT in the `useEffect` dep array (derived from `segments[0]` which is already in deps — adding it would create a redundant dep)
+
+**Files Changed**:
+- `app/_layout.tsx` — `inShared` guard; Stack.Screen for shared/[token]
+
+**Verification**:
+```
+npx tsc --noEmit → TSCEXIT:0 (2026-06-24)
+git log: 7868c02 fix(auth): FIX-097 — NavigationGate shared route exemption + Stack.Screen declaration (H-4)
+```
+
+**Result**: Verified in working tree (tsc clean, committed).
+
+**Lesson**: Every new route segment that permits unauthenticated access must have an exemption in the NavigationGate `useEffect` AND a `Stack.Screen` registration. Missing either blocks the deep link entirely.
+
+---
+
+### [FIX-098] — package.json version mismatch + settings/notifications.tsx orphaned (no nav link)
+**Date**: 2026-06-24 PT · SwarmClaw specialist agent · branch `parity/friday-demo`
+**Pattern category**: CONFIG_CONSISTENCY (H-6) / ORPHANED_SCREEN (M-2)
+**Commit**: 3f2d8d3
+
+**Root cause**: `package.json` version field was `1.0.0` while `app.json` specified `1.1.0`, creating a misleading mismatch in the project manifest. `app/settings/notifications.tsx` existed but had no navigation link in `settings/index.tsx`, making it an orphaned, unreachable screen.
+
+**Fix Applied**:
+- `package.json` version field updated to `1.1.0` (field only — no dependency changes)
+- Added Notifications nav row to `app/settings/index.tsx` Preferences section
+- Note: `SettingsItemProps` does not expose `accessibilityLabel` — this type gap noted for a future fix
+
+**Files Changed**:
+- `package.json` — version `1.0.0` → `1.1.0` (version field only; no dep changes)
+- `app/settings/index.tsx` — Notifications nav row added to Preferences section
+
+**Verification**:
+```
+npx tsc --noEmit → TSCEXIT:0 (2026-06-24)
+git log: 3f2d8d3 fix(settings): FIX-098 — package.json v1.1.0 (H-6) + notifications nav link (M-2)
+```
+
+**Result**: Verified in working tree (tsc clean, committed).
+
+**Lesson**: `version` field in `package.json` must match `versionName` in `app.json`. Always wire up new screens with navigation entry points — an unreachable screen is a shipping risk (reviewer cannot navigate to it; dead code accumulates).
+
+---
+
+### [FIX-099] — learn/[pathId].tsx: No guard for null/undefined data after loading (blank/crash screen)
+**Date**: 2026-06-24 PT · SwarmClaw specialist agent · branch `parity/friday-demo`
+**Pattern category**: NOT_FOUND_GUARD (H-2) / SILENT_NULL_RENDER
+**Commit**: 522f1b8
+
+**Root cause**: `app/learn/[pathId].tsx` had no guard for when learning path data is `null` or `undefined` after loading resolves — an invalid `pathId` (bad deep link, stale bookmark) would produce a blank or crashing screen with no user feedback.
+
+**Fix Applied**:
+- Added not-found guard: `!isLoading && (!data || !data.sections || data.sections.length === 0)` renders "Learning path not found." message with a `router.back()` Pressable
+- 2 Pressables given contextual `accessibilityLabel`
+
+**Files Changed**:
+- `app/learn/[pathId].tsx` — not-found guard with "Learning path not found." + Go Back Pressable; accessibility labels
+
+**Verification**:
+```
+npx tsc --noEmit → TSCEXIT:0 (2026-06-24)
+git log: 522f1b8 fix(learn): FIX-099 — not-found guard (H-2) + accessibility labels (M-6)
+```
+
+**Result**: Verified in working tree (tsc clean, committed).
+
+**Lesson**: All screens with async data loads must check for `null`/empty result AFTER loading resolves. An empty state with a Go Back affordance is always better than a blank screen.
+
+---
+
+### [FIX-100] — book/[id].tsx: No guard for empty hadiths array after loading (blank FlatList)
+**Date**: 2026-06-24 PT · SwarmClaw specialist agent · branch `parity/friday-demo`
+**Pattern category**: NOT_FOUND_GUARD (H-3) / SILENT_NULL_RENDER
+**Commit**: 39bd4e4
+
+**Root cause**: `app/book/[id].tsx` rendered a `FlatList` with no guard for an empty `hadiths` array after loading — an invalid book ID produced a blank list with no user feedback, a silent UX failure.
+
+**Fix Applied**:
+- Added guard: `!isLoading && hadiths.length === 0` renders empty state message with "Go Back" Pressable
+- 1 Pressable given `accessibilityLabel`
+
+**Files Changed**:
+- `app/book/[id].tsx` — empty array guard with empty state message + Go Back Pressable; accessibility label
+
+**Verification**:
+```
+npx tsc --noEmit → TSCEXIT:0 (2026-06-24)
+git log: 39bd4e4 fix(book): FIX-100 — not-found guard (H-3) + accessibility labels (M-6)
+```
+
+**Result**: Verified in working tree (tsc clean, committed).
+
+**Lesson**: `FlatList` screens must check for empty array after loading resolves. An empty `FlatList` with no UI feedback is a silent UX failure. Pattern: `!isLoading && items.length === 0` → show empty state + Go Back Pressable.
+
+---
+
+### [FIX-101] — hadith/[id].tsx: Raw collection_slug exposed as user-visible fallback text
+**Date**: 2026-06-24 PT · SwarmClaw specialist agent · branch `parity/friday-demo`
+**Pattern category**: DATA_DISPLAY_HYGIENE (H-5)
+**Commit**: ef2ff61
+
+**Root cause**: `app/hadith/[id].tsx` used `hadith.collection_slug` (raw DB value, e.g. "bukhari") as a fallback display string when the collection query failed, exposing internal DB slugs to users.
+
+**Fix Applied**:
+- Removed `hadith.collection_slug` from the `collectionName` display fallback
+- New fallback chain: `collectionData?.name_en || 'Unknown Collection'`
+- `collection_slug` retained for query filters and navigation URLs only (correct use)
+- 4 Pressable sites labeled with contextual `accessibilityLabel`, including `accessibilityState.selected` for the language toggle
+
+**Files Changed**:
+- `app/hadith/[id].tsx` — collectionName fallback cleaned; 4 Pressables labeled; accessibilityState on language toggle
+
+**Verification**:
+```
+npx tsc --noEmit → TSCEXIT:0 (2026-06-24)
+git log: ef2ff61 fix(hadith): FIX-101 — remove raw collection_slug fallback (H-5) + accessibility labels (M-6)
+```
+
+**Result**: Verified in working tree (tsc clean, committed).
+
+**Lesson**: Raw DB slugs MUST NOT appear in user-visible text. Clean fallbacks only — `collectionData?.name_en || 'Unknown Collection'`. DB slugs belong in query filters and URLs, never in display strings.
+
+---
+
+### [FIX-102] — Accessibility label sweep: 29 Pressable/TouchableOpacity elements missing accessibilityLabel across 7 files
+**Date**: 2026-06-24 PT · SwarmClaw specialist agent · branch `parity/friday-demo`
+**Pattern category**: ACCESSIBILITY (M-6) / APP_STORE_COMPLIANCE (Guideline 1.5)
+**Commit**: 6a2eafb
+
+**Root cause**: 29 `Pressable`/`TouchableOpacity` elements across 7 files were missing `accessibilityLabel`, making key content (quick actions, save/share, search filters, learning paths, story navigation, story cards) invisible to VoiceOver users.
+
+**Fix Applied**: 29 accessibility labels applied across all 7 files:
+- `app/(tabs)/index.tsx` — quick action buttons, Hadith of the Day save/share
+- `app/(tabs)/today.tsx` — daily content interaction Pressables
+- `app/(tabs)/search.tsx` — filter chips, search result interactions
+- `app/(tabs)/learn.tsx` — learning path cards (free and premium)
+- `app/stories/index.tsx` — story index cards
+- `app/stories/prophet/[slug].tsx` — prev/next/complete navigation
+- `app/stories/companion/[slug].tsx` — prev/next/complete navigation
+
+**Files Changed**:
+- `app/(tabs)/index.tsx` — accessibility labels on quick actions + save/share pills
+- `app/(tabs)/today.tsx` — accessibility labels on content Pressables
+- `app/(tabs)/search.tsx` — accessibility labels on filter chips + results
+- `app/(tabs)/learn.tsx` — accessibility labels on path cards
+- `app/stories/index.tsx` — accessibility labels on story cards
+- `app/stories/prophet/[slug].tsx` — accessibility labels on prev/next/complete
+- `app/stories/companion/[slug].tsx` — accessibility labels on prev/next/complete
+
+**Verification**:
+```
+npx tsc --noEmit → TSCEXIT:0 (2026-06-24)
+git log: 6a2eafb fix(a11y): FIX-102 — accessibilityLabel sweep across tabs + stories (M-6)
+```
+
+**Result**: Verified in working tree (tsc clean, committed).
+
+**Lesson**: Every `Pressable` and `TouchableOpacity` must have `accessibilityLabel` + `accessibilityRole="button"` before App Store submission. Tab screens and reader screens (stories) are highest priority — they are primary navigation surfaces that VoiceOver users traverse constantly. Sweep all new Pressables at code-review time, not at pre-submit time.
