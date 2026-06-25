@@ -26,10 +26,14 @@ export default function TopicsScreen() {
   const { data: tags, isLoading, isError, refetch } = useQuery({
     queryKey: ['tags'],
     queryFn: async () => {
+      // Only surface topics that have at least 1 verified hadith linked via
+      // hadith_tags. Topics with usage_count = 0 have no content to show and
+      // create a confusing dead-end for users (FIX-104).
       const { data, error } = await supabase
         .from('tags')
         .select('*')
         .eq('is_active', true)
+        .gt('usage_count', 0)
         .order('usage_count', { ascending: false })
       if (error) throw error
       return (data as Tag[]) || []
@@ -49,8 +53,14 @@ export default function TopicsScreen() {
 
       <Text style={[styles.title, { color: colors.bronzeText }]}>Browse by Topic</Text>
       <Text style={[styles.subtitle, { color: colors.mutedText }]}>
-        {totalHadiths.toLocaleString()} tagged hadiths across {tags?.length || 0} topics
+        {totalHadiths.toLocaleString()} verified hadiths across {tags?.length || 0} topics
       </Text>
+
+      {tags?.length === 0 && (
+        <Text style={[styles.subtitle, { color: colors.mutedText, marginTop: SPACING.xl, textAlign: 'center' }]}>
+          No topics with verified hadiths available yet.
+        </Text>
+      )}
 
       <View style={styles.grid}>
         {tags?.map((tag) => (
