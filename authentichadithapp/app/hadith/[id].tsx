@@ -212,7 +212,7 @@ export default function HadithDetailScreen() {
   }
 
   const collectionName =
-    collectionData?.name_en || hadith.collection_slug || 'Unknown Collection'
+    collectionData?.name_en || 'Unknown Collection'
 
   return (
     <>
@@ -320,6 +320,8 @@ export default function HadithDetailScreen() {
                   pressed && { opacity: 0.7 },
                 ]}
                 onPress={() => router.push(`/topics/${tag.slug}`)}
+                accessibilityLabel={`View ${tag.name_en} topic`}
+                accessibilityRole="button"
               >
                 <Text style={[styles.tagChipText, { color: colors.emeraldMid }]}>
                   {tag.name_en}
@@ -345,6 +347,9 @@ export default function HadithDetailScreen() {
                   isActive && { backgroundColor: colors.emeraldMid },
                 ]}
                 onPress={() => setLanguageMode(seg.key)}
+                accessibilityLabel={`Show ${seg.label} text`}
+                accessibilityRole="button"
+                accessibilityState={{ selected: isActive }}
               >
                 <Text
                   style={[
@@ -504,6 +509,8 @@ export default function HadithDetailScreen() {
           ]}
           onPress={handleSummarize}
           disabled={isSummarizing || !hasEnglish}
+          accessibilityLabel={isSummarizing ? 'Generating AI summary' : hasEnglish ? 'Generate AI summary' : 'AI summary unavailable'}
+          accessibilityRole="button"
           accessibilityState={{ disabled: !hasEnglish }}
         >
           {isSummarizing ? (
@@ -587,6 +594,8 @@ export default function HadithDetailScreen() {
                 pressed && { opacity: 0.7 },
               ]}
               onPress={btn.onPress}
+              accessibilityLabel={btn.label === 'Collection' ? `View ${collectionName} collection` : `${btn.label} hadith`}
+              accessibilityRole="button"
             >
               <Ionicons name={btn.icon} size={18} color={colors.emeraldMid} />
               <Text style={[styles.actionBtnText, { color: colors.emeraldMid }]}>
