@@ -162,6 +162,8 @@ export default function StoriesScreen() {
             styles.tabItem,
             tab === 'companions' && [styles.tabItemActive, { borderBottomColor: colors.goldMid }],
           ]}
+          accessibilityRole="button"
+          accessibilityLabel="Show Companions tab"
         >
           <Text
             style={[
@@ -178,6 +180,8 @@ export default function StoriesScreen() {
             styles.tabItem,
             tab === 'prophets' && [styles.tabItemActive, { borderBottomColor: colors.emeraldMid }],
           ]}
+          accessibilityRole="button"
+          accessibilityLabel="Show Prophets tab"
         >
           <Text
             style={[
@@ -304,6 +308,8 @@ function CompanionCard({
   return (
     <Pressable
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Read ${companion.name_en} story`}
       style={[
         styles.companionCard,
         {
@@ -411,6 +417,8 @@ function ProphetCard({
   return (
     <Pressable
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Read ${prophet.name_en} story`}
       style={[
         styles.prophetCard,
         { backgroundColor: colors.card, borderColor: colors.border },

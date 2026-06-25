@@ -131,7 +131,11 @@ export default function LearnScreen() {
         data={freePaths}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <Pressable onPress={() => router.push(`/learn/${item.id}`)}>
+          <Pressable
+            onPress={() => router.push(`/learn/${item.id}`)}
+            accessibilityRole="button"
+            accessibilityLabel={`Start ${item.title} learning path`}
+          >
             <Card variant="elevated" style={styles.pathCard}>
               <View style={styles.pathHeader}>
                 <Text style={[styles.pathName, { color: colors.bronzeText }]}>{item.title}</Text>
@@ -152,7 +156,12 @@ export default function LearnScreen() {
               description="Unlock advanced and scholar-level paths with premium"
             >
               {premiumPaths.map((item) => (
-                <Pressable key={item.id} onPress={() => router.push(`/learn/${item.id}`)}>
+                <Pressable
+                  key={item.id}
+                  onPress={() => router.push(`/learn/${item.id}`)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Start ${item.title} learning path`}
+                >
                   <Card variant="elevated" style={styles.pathCard}>
                     <View style={styles.pathHeader}>
                       <Text style={[styles.pathName, { color: colors.bronzeText }]}>{item.title} {'\u{1F512}'}</Text>

@@ -305,6 +305,7 @@ export default function ProphetStoryScreen() {
           <Pressable
             onPress={() => router.canGoBack() ? router.back() : router.push('/stories')}
             style={[styles.iconBtn, { backgroundColor: colors.background }]}
+            accessibilityRole="button"
             accessibilityLabel="Back to stories"
           >
             <Text style={[styles.chevronLeft, { color: colors.bronzeText }]}>‹</Text>
@@ -325,6 +326,7 @@ export default function ProphetStoryScreen() {
                 styles.iconBtn,
                 isBookmarked && { backgroundColor: themeColor + '1a' },
               ]}
+              accessibilityRole="button"
               accessibilityLabel={isBookmarked ? 'Remove bookmark' : 'Bookmark story'}
             >
               <Text style={{ fontSize: 18, color: isBookmarked ? themeColor : colors.mutedText }}>
@@ -335,6 +337,7 @@ export default function ProphetStoryScreen() {
             <Pressable
               onPress={handleShare}
               style={styles.iconBtn}
+              accessibilityRole="button"
               accessibilityLabel="Share story"
             >
               <Text style={{ fontSize: 16, color: colors.mutedText }}>{'↑'}</Text>
@@ -526,6 +529,8 @@ export default function ProphetStoryScreen() {
           onPress={handlePrev}
           disabled={currentPart <= 1}
           style={[styles.navBtn, currentPart <= 1 && styles.navBtnDisabled]}
+          accessibilityRole="button"
+          accessibilityLabel="Previous part"
         >
           <Text
             style={[
@@ -549,6 +554,7 @@ export default function ProphetStoryScreen() {
                   setCurrentPart(num)
                   scrollRef.current?.scrollTo({ y: 0, animated: true })
                 }}
+                accessibilityRole="button"
                 accessibilityLabel={`Go to part ${num}`}
                 style={[
                   styles.dot,
@@ -567,6 +573,8 @@ export default function ProphetStoryScreen() {
             onPress={handleDone}
             disabled={isAdvancing}
             style={[styles.navBtnPrimary, { backgroundColor: themeColor }]}
+            accessibilityRole="button"
+            accessibilityLabel="Complete story"
           >
             {isAdvancing ? (
               <ActivityIndicator size="small" color="#fff" />
@@ -579,6 +587,8 @@ export default function ProphetStoryScreen() {
             onPress={handleNext}
             disabled={isAdvancing}
             style={[styles.navBtnPrimary, { backgroundColor: themeColor }]}
+            accessibilityRole="button"
+            accessibilityLabel="Next part"
           >
             {isAdvancing ? (
               <ActivityIndicator size="small" color="#fff" />
