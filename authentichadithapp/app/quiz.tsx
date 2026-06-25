@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react'
 import { StyleSheet, View, ScrollView, Text, Pressable } from 'react-native'
-import { Stack } from 'expo-router'
+import { Stack, useRouter } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth/AuthProvider'
@@ -15,6 +15,8 @@ import { HIDDEN_COLLECTION_FILTER } from '@/lib/hadith/visibleCollections'
 import { QuizQuestion, generateQuestions } from '@/lib/hadith/generateQuiz'
 import { STATIC_QUIZZES, getStaticQuiz } from '@/lib/learning/staticQuizContent'
 import { QueryErrorBanner } from '@/components/common/QueryErrorBanner'
+import { useRevenueCat } from '@/lib/revenuecat/RevenueCatProvider'
+import { FONT_FAMILY } from '@/constants/theme'
 
 type QuizState = 'start' | 'playing' | 'results'
 
@@ -22,6 +24,8 @@ export default function QuizScreen() {
   const { user } = useAuth()
   const { isDark } = useTheme()
   const colors = getColors(isDark)
+  const router = useRouter()
+  const { isPro } = useRevenueCat()
   const [quizState, setQuizState] = useState<QuizState>('start')
   const [questions, setQuestions] = useState<QuizQuestion[]>([])
   const [currentQuestion, setCurrentQuestion] = useState(0)
@@ -189,6 +193,14 @@ export default function QuizScreen() {
             onPress={startQuiz}
             disabled={quizMode === 'general' && (!hadiths || hadiths.length === 0)}
           />
+          {!isPro && (
+            <Text style={[styles.limitNote, { color: colors.mutedText }]}>
+              Free: 1 quiz per day ·{' '}
+              <Text style={[styles.limitUpgrade, { color: colors.goldMid }]} onPress={() => router.push('/paywall')}>
+                Upgrade for unlimited
+              </Text>
+            </Text>
+          )}
         </View>
       )}
 
@@ -300,42 +312,42 @@ const styles = StyleSheet.create({
   // Start screen
   startScreen: { alignItems: 'center', paddingTop: SPACING.xxl, gap: SPACING.md },
   startEmoji: { fontSize: 64 },
-  startTitle: { fontSize: FONT_SIZES.xxxl, fontWeight: '700' },
-  startSubtitle: { fontSize: FONT_SIZES.base, textAlign: 'center', paddingHorizontal: SPACING.lg },
+  startTitle: { fontSize: FONT_SIZES.xxxl, fontWeight: '700', fontFamily: FONT_FAMILY.heading },
+  startSubtitle: { fontSize: FONT_SIZES.base, fontFamily: FONT_FAMILY.body, textAlign: 'center', paddingHorizontal: SPACING.lg },
   infoCard: { width: '100%', marginVertical: SPACING.md },
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: SPACING.sm },
   infoLabel: { fontSize: FONT_SIZES.base },
   infoValue: { fontSize: FONT_SIZES.base, fontWeight: '600' },
   // Quiz
   quizHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: SPACING.sm },
-  questionCount: { fontSize: FONT_SIZES.md, fontWeight: '600' },
-  timerText: { fontSize: FONT_SIZES.md, fontWeight: '500' },
+  questionCount: { fontSize: FONT_SIZES.md, fontWeight: '600', fontFamily: FONT_FAMILY.bodySemiBold },
+  timerText: { fontSize: FONT_SIZES.md, fontWeight: '500', fontFamily: FONT_FAMILY.bodyMedium },
   progressBarBg: { height: 4, borderRadius: 2, marginBottom: SPACING.lg },
   progressBarFill: { height: '100%', borderRadius: 2 },
   questionCard: { marginBottom: SPACING.lg },
-  questionText: { fontSize: FONT_SIZES.md, lineHeight: 24 },
+  questionText: { fontSize: FONT_SIZES.md, fontFamily: FONT_FAMILY.body, lineHeight: 24 },
   optionsContainer: { gap: SPACING.sm },
   option: {
     flexDirection: 'row', alignItems: 'center', padding: SPACING.md,
     borderRadius: BORDER_RADIUS.lg,
     borderWidth: 1, gap: SPACING.md,
   },
-  optionLetter: { fontSize: FONT_SIZES.base, fontWeight: '700', width: 24 },
-  optionText: { fontSize: FONT_SIZES.base, flex: 1 },
+  optionLetter: { fontSize: FONT_SIZES.base, fontWeight: '700', fontFamily: FONT_FAMILY.heading, width: 24 },
+  optionText: { fontSize: FONT_SIZES.base, fontFamily: FONT_FAMILY.body, flex: 1 },
   checkmark: { fontSize: 18 },
   crossmark: { fontSize: 18 },
-  explanationText: { fontSize: FONT_SIZES.sm, fontStyle: 'italic', marginTop: SPACING.md, padding: SPACING.md },
+  explanationText: { fontSize: FONT_SIZES.sm, fontFamily: FONT_FAMILY.body, fontStyle: 'italic', marginTop: SPACING.md, padding: SPACING.md },
   // Results
   resultsScreen: { alignItems: 'center', paddingTop: SPACING.xxl, gap: SPACING.sm },
   resultsEmoji: { fontSize: 64 },
-  resultsTitle: { fontSize: FONT_SIZES.xxxl, fontWeight: '700' },
-  scoreText: { fontSize: 48, fontWeight: '700' },
-  scoreLabel: { fontSize: FONT_SIZES.md },
-  timeText: { fontSize: FONT_SIZES.base },
+  resultsTitle: { fontSize: FONT_SIZES.xxxl, fontWeight: '700', fontFamily: FONT_FAMILY.heading },
+  scoreText: { fontSize: 48, fontWeight: '700', fontFamily: FONT_FAMILY.heading },
+  scoreLabel: { fontSize: FONT_SIZES.md, fontFamily: FONT_FAMILY.body },
+  timeText: { fontSize: FONT_SIZES.base, fontFamily: FONT_FAMILY.body },
   resultsSummary: { width: '100%', marginVertical: SPACING.md },
   resultRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, paddingVertical: SPACING.xs },
   resultIcon: { fontSize: 16 },
-  resultQuestion: { fontSize: FONT_SIZES.sm, flex: 1 },
+  resultQuestion: { fontSize: FONT_SIZES.sm, fontFamily: FONT_FAMILY.body, flex: 1 },
   // Quiz mode selector
   quizModeList: { width: '100%', gap: SPACING.sm, marginVertical: SPACING.md },
   quizModeCard: {
@@ -349,7 +361,16 @@ const styles = StyleSheet.create({
   quizModeSelected: { borderWidth: 2 },
   quizModeEmoji: { fontSize: 28 },
   quizModeTextBlock: { flex: 1 },
-  quizModeTitle: { fontSize: FONT_SIZES.base, fontWeight: '600', marginBottom: 2 },
-  quizModeDesc: { fontSize: FONT_SIZES.sm, lineHeight: 18 },
-  quizModeBadge: { fontSize: FONT_SIZES.sm, fontWeight: '600' },
+  quizModeTitle: { fontSize: FONT_SIZES.base, fontWeight: '600', fontFamily: FONT_FAMILY.bodySemiBold, marginBottom: 2 },
+  quizModeDesc: { fontSize: FONT_SIZES.sm, fontFamily: FONT_FAMILY.body, lineHeight: 18 },
+  quizModeBadge: { fontSize: FONT_SIZES.sm, fontWeight: '600', fontFamily: FONT_FAMILY.bodySemiBold },
+  limitNote: {
+    fontSize: FONT_SIZES.xs,
+    fontFamily: FONT_FAMILY.body,
+    textAlign: 'center',
+    marginTop: SPACING.sm,
+  },
+  limitUpgrade: {
+    fontFamily: FONT_FAMILY.bodySemiBold,
+  },
 })

@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth/AuthProvider';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors';
+import { FONT_FAMILY } from '@/constants/theme';
 import { useTheme } from '@/lib/theme/ThemeProvider';
 
 export default function LoginScreen() {
@@ -90,11 +91,13 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xl,
   },
   title: {
+    fontFamily: FONT_FAMILY.heading,
     fontSize: FONT_SIZES.xxxl,
     fontWeight: '700',
     marginBottom: SPACING.sm,
   },
   subtitle: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.base,
   },
   form: {
@@ -105,6 +108,7 @@ const styles = StyleSheet.create({
     marginTop: SPACING.sm,
   },
   linkText: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.base,
   },
   footer: {
@@ -113,9 +117,11 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xl,
   },
   footerText: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.base,
   },
   footerLink: {
+    fontFamily: FONT_FAMILY.bodySemiBold,
     fontSize: FONT_SIZES.base,
     fontWeight: '600',
   },

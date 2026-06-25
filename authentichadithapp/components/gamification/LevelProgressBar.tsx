@@ -2,6 +2,7 @@ import React from 'react'
 import { View, Text, StyleSheet } from 'react-native'
 import { COLORS, SPACING, FONT_SIZES } from '@/lib/styles/colors'
 import { LevelInfo } from '@/types/gamification'
+import { FONT_FAMILY } from '@/constants/theme'
 
 interface LevelProgressBarProps {
   levelInfo: LevelInfo
@@ -56,14 +57,17 @@ const styles = StyleSheet.create({
   levelNumber: {
     fontSize: FONT_SIZES.md,
     fontWeight: '700',
+    fontFamily: FONT_FAMILY.heading,
   },
   levelTitle: {
     fontSize: FONT_SIZES.base,
+    fontFamily: FONT_FAMILY.bodySemiBold,
     color: COLORS.bronzeText,
     fontWeight: '600',
   },
   xpText: {
     fontSize: FONT_SIZES.sm,
+    fontFamily: FONT_FAMILY.body,
     color: COLORS.mutedText,
   },
   barBackground: {

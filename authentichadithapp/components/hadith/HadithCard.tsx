@@ -5,6 +5,7 @@ import { GradeBadge } from './GradeBadge'
 import { useTheme } from '@/lib/theme/ThemeProvider'
 import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
 import { Hadith } from '@/types/hadith'
+import { FONT_FAMILY } from '@/constants/theme'
 import { sendChatMessage } from '@/lib/api/groq'
 import {
   formatHadithReference,
@@ -210,6 +211,7 @@ const styles = StyleSheet.create({
   reference: {
     fontSize: FONT_SIZES.sm,
     fontWeight: '500',
+    fontFamily: FONT_FAMILY.bodyMedium,
   },
   divider: {
     height: 1,
@@ -227,17 +229,20 @@ const styles = StyleSheet.create({
   },
   englishText: {
     fontSize: FONT_SIZES.base,
+    fontFamily: FONT_FAMILY.body,
     lineHeight: 24,
     marginBottom: SPACING.sm,
   },
   narrator: {
     fontSize: FONT_SIZES.sm,
+    fontFamily: FONT_FAMILY.body,
     fontStyle: 'italic',
     marginTop: 2,
   },
   readMore: {
     fontSize: FONT_SIZES.sm,
     fontWeight: '600',
+    fontFamily: FONT_FAMILY.bodySemiBold,
     marginTop: SPACING.sm,
   },
   summaryBlock: {
@@ -253,6 +258,7 @@ const styles = StyleSheet.create({
   summarizeBtnText: {
     fontSize: FONT_SIZES.sm,
     fontWeight: '600',
+    fontFamily: FONT_FAMILY.bodySemiBold,
   },
   summaryBox: {
     marginTop: SPACING.sm,
@@ -263,16 +269,19 @@ const styles = StyleSheet.create({
   summaryLabel: {
     fontSize: FONT_SIZES.xs,
     fontWeight: '700',
+    fontFamily: FONT_FAMILY.heading,
     marginBottom: 4,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   summaryText: {
     fontSize: FONT_SIZES.base,
+    fontFamily: FONT_FAMILY.body,
     lineHeight: 22,
   },
   summaryDisclaimer: {
     fontSize: FONT_SIZES.xs,
+    fontFamily: FONT_FAMILY.body,
     fontStyle: 'italic',
     marginTop: SPACING.xs,
   },

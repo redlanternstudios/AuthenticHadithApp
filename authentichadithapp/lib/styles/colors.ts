@@ -37,7 +37,7 @@ export const LIGHT_COLORS = {
   info: '#2d7a5b',
 
   // Destructive (irreversible actions — delete account, etc.)
-  destructive: '#dc2626',
+  destructive: '#b91c1c',
   destructiveText: '#ffffff',
 
   // Chat colors
@@ -93,8 +93,8 @@ export const DARK_COLORS = {
   destructiveText: '#ffffff',
 
   // Chat colors
-  chatUserBubble: '#D4A574',
-  chatAiBubble: '#50C878',
+  chatUserBubble: '#c5a059',
+  chatAiBubble: '#1b5e43',
 
   // Tab bar
   tabBar: '#1c1c1e',

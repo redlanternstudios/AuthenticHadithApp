@@ -26,6 +26,7 @@ import { supabase } from '@/lib/supabase/client'
 import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
 import { useTheme } from '@/lib/theme/ThemeProvider'
 import { getStoryPartProgress, StoryPartProgress } from '@/lib/progress/progressService'
+import { FONT_FAMILY } from '@/constants/theme'
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -469,8 +470,8 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   content: { padding: SPACING.md, paddingBottom: SPACING.xxl },
 
-  title: { fontSize: FONT_SIZES.xxxl, fontWeight: '700', paddingTop: SPACING.md, marginBottom: SPACING.xs },
-  subtitle: { fontSize: FONT_SIZES.sm, marginBottom: SPACING.md },
+  title: { fontSize: FONT_SIZES.xxxl, fontWeight: '700', fontFamily: FONT_FAMILY.heading, paddingTop: SPACING.md, marginBottom: SPACING.xs },
+  subtitle: { fontSize: FONT_SIZES.sm, fontFamily: FONT_FAMILY.body, marginBottom: SPACING.md },
 
   // Tabs
   tabBar: {
@@ -486,12 +487,12 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   tabItemActive: { borderBottomWidth: 2 },
-  tabLabel: { fontSize: FONT_SIZES.sm, fontWeight: '600' },
+  tabLabel: { fontSize: FONT_SIZES.sm, fontWeight: '600', fontFamily: FONT_FAMILY.bodySemiBold },
 
-  description: { fontSize: FONT_SIZES.sm, lineHeight: 20, marginBottom: SPACING.md },
+  description: { fontSize: FONT_SIZES.sm, fontFamily: FONT_FAMILY.body, lineHeight: 20, marginBottom: SPACING.md },
 
   section: { marginBottom: SPACING.lg },
-  sectionLabel: { fontSize: FONT_SIZES.xs, fontWeight: '700', letterSpacing: 1.5, marginBottom: SPACING.sm },
+  sectionLabel: { fontSize: FONT_SIZES.xs, fontWeight: '700', fontFamily: FONT_FAMILY.heading, letterSpacing: 1.5, marginBottom: SPACING.sm },
 
   // Companion card
   companionCard: {
@@ -511,13 +512,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexShrink: 0,
   },
-  companionAvatarText: { fontSize: FONT_SIZES.xl, fontWeight: '700' },
+  companionAvatarText: { fontSize: FONT_SIZES.xl, fontWeight: '700', fontFamily: FONT_FAMILY.heading },
   companionInfo: { flex: 1, minWidth: 0 },
   companionNameRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.xs, flexWrap: 'wrap' },
-  companionName: { fontSize: FONT_SIZES.sm, fontWeight: '600' },
+  companionName: { fontSize: FONT_SIZES.sm, fontWeight: '600', fontFamily: FONT_FAMILY.bodySemiBold },
   statusIcon: { fontSize: FONT_SIZES.sm },
   companionArabic: { fontSize: FONT_SIZES.xs },
-  companionTitle: { fontSize: FONT_SIZES.xs, fontWeight: '500', marginTop: 2 },
+  companionTitle: { fontSize: FONT_SIZES.xs, fontWeight: '500', fontFamily: FONT_FAMILY.bodyMedium, marginTop: 2 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: SPACING.xs, flexWrap: 'wrap' },
   metaText: { fontSize: 10 },
   tagsRow: { flexDirection: 'row', gap: SPACING.xs, marginTop: SPACING.xs, flexWrap: 'wrap' },
@@ -544,7 +545,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexShrink: 0,
   },
-  prophetNumberText: { fontSize: FONT_SIZES.lg, fontWeight: '700' },
+  prophetNumberText: { fontSize: FONT_SIZES.lg, fontWeight: '700', fontFamily: FONT_FAMILY.heading },
   eraBadge: {
     paddingHorizontal: SPACING.sm,
     paddingVertical: 2,

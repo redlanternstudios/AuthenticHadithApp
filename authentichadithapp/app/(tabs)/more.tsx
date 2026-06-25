@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from '@/lib/theme/ThemeProvider'
 import { TopBar } from '@/components/layout/TopBar'
 import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
+import { FONT_FAMILY } from '@/constants/theme'
 
 type MoreItem = {
   icon: string
@@ -15,6 +16,25 @@ type MoreItem = {
 }
 
 const SECTIONS: { title: string; items: MoreItem[] }[] = [
+  {
+    title: 'BROWSE',
+    items: [
+      {
+        icon: '📚',
+        title: 'Collections',
+        description: 'Browse all hadith collections',
+        route: '/(tabs)/collections',
+        accessibilityLabel: 'Open Collections',
+      },
+      {
+        icon: '🔍',
+        title: 'Search',
+        description: 'Search across all 14,444 authentic hadiths',
+        route: '/(tabs)/search',
+        accessibilityLabel: 'Open Search',
+      },
+    ],
+  },
   {
     title: 'DAILY',
     items: [
@@ -38,11 +58,11 @@ const SECTIONS: { title: string; items: MoreItem[] }[] = [
         accessibilityLabel: 'Open Learn screen',
       },
       {
-        icon: '✨',
-        title: 'Assistant',
-        description: 'AI assistant for questions about hadith',
-        route: '/(tabs)/assistant',
-        accessibilityLabel: 'Open AI Assistant',
+        icon: '🏷️',
+        title: 'Topics',
+        description: 'Browse by theme and subject',
+        route: '/topics',
+        accessibilityLabel: 'Open Topics',
       },
     ],
   },
@@ -135,6 +155,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.lg,
   },
   sectionLabel: {
+    fontFamily: FONT_FAMILY.bodySemiBold,
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1.2,
@@ -159,14 +180,17 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   rowTitle: {
+    fontFamily: FONT_FAMILY.bodySemiBold,
     fontSize: FONT_SIZES.md,
     fontWeight: '600',
   },
   rowDescription: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.sm,
     lineHeight: 18,
   },
   chevron: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: 24,
     fontWeight: '300',
   },

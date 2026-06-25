@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SPACING, FONT_SIZES , getColors } from '@/lib/styles/colors';
 import { useTheme } from '@/lib/theme/ThemeProvider';
+import { FONT_FAMILY } from '@/constants/theme';
 
 interface SettingsItemProps {
   icon?: keyof typeof Ionicons.glyphMap;
@@ -123,10 +124,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONT_SIZES.md,
     fontWeight: '500',
+    fontFamily: FONT_FAMILY.bodyMedium,
     marginBottom: 2,
   },
   subtitle: {
     fontSize: FONT_SIZES.sm,
+    fontFamily: FONT_FAMILY.body,
   },
   rightContent: {
     flexDirection: 'row',
@@ -135,6 +138,7 @@ const styles = StyleSheet.create({
   },
   value: {
     fontSize: FONT_SIZES.md,
+    fontFamily: FONT_FAMILY.body,
     marginRight: SPACING.sm,
     maxWidth: 150,
   },

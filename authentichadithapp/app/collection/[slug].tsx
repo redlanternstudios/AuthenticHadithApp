@@ -17,6 +17,7 @@ import {
   FONT_SIZES,
   BORDER_RADIUS,
 } from '@/lib/styles/colors';
+import { FONT_FAMILY } from '@/constants/theme';
 import { useTheme } from '@/lib/theme/ThemeProvider';
 import { isHiddenCollection } from '@/lib/hadith/visibleCollections';
 
@@ -318,6 +319,7 @@ const gradeStyles = StyleSheet.create({
     borderRadius: 4,
   },
   legendText: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.xs,
   },
 });
@@ -334,6 +336,7 @@ const styles = StyleSheet.create({
     paddingTop: SPACING.lg,
   },
   title: {
+    fontFamily: FONT_FAMILY.heading,
     fontSize: FONT_SIZES.xxxl,
     fontWeight: '700',
   },
@@ -344,6 +347,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   scholar: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.base,
     marginTop: SPACING.sm,
     fontWeight: '500',
@@ -361,10 +365,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statValue: {
+    fontFamily: FONT_FAMILY.heading,
     fontSize: FONT_SIZES.xxl,
     fontWeight: '700',
   },
   statLabel: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.sm,
     marginTop: 2,
   },
@@ -373,11 +379,13 @@ const styles = StyleSheet.create({
     height: 32,
   },
   description: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.base,
     lineHeight: 20,
     marginTop: SPACING.md,
   },
   sectionLabel: {
+    fontFamily: FONT_FAMILY.headingMedium,
     fontSize: FONT_SIZES.lg,
     fontWeight: '700',
     marginTop: SPACING.lg,
@@ -400,6 +408,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   bookNumberText: {
+    fontFamily: FONT_FAMILY.bodySemiBold,
     fontSize: FONT_SIZES.base,
     fontWeight: '700',
   },
@@ -407,6 +416,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   bookName: {
+    fontFamily: FONT_FAMILY.bodySemiBold,
     fontSize: FONT_SIZES.md,
     fontWeight: '600',
   },
@@ -416,6 +426,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   bookMeta: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.sm,
     marginTop: SPACING.xs,
   },
@@ -429,10 +440,12 @@ const styles = StyleSheet.create({
     padding: SPACING.xl,
   },
   errorText: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.md,
     marginBottom: SPACING.md,
   },
   backLink: {
+    fontFamily: FONT_FAMILY.bodySemiBold,
     fontSize: FONT_SIZES.md,
     fontWeight: '600',
   },
@@ -441,6 +454,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyText: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.base,
     textAlign: 'center',
   },

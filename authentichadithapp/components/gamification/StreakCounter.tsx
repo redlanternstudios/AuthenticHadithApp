@@ -2,6 +2,7 @@ import React from 'react'
 import { View, Text, StyleSheet } from 'react-native'
 import { Card } from '@/components/ui/Card'
 import { COLORS, SPACING, FONT_SIZES } from '@/lib/styles/colors'
+import { FONT_FAMILY } from '@/constants/theme'
 
 interface StreakCounterProps {
   currentStreak: number
@@ -58,6 +59,7 @@ const styles = StyleSheet.create({
   count: {
     fontSize: FONT_SIZES.xxxl,
     fontWeight: '700',
+    fontFamily: FONT_FAMILY.heading,
     color: COLORS.bronzeText,
   },
   countActive: {
@@ -65,6 +67,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: FONT_SIZES.sm,
+    fontFamily: FONT_FAMILY.body,
     color: COLORS.mutedText,
   },
   divider: {
@@ -79,6 +82,7 @@ const styles = StyleSheet.create({
   bestCount: {
     fontSize: FONT_SIZES.xxl,
     fontWeight: '700',
+    fontFamily: FONT_FAMILY.heading,
     color: COLORS.goldMid,
   },
 })

@@ -348,6 +348,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   actionLabel: {
+    fontFamily: FONT_FAMILY.bodySemiBold,
     fontSize: FONT_SIZES.sm,
     fontWeight: '600',
   },
@@ -363,6 +364,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   reflectionText: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.base,
     lineHeight: 22,
     fontStyle: 'italic',
@@ -380,6 +382,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   sunnahReference: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.sm,
   },
   quickLinks: {
@@ -402,6 +405,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
   },
   quickLinkText: {
+    fontFamily: FONT_FAMILY.bodySemiBold,
     fontSize: 12,
     fontWeight: '600',
     textAlign: 'center',

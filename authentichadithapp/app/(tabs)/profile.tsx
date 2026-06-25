@@ -19,6 +19,7 @@ import { useRevenueCatSubscription } from '@/hooks/useRevenueCatSubscription';
 import { PaywallScreen } from '@/components/premium/PaywallScreen';
 import { CustomerCenterScreen } from '@/components/premium/CustomerCenterScreen';
 import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS, LAYOUT } from '@/lib/styles/colors';
+import { FONT_FAMILY } from '@/constants/theme';
 import { useDeviceLayout } from '@/lib/hooks/use-device-layout';
 
 interface SettingsRowProps {
@@ -299,18 +300,21 @@ const styles = StyleSheet.create({
     paddingBottom: 80,
   },
   guestTitle: {
+    fontFamily: FONT_FAMILY.heading,
     fontSize: FONT_SIZES.xxl,
     fontWeight: '700',
     letterSpacing: -0.3,
     marginTop: SPACING.sm,
   },
   guestText: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.base,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: SPACING.sm,
   },
   screenTitle: {
+    fontFamily: FONT_FAMILY.heading,
     fontSize: 30,
     fontWeight: '700',
     letterSpacing: -0.5,
@@ -324,6 +328,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarInitials: {
+    fontFamily: FONT_FAMILY.heading,
     fontSize: FONT_SIZES.xl,
     fontWeight: '700',
   },
@@ -340,6 +345,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   emailText: {
+    fontFamily: FONT_FAMILY.bodySemiBold,
     fontSize: FONT_SIZES.base,
     fontWeight: '600',
   },
@@ -350,12 +356,14 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.full,
   },
   proBadgeText: {
+    fontFamily: FONT_FAMILY.bodySemiBold,
     color: '#fff',
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 0.3,
   },
   freeLabel: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.sm,
   },
   section: {
@@ -364,6 +372,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   sectionTitle: {
+    fontFamily: FONT_FAMILY.bodySemiBold,
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1,
@@ -388,6 +397,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   settingsLabel: {
+    fontFamily: FONT_FAMILY.body,
     flex: 1,
     fontSize: FONT_SIZES.base,
     fontWeight: '500',
@@ -398,6 +408,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   settingsValue: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.sm,
   },
   signOutRow: {
@@ -412,6 +423,7 @@ const styles = StyleSheet.create({
     minHeight: LAYOUT.touchTarget,
   },
   signOutText: {
+    fontFamily: FONT_FAMILY.bodySemiBold,
     fontSize: FONT_SIZES.base,
     fontWeight: '600',
   },

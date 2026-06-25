@@ -619,6 +619,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   errorText: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.md,
   },
   headerBtn: {
@@ -638,6 +639,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   hadithNumber: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.sm,
   },
   badgeRow: {
@@ -712,10 +714,12 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.lg,
   },
   summaryText: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.base,
     lineHeight: 22,
   },
   summaryDisclaimer: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.xs,
     fontStyle: 'italic',
     marginTop: SPACING.xs,
@@ -737,6 +741,7 @@ const styles = StyleSheet.create({
     minHeight: LAYOUT.touchTarget,
   },
   actionBtnText: {
+    fontFamily: FONT_FAMILY.bodySemiBold,
     fontSize: FONT_SIZES.sm,
     fontWeight: '600',
   },
@@ -755,6 +760,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   langSegmentText: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.sm,
     fontWeight: '500',
   },
@@ -772,6 +778,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   tagChipText: {
+    fontFamily: FONT_FAMILY.bodySemiBold,
     fontSize: FONT_SIZES.xs,
     fontWeight: '600',
   },
@@ -792,6 +799,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xs,
   },
   keyTeachingBody: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.base,
     lineHeight: 22,
   },
@@ -809,6 +817,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.xs,
   },
   referenceLabel: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.sm,
     fontWeight: '500',
   },
