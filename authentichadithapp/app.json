@@ -26,6 +26,9 @@
         "ITSAppUsesNonExemptEncryption": false,
         "CFBundleDisplayName": "Authentic Hadith"
       },
+      "entitlements": {
+        "aps-environment": "production"
+      },
       "privacyManifests": {
         "NSPrivacyTracking": false,
         "NSPrivacyTrackingDomains": [],
@@ -89,6 +92,14 @@
       ],
       "expo-secure-store",
       "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#1b5e43",
+          "sounds": []
+        }
+      ],
       [
         "expo-font",
         {

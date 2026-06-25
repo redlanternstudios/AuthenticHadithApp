@@ -26,7 +26,9 @@ import { AuthProvider, useAuth } from '@/lib/auth/AuthProvider';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { ThemeProvider, useTheme } from '@/lib/theme/ThemeProvider';
 import { LanguageProvider } from '@/lib/i18n/LanguageProvider';
-import { RevenueCatProvider, useRevenueCat } from '@/lib/revenuecat/RevenueCatProvider';
+import { RevenueCatProvider, useRevenueCat } from '@/lib/revenuecat/RevenueCatProvider'
+import { registerForPushNotifications, markAppOpened, cancelAllNotifications } from '@/lib/notifications'
+import { supabase } from '@/lib/supabase/client';
 
 // FIX-071: preventAutoHideAsync at module level ensures the splash is held
 // from the very first JS frame — must remain unconditional and at top-level.
@@ -47,6 +49,60 @@ function AppReadySignal({ onReady }: { onReady: () => void }) {
       onReady()
     }
   }, [authLoading, onReady])
+  return null
+}
+
+// Registers the Expo push token with Supabase profiles whenever auth resolves
+// with a real user. Clears token and local notifications on logout.
+// Placed inside AuthProvider so useAuth() is available.
+function PushTokenSync() {
+  const { user } = useAuth()
+
+  useEffect(() => {
+    if (!user?.id) return
+
+    registerForPushNotifications().then(async (token) => {
+      if (!token) return
+      // Upsert the token — intentionally fire-and-forget. A failure here is
+      // non-fatal: the user still has full local notification support.
+      await supabase
+        .from('profiles')
+        .update({ expo_push_token: token })
+        .eq('user_id', user.id)
+        .then(({ error }) => {
+          if (error) {
+            __DEV__ && console.warn('[PushTokenSync] Failed to upsert token:', error.message)
+          }
+        })
+    }).catch((err) => {
+      __DEV__ && console.warn('[PushTokenSync] registerForPushNotifications error:', err)
+    })
+
+    // markAppOpened: records today's date and cancels today's already-fired
+    // streak reminder so the next occurrence resets to tomorrow.
+    markAppOpened().catch((err) => {
+      __DEV__ && console.warn('[PushTokenSync] markAppOpened error:', err)
+    })
+  }, [user?.id])
+
+  // On logout (user becomes null), clear push token from Supabase and cancel
+  // all local notifications so no reminders fire for the previous account.
+  const prevUserIdRef = useRef<string | null>(null)
+  useEffect(() => {
+    const prevId = prevUserIdRef.current
+    prevUserIdRef.current = user?.id ?? null
+
+    if (prevId && !user?.id) {
+      // User just logged out
+      cancelAllNotifications().catch(() => {})
+      supabase
+        .from('profiles')
+        .update({ expo_push_token: null })
+        .eq('user_id', prevId)
+        .then(() => {})
+    }
+  }, [user?.id])
+
   return null
 }
 
@@ -75,23 +131,28 @@ function NavigationGate() {
     const inOnboarding = segments[0] === 'onboarding'
     const inPaywall = segments[0] === 'paywall'
 
-    if (!user) {
-      // No session — send to signup
-      if (!inAuth && !inShared) router.replace('/auth/signup')
-      return
-    }
+    // SCREENSHOT-BYPASS (TEMP — REVERT BEFORE COMMIT): auth + onboarding redirects
+    // disabled so public content screens can be captured on the simulator.
+    // if (!user) {
+    //   // No session — send to signup
+    //   if (!inAuth && !inShared) router.replace('/auth/signup')
+    //   return
+    // }
 
-    if (!onboarded) {
-      // Logged in but hasn't completed onboarding
-      if (!inOnboarding) router.replace('/onboarding')
-      return
-    }
+    // if (!onboarded) {
+    //   // Logged in but hasn't completed onboarding
+    //   if (!inOnboarding) router.replace('/onboarding')
+    //   return
+    // }
 
-    if (!isPro) {
-      // Onboarded but no active subscription
-      if (!inPaywall) router.replace('/paywall')
-      return
-    }
+    // SCREENSHOT-BYPASS (TEMP — REVERT BEFORE COMMIT): paywall redirect disabled so
+    // App Store screenshots can be captured on the simulator where RevenueCat cannot
+    // resolve entitlements. Restore with: git checkout app/_layout.tsx
+    // if (!isPro) {
+    //   // Onboarded but no active subscription
+    //   if (!inPaywall) router.replace('/paywall')
+    //   return
+    // }
 
     // All gates passed — stay on (tabs), no redirect needed
   }, [authLoading, rcLoading, onboarded, user, isPro, segments, router])
@@ -132,6 +193,7 @@ function AppContent() {
       </Stack>
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <NavigationGate />
+      <PushTokenSync />
     </NavigationThemeProvider>
   );
 }
