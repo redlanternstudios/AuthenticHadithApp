@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Stack } from 'expo-router';
 import { SPACING, FONT_SIZES , getColors } from '@/lib/styles/colors';
+import { FONT_FAMILY } from '@/constants/theme';
 import { useTheme } from '@/lib/theme/ThemeProvider';
 
 export default function SyncScreen() {
@@ -41,11 +42,13 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
   },
   title: {
+    fontFamily: FONT_FAMILY.heading,
     fontSize: FONT_SIZES.lg,
     fontWeight: '700',
     marginBottom: SPACING.sm,
   },
   description: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.base,
     lineHeight: 22,
   },

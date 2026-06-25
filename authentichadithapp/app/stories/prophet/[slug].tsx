@@ -27,6 +27,7 @@ import { supabase } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth/AuthProvider'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
+import { FONT_FAMILY } from '@/constants/theme'
 import { useTheme } from '@/lib/theme/ThemeProvider'
 import { trackActivity } from '@/lib/gamification/track-activity'
 import {
@@ -329,7 +330,7 @@ export default function ProphetStoryScreen() {
               accessibilityRole="button"
               accessibilityLabel={isBookmarked ? 'Remove bookmark' : 'Bookmark story'}
             >
-              <Text style={{ fontSize: 18, color: isBookmarked ? themeColor : colors.mutedText }}>
+              <Text style={{ fontFamily: FONT_FAMILY.body, fontSize: 18, color: isBookmarked ? themeColor : colors.mutedText }}>
                 {isBookmarked ? '★' : '☆'}
               </Text>
             </Pressable>
@@ -340,7 +341,7 @@ export default function ProphetStoryScreen() {
               accessibilityRole="button"
               accessibilityLabel="Share story"
             >
-              <Text style={{ fontSize: 16, color: colors.mutedText }}>{'↑'}</Text>
+              <Text style={{ fontFamily: FONT_FAMILY.body, fontSize: 16, color: colors.mutedText }}>{'↑'}</Text>
             </Pressable>
           </View>
         </View>
@@ -617,8 +618,8 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   headerMid: { flex: 1 },
-  headerTitle: { fontSize: FONT_SIZES.sm, fontWeight: '700' },
-  headerSub: { fontSize: FONT_SIZES.xs },
+  headerTitle: { fontFamily: FONT_FAMILY.heading, fontSize: FONT_SIZES.sm, fontWeight: '700' },
+  headerSub: { fontFamily: FONT_FAMILY.body, fontSize: FONT_SIZES.xs },
   headerActions: { flexDirection: 'row', gap: SPACING.xs },
   iconBtn: {
     width: 36,
@@ -636,13 +637,13 @@ const styles = StyleSheet.create({
 
   partHeader: { marginBottom: SPACING.lg },
   partLabelRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, marginBottom: SPACING.xs, flexWrap: 'wrap' },
-  partLabel: { fontSize: FONT_SIZES.xs, fontWeight: '700', letterSpacing: 1.2 },
+  partLabel: { fontFamily: FONT_FAMILY.heading, fontSize: FONT_SIZES.xs, fontWeight: '700', letterSpacing: 1.2 },
   partLabelAr: { fontSize: FONT_SIZES.xs },
-  checkmark: { fontSize: FONT_SIZES.sm, fontWeight: '700' },
-  partTitle: { fontSize: FONT_SIZES.xxl, fontWeight: '700', lineHeight: 32, marginBottom: SPACING.xs },
+  checkmark: { fontFamily: FONT_FAMILY.body, fontSize: FONT_SIZES.sm, fontWeight: '700' },
+  partTitle: { fontFamily: FONT_FAMILY.heading, fontSize: FONT_SIZES.xxl, fontWeight: '700', lineHeight: 32, marginBottom: SPACING.xs },
   partTitleAr: { fontSize: FONT_SIZES.lg, textAlign: 'right', marginBottom: SPACING.xs },
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, marginTop: SPACING.xs },
-  metaBadge: { fontSize: FONT_SIZES.xs },
+  metaBadge: { fontFamily: FONT_FAMILY.body, fontSize: FONT_SIZES.xs },
 
   openingHook: {
     marginBottom: SPACING.lg,
@@ -651,18 +652,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.md,
   },
-  openingHookText: { fontSize: FONT_SIZES.md, fontStyle: 'italic', lineHeight: 26 },
+  openingHookText: { fontFamily: FONT_FAMILY.body, fontSize: FONT_SIZES.md, fontStyle: 'italic', lineHeight: 26 },
 
   historyBox: {
     marginBottom: SPACING.md,
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.md,
   },
-  historyLabel: { fontSize: FONT_SIZES.xs, fontWeight: '700', letterSpacing: 1.2, marginBottom: SPACING.xs },
-  historyText: { fontSize: FONT_SIZES.sm, lineHeight: 20 },
+  historyLabel: { fontFamily: FONT_FAMILY.heading, fontSize: FONT_SIZES.xs, fontWeight: '700', letterSpacing: 1.2, marginBottom: SPACING.xs },
+  historyText: { fontFamily: FONT_FAMILY.body, fontSize: FONT_SIZES.sm, lineHeight: 20 },
 
   articleBody: { marginBottom: SPACING.md },
-  bodyParagraph: { fontSize: FONT_SIZES.base, lineHeight: 26, marginBottom: SPACING.md },
+  bodyParagraph: { fontFamily: FONT_FAMILY.body, fontSize: FONT_SIZES.base, lineHeight: 26, marginBottom: SPACING.md },
   quoteBlock: {
     borderLeftWidth: 4,
     borderRadius: BORDER_RADIUS.sm,
@@ -670,7 +671,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
     marginVertical: SPACING.md,
   },
-  quoteText: { fontSize: FONT_SIZES.base, lineHeight: 24 },
+  quoteText: { fontFamily: FONT_FAMILY.body, fontSize: FONT_SIZES.base, lineHeight: 24 },
 
   lessonBox: {
     marginTop: SPACING.lg,
@@ -679,24 +680,24 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
     marginBottom: SPACING.md,
   },
-  lessonLabel: { fontSize: FONT_SIZES.xs, fontWeight: '700', letterSpacing: 1.2, marginBottom: SPACING.xs },
-  lessonText: { fontSize: FONT_SIZES.base, fontWeight: '500', lineHeight: 24 },
+  lessonLabel: { fontFamily: FONT_FAMILY.heading, fontSize: FONT_SIZES.xs, fontWeight: '700', letterSpacing: 1.2, marginBottom: SPACING.xs },
+  lessonText: { fontFamily: FONT_FAMILY.body, fontSize: FONT_SIZES.base, fontWeight: '500', lineHeight: 24 },
 
   refSection: { marginTop: SPACING.md, marginBottom: SPACING.sm },
-  refSectionLabel: { fontSize: FONT_SIZES.xs, fontWeight: '700', letterSpacing: 1.2, marginBottom: SPACING.sm },
+  refSectionLabel: { fontFamily: FONT_FAMILY.heading, fontSize: FONT_SIZES.xs, fontWeight: '700', letterSpacing: 1.2, marginBottom: SPACING.sm },
   refRow: { flexDirection: 'row', alignItems: 'flex-start', gap: SPACING.sm, marginBottom: SPACING.xs },
-  refIcon: { fontSize: FONT_SIZES.xs, marginTop: 3 },
-  refText: { flex: 1, fontSize: FONT_SIZES.sm, lineHeight: 20 },
+  refIcon: { fontFamily: FONT_FAMILY.body, fontSize: FONT_SIZES.xs, marginTop: 3 },
+  refText: { fontFamily: FONT_FAMILY.body, flex: 1, fontSize: FONT_SIZES.sm, lineHeight: 20 },
   tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.xs },
   refTag: {
     paddingHorizontal: SPACING.sm,
     paddingVertical: SPACING.xs,
     borderRadius: BORDER_RADIUS.full,
   },
-  refTagText: { fontSize: FONT_SIZES.xs, fontWeight: '500' },
+  refTagText: { fontFamily: FONT_FAMILY.body, fontSize: FONT_SIZES.xs, fontWeight: '500' },
 
   emptyPart: { alignItems: 'center', paddingVertical: SPACING.xxl },
-  emptyText: { fontSize: FONT_SIZES.base },
+  emptyText: { fontFamily: FONT_FAMILY.body, fontSize: FONT_SIZES.base },
 
   bottomNav: {
     flexDirection: 'row',
@@ -709,7 +710,7 @@ const styles = StyleSheet.create({
   },
   navBtn: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, borderRadius: BORDER_RADIUS.lg },
   navBtnDisabled: { opacity: 0.3 },
-  navBtnText: { fontSize: FONT_SIZES.sm, fontWeight: '500' },
+  navBtnText: { fontFamily: FONT_FAMILY.body, fontSize: FONT_SIZES.sm, fontWeight: '500' },
   navBtnPrimary: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -718,7 +719,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm,
     borderRadius: BORDER_RADIUS.lg,
   },
-  navBtnPrimaryText: { fontSize: FONT_SIZES.sm, fontWeight: '600', color: '#ffffff' },
+  navBtnPrimaryText: { fontFamily: FONT_FAMILY.body, fontSize: FONT_SIZES.sm, fontWeight: '600', color: '#ffffff' },
   dots: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   dot: { width: 8, height: 8, borderRadius: 4 },
   dotActive: { width: 20, height: 8, borderRadius: 4 },

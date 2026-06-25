@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { getColors, SPACING, FONT_SIZES } from '../../lib/styles/colors'
 import { useTheme } from '../../lib/theme/ThemeProvider'
+import { FONT_FAMILY } from '../../constants/theme'
 
 interface ScreenHeaderProps {
   title: string
@@ -81,11 +82,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
+    fontFamily: FONT_FAMILY.heading,
     fontSize: FONT_SIZES.xxxl,
     fontWeight: '700',
     marginBottom: SPACING.xs,
   },
   subtitle: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.base,
   },
   right: {

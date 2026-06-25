@@ -7,6 +7,7 @@ import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useTheme } from '@/lib/theme/ThemeProvider';
 import { getColors, LAYOUT } from '@/lib/styles/colors';
+import { FONT_FAMILY } from '@/constants/theme';
 
 export default function TabLayout() {
   const { isDark } = useTheme();
@@ -46,6 +47,7 @@ export default function TabLayout() {
           }),
         },
         tabBarLabelStyle: {
+          fontFamily: FONT_FAMILY.body,
           fontSize: LAYOUT.tabLabelSize,
           fontWeight: '500',
           letterSpacing: 0.1,

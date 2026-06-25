@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Linking } from 'react-native';
 import { Stack } from 'expo-router';
 import { SPACING, FONT_SIZES , getColors } from '@/lib/styles/colors';
+import { FONT_FAMILY } from '@/constants/theme';
 import { useTheme } from '@/lib/theme/ThemeProvider';
 import { SettingsSection } from '@/components/settings/SettingsSection';
 import { SettingsItem } from '@/components/settings/SettingsItem';
@@ -98,11 +99,13 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.lg,
   },
   headerTitle: {
+    fontFamily: FONT_FAMILY.heading,
     fontSize: FONT_SIZES.xxl,
     fontWeight: '700',
     marginBottom: SPACING.xs,
   },
   headerSubtitle: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.base,
   },
   infoBox: {
@@ -112,11 +115,13 @@ const styles = StyleSheet.create({
     marginTop: SPACING.md,
   },
   infoTitle: {
+    fontFamily: FONT_FAMILY.heading,
     fontSize: FONT_SIZES.md,
     fontWeight: '600',
     marginBottom: SPACING.sm,
   },
   infoText: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.sm,
     lineHeight: 22,
   },

@@ -1116,3 +1116,48 @@ The next app must begin from:
 The goal is not to rebuild knowledge.
 
 The goal is to reuse it.
+
+---
+
+## Rule 041: Splash Image Assets MUST Be RGBA PNG — Never Palette (Mode P)
+
+**Trigger**: Any time a PNG file is added or modified in `assets/images/` for splash screen use.
+
+**Rule**: All splash screen images (`splash-icon.png`, icon variations) must be saved in RGBA color mode. Palette-mode (Mode P / 8-bit indexed color) PNGs cannot be rendered by the iOS storyboard splash screen renderer — they silently fall back to the Expo calibration template (concentric circles + grid on black background), which appears to users as a broken launch screen.
+
+**Verification command**:
+```python
+from PIL import Image
+img = Image.open('assets/images/splash-icon.png')
+assert img.mode == 'RGBA', f"FAIL: mode is {img.mode}, must be RGBA"
+```
+
+**Fix command**:
+```python
+from PIL import Image
+img = Image.open('path/to/image.png')
+img.convert('RGBA').save('path/to/image.png')
+```
+
+**Root cause reference**: FIX-107 — splash-icon.png was Mode P, causing calibration template fallback on every cold launch.
+
+**Applies to**: All new apps in the Red Lantern / By Red pipeline. PNG assets for iOS must be verified for mode before inclusion. Source: FIX-107 (2026-06-24).
+
+---
+
+## Rule 042: Every Text Style MUST Declare fontFamily from FONT_FAMILY Constants
+
+**Trigger**: Any `StyleSheet.create()` block that includes `fontSize` or `fontWeight`.
+
+**Rule**: iOS does NOT inherit font families. Every `Text` element renders in the system font (San Francisco) unless `fontFamily` is explicitly set in its style. All text styles in this app must include `fontFamily: FONT_FAMILY.heading` (for headings/labels with fontWeight 700 or letterSpacing) or `fontFamily: FONT_FAMILY.body` (for body text, captions, descriptions). The FONT_FAMILY constants are defined in `constants/theme.ts` and must be imported.
+
+**Exceptions**:
+- Arabic text fields: use `fontFamily: FONT_FAMILY.arabic` (currently `undefined` — intentional, no Arabic font loaded yet)
+- Button badge text on colored backgrounds (`color: '#ffffff'`): fontFamily still required, color is intentionally white for contrast
+
+**Enforcement**: Before any PR merge, grep for fontSize blocks missing fontFamily:
+```bash
+grep -n "fontSize:" src/**/*.tsx | grep -v "fontFamily:"
+```
+
+**Root cause reference**: FIX-108 — 80+ text styles across 11 files omitted fontFamily, causing all body/heading text to render in San Francisco instead of Cinzel. Source: FIX-108 (2026-06-24).
