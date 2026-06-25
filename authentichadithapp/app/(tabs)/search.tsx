@@ -252,6 +252,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   filterBadgeText: {
+    fontFamily: FONT_FAMILY.bodySemiBold,
     fontSize: FONT_SIZES.xs,
     fontWeight: '700',
   },
@@ -288,6 +289,7 @@ const styles = StyleSheet.create({
     padding: SPACING.xl,
   },
   emptyText: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.base,
     textAlign: 'center',
   },

@@ -6,6 +6,7 @@ import { SPACING, FONT_SIZES , getColors } from '@/lib/styles/colors';
 import { useTheme } from '@/lib/theme/ThemeProvider';
 import { SettingsSection } from '@/components/settings/SettingsSection';
 import { SettingsItem } from '@/components/settings/SettingsItem';
+import { FONT_FAMILY } from '@/constants/theme';
 
 /**
  * About screen showing app information and version
@@ -122,10 +123,12 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: FONT_SIZES.xxl,
     fontWeight: '700',
+    fontFamily: FONT_FAMILY.heading,
     marginBottom: SPACING.xs,
   },
   appTagline: {
     fontSize: FONT_SIZES.base,
+    fontFamily: FONT_FAMILY.body,
     textAlign: 'center',
   },
   footer: {
@@ -135,6 +138,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: FONT_SIZES.sm,
+    fontFamily: FONT_FAMILY.body,
     marginBottom: SPACING.xs,
   },
 });

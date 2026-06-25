@@ -56,12 +56,11 @@ export default function TabLayout() {
       }}
     >
       {/*
-        Bottom-bar order for v1.0 (per the 5-tab consolidation in the iOS readiness plan):
-        Home · Search · Collections · My Hadith · More.
-        Today, Learn, Assistant, and Profile are NOT removed from the app — they live
-        under More. The files for those routes remain present in app/(tabs)/ so deep
-        links and router.push calls continue to resolve. Expo Router still discovers
-        them; they are just hidden from the bar via href: null.
+        Bottom-bar order (web parity update):
+        Home · Today · Assistant (Chat) · My Hadith · More.
+        Search and Collections are hidden from the bar but remain fully
+        reachable via More's BROWSE section, Home's Browse Collections button,
+        and deep links. Learn and Profile stay under More.
       */}
       <Tabs.Screen
         name="index"
@@ -73,20 +72,20 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="search"
+        name="today"
         options={{
-          title: 'Search',
+          title: 'Today',
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={LAYOUT.tabIconSize} name="magnifyingglass" color={color} />
+            <IconSymbol size={LAYOUT.tabIconSize} name="sun.max.fill" color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="collections"
+        name="assistant"
         options={{
-          title: 'Collections',
+          title: 'Chat',
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={LAYOUT.tabIconSize} name="book.fill" color={color} />
+            <IconSymbol size={LAYOUT.tabIconSize} name="sparkles" color={color} />
           ),
         }}
       />
@@ -109,9 +108,9 @@ export default function TabLayout() {
         }}
       />
       {/* Routes hidden from the bar but kept reachable via More and deep links. */}
-      <Tabs.Screen name="today" options={{ href: null, title: 'Today' }} />
+      <Tabs.Screen name="search" options={{ href: null, title: 'Search' }} />
+      <Tabs.Screen name="collections" options={{ href: null, title: 'Collections' }} />
       <Tabs.Screen name="learn" options={{ href: null, title: 'Learn' }} />
-      <Tabs.Screen name="assistant" options={{ href: null, title: 'Assistant' }} />
       <Tabs.Screen name="profile" options={{ href: null, title: 'Profile' }} />
     </Tabs>
   );

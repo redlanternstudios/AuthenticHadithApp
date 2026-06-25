@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native'
 import { Card } from '@/components/ui/Card'
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
 import { Achievement, AchievementTier } from '@/types/gamification'
+import { FONT_FAMILY } from '@/constants/theme'
 
 const TIER_COLORS: Record<AchievementTier, string> = {
   bronze: '#CD7F32',
@@ -86,12 +87,14 @@ const styles = StyleSheet.create({
   name: {
     fontSize: FONT_SIZES.base,
     fontWeight: '700',
+    fontFamily: FONT_FAMILY.heading,
     color: COLORS.bronzeText,
     textAlign: 'center',
     marginBottom: SPACING.xs,
   },
   description: {
     fontSize: FONT_SIZES.xs,
+    fontFamily: FONT_FAMILY.body,
     color: COLORS.mutedText,
     textAlign: 'center',
     marginBottom: SPACING.sm,
@@ -113,14 +116,17 @@ const styles = StyleSheet.create({
   tierText: {
     fontSize: FONT_SIZES.xs,
     fontWeight: '600',
+    fontFamily: FONT_FAMILY.bodySemiBold,
   },
   xpText: {
     fontSize: FONT_SIZES.xs,
+    fontFamily: FONT_FAMILY.bodySemiBold,
     color: COLORS.goldMid,
     fontWeight: '600',
   },
   unlockedText: {
     fontSize: FONT_SIZES.xs,
+    fontFamily: FONT_FAMILY.body,
     color: COLORS.success,
     marginTop: SPACING.xs,
   },

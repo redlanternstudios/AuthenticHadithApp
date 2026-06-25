@@ -4,6 +4,7 @@ import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
 import { getColors, COLORS, SPACING, FONT_SIZES } from '../../lib/styles/colors'
 import { useTheme } from '../../lib/theme/ThemeProvider'
+import { FONT_FAMILY } from '../../constants/theme'
 import { usePremiumStatus } from '../../hooks/usePremiumStatus'
 import { PaywallScreen } from './PaywallScreen'
 
@@ -85,11 +86,13 @@ const styles = StyleSheet.create({
   lockTitle: {
     fontSize: FONT_SIZES.lg,
     fontWeight: '600',
+    fontFamily: FONT_FAMILY.bodySemiBold,
     color: COLORS.bronzeText,
     marginBottom: SPACING.sm,
   },
   lockDescription: {
     fontSize: FONT_SIZES.base,
+    fontFamily: FONT_FAMILY.body,
     color: COLORS.mutedText,
     textAlign: 'center',
     marginBottom: SPACING.md,

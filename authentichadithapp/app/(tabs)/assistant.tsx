@@ -163,6 +163,11 @@ function AssistantScreenInner() {
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={[styles.header, { borderBottomColor: colors.border, paddingTop: insets.top + SPACING.md }]}>
           <Text style={[styles.title, { color: colors.bronzeText }]}>{'✨'} AI Assistant</Text>
+          {isPremium && (
+            <View style={[styles.deepModeBadge, { backgroundColor: colors.goldMid + '20', borderColor: colors.goldMid }]}>
+              <Text style={[styles.deepModeText, { color: colors.goldMid }]}>✦ Deep Mode</Text>
+            </View>
+          )}
           <Text style={[styles.subtitle, { color: colors.mutedText }]}>
             Ask questions about hadith. Answers are AI-generated context, not a fatwa.
           </Text>
@@ -314,6 +319,18 @@ const styles = StyleSheet.create({
   subtitle: {
     fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.base,
+  },
+  deepModeBadge: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 3,
+    alignSelf: 'flex-start',
+    marginBottom: SPACING.xs,
+  },
+  deepModeText: {
+    fontSize: FONT_SIZES.xs,
+    fontFamily: FONT_FAMILY.bodySemiBold,
   },
   messagesContainer: {
     flex: 1,

@@ -6,7 +6,9 @@ import {
   Text,
   RefreshControl,
   Pressable,
+  TouchableOpacity,
   Dimensions,
+  Share,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
@@ -122,6 +124,17 @@ export default function HomeScreen() {
   const handleRefresh = () => setRefreshKey(prev => prev + 1);
   const levelInfo = getLevelInfo(stats?.xp || 0);
 
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        message: 'Explore 14,444 authentic hadith from Al-Sahihayn with AI-powered insights. Download Authentic Hadith: https://authentichadith.app',
+        url: 'https://authentichadith.app',
+      });
+    } catch {
+      // Share sheet dismissed or failed — no-op
+    }
+  };
+
   if (isLoading) return <LoadingSpinner />;
 
   // Tablet: 3-column quick actions, wider max content
@@ -232,6 +245,22 @@ export default function HomeScreen() {
         ))}
       </View>
 
+      {/* Share the Knowledge CTA */}
+      <TouchableOpacity
+        style={[styles.shareRow, { backgroundColor: colors.card, borderColor: colors.border }]}
+        onPress={handleShare}
+        activeOpacity={0.75}
+        accessibilityRole="button"
+        accessibilityLabel="Share Authentic Hadith app"
+      >
+        <Text style={styles.shareIcon}>🤝</Text>
+        <View style={styles.shareTextGroup}>
+          <Text style={[styles.shareTitle, { color: colors.bronzeText }]}>Share Authentic Hadith</Text>
+          <Text style={[styles.shareSubtitle, { color: colors.mutedText }]}>Invite friends to explore the Sahihayn</Text>
+        </View>
+        <Text style={[styles.shareChevron, { color: colors.goldMid }]}>›</Text>
+      </TouchableOpacity>
+
       {/* Hadith of the Moment */}
       <View style={styles.sectionRow}>
         <Text style={[styles.sectionTitle, { color: colors.bronzeText }]}>
@@ -308,6 +337,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
   },
   refreshLink: {
+    fontFamily: FONT_FAMILY.bodySemiBold,
     fontSize: FONT_SIZES.sm,
     fontWeight: '600',
   },
@@ -336,6 +366,36 @@ const styles = StyleSheet.create({
   actions: {
     gap: SPACING.md,
     marginTop: SPACING.sm,
+  },
+  shareRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: SPACING.lg,
+    gap: SPACING.sm,
+  },
+  shareIcon: {
+    fontSize: 24,
+  },
+  shareTextGroup: {
+    flex: 1,
+    gap: 2,
+  },
+  shareTitle: {
+    fontFamily: FONT_FAMILY.bodySemiBold,
+    fontSize: FONT_SIZES.md,
+    fontWeight: '600',
+  },
+  shareSubtitle: {
+    fontFamily: FONT_FAMILY.body,
+    fontSize: FONT_SIZES.sm,
+  },
+  shareChevron: {
+    fontSize: 24,
+    fontWeight: '300',
+    lineHeight: 28,
   },
   // A#7: AI assistant prominent entry card
   aiAssistantEntry: {

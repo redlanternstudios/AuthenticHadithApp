@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card } from '@/components/ui/Card';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { QueryErrorBanner } from '@/components/common/QueryErrorBanner';
 import { PremiumGate } from '@/components/premium/PremiumGate';
 import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors';
 import { FONT_FAMILY } from '@/constants/theme';
@@ -22,7 +23,7 @@ export default function LearnScreen() {
   const insets = useSafeAreaInsets();
 
   // V2: paths come from Supabase `learning_paths` (6 rows), ordered.
-  const { data: paths, isLoading } = useQuery({
+  const { data: paths, isLoading, isError, refetch } = useQuery({
     queryKey: ['learning-paths'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -90,6 +91,8 @@ export default function LearnScreen() {
   if (isLoading) {
     return <LoadingSpinner />;
   }
+
+  if (isError) return <QueryErrorBanner message="Couldn't load learning paths." onRetry={refetch} />;
 
   const freePaths = (paths?.filter(p => !p.is_premium) || []) as LearningPath[];
   const premiumPaths = (paths?.filter(p => p.is_premium) || []) as LearningPath[];

@@ -3,6 +3,7 @@ import { StyleSheet, View, Text, FlatList, Pressable } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useFolders } from '@/hooks/useMyHadith'
 import { useAuth } from '@/lib/auth/AuthProvider'
+import { useRevenueCat } from '@/lib/revenuecat/RevenueCatProvider'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { ScreenHeader } from '@/components/ui/ScreenHeader'
@@ -15,9 +16,12 @@ import { QueryErrorBanner } from '@/components/common/QueryErrorBanner'
 export default function MyHadithScreen() {
   const router = useRouter()
   const { user } = useAuth()
+  const { isPro } = useRevenueCat()
   const { isDark } = useTheme()
   const colors = getColors(isDark)
   const { data: folders, isLoading, isError, refetch } = useFolders()
+
+  const totalSavedCount = folders?.reduce((sum, f) => sum + (f.saved_hadiths_count || 0), 0) ?? 0
 
   if (!user) {
     return (
@@ -52,6 +56,17 @@ export default function MyHadithScreen() {
           />
         }
       />
+      {!isPro && (
+        <Text style={[styles.limitBanner, { color: colors.mutedText }]}>
+          {totalSavedCount}/40 saved hadiths ·{' '}
+          <Text
+            style={[styles.limitLink, { color: colors.goldMid }]}
+            onPress={() => router.push('/paywall')}
+          >
+            Upgrade for unlimited
+          </Text>
+        </Text>
+      )}
 
       <FlatList
         data={folders}
@@ -151,5 +166,16 @@ const styles = StyleSheet.create({
     fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.base,
     textAlign: 'center',
+  },
+  limitBanner: {
+    fontFamily: FONT_FAMILY.body,
+    fontSize: FONT_SIZES.sm,
+    paddingHorizontal: SPACING.md,
+    paddingBottom: SPACING.xs,
+  },
+  limitLink: {
+    fontFamily: FONT_FAMILY.body,
+    fontSize: FONT_SIZES.sm,
+    fontWeight: '600',
   },
 })

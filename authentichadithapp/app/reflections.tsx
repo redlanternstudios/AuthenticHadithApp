@@ -11,6 +11,7 @@ import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors'
 import { useTheme } from '@/lib/theme/ThemeProvider'
 import { trackActivity } from '@/lib/gamification/track-activity'
 import { QueryErrorBanner } from '@/components/common/QueryErrorBanner'
+import { FONT_FAMILY } from '@/constants/theme'
 
 export default function ReflectionsScreen() {
   const { isDark } = useTheme()
@@ -160,21 +161,22 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: SPACING.md, paddingBottom: SPACING.xxl },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  title: { fontSize: FONT_SIZES.xxxl, fontWeight: '700', paddingTop: SPACING.md },
-  subtitle: { fontSize: FONT_SIZES.base, marginBottom: SPACING.lg },
+  title: { fontSize: FONT_SIZES.xxxl, fontWeight: '700', fontFamily: FONT_FAMILY.heading, paddingTop: SPACING.md },
+  subtitle: { fontSize: FONT_SIZES.base, fontFamily: FONT_FAMILY.body, marginBottom: SPACING.lg },
   writeCard: { marginBottom: SPACING.lg, gap: SPACING.sm },
-  writeLabel: { fontSize: FONT_SIZES.base, fontWeight: '600' },
+  writeLabel: { fontSize: FONT_SIZES.base, fontWeight: '600', fontFamily: FONT_FAMILY.bodySemiBold },
   textArea: {
     height: 100, borderRadius: 8,
     borderWidth: 1, padding: SPACING.md,
     fontSize: FONT_SIZES.base,
+    fontFamily: FONT_FAMILY.body,
   },
   reflectionCard: { marginBottom: SPACING.sm },
-  reflectionNote: { fontSize: FONT_SIZES.base, lineHeight: 22, marginBottom: SPACING.sm },
-  reflectionRef: { fontSize: FONT_SIZES.sm, fontStyle: 'italic', marginBottom: SPACING.xs },
-  reflectionDate: { fontSize: FONT_SIZES.xs },
+  reflectionNote: { fontSize: FONT_SIZES.base, fontFamily: FONT_FAMILY.body, lineHeight: 22, marginBottom: SPACING.sm },
+  reflectionRef: { fontSize: FONT_SIZES.sm, fontFamily: FONT_FAMILY.body, fontStyle: 'italic', marginBottom: SPACING.xs },
+  reflectionDate: { fontSize: FONT_SIZES.xs, fontFamily: FONT_FAMILY.body },
   emptyState: { alignItems: 'center', paddingTop: SPACING.xxl, gap: SPACING.sm },
   emptyEmoji: { fontSize: 48 },
-  emptyText: { fontSize: FONT_SIZES.md },
-  emptyHint: { fontSize: FONT_SIZES.sm, textAlign: 'center' },
+  emptyText: { fontSize: FONT_SIZES.md, fontFamily: FONT_FAMILY.body },
+  emptyHint: { fontSize: FONT_SIZES.sm, fontFamily: FONT_FAMILY.body, textAlign: 'center' },
 })

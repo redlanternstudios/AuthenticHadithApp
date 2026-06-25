@@ -9,6 +9,7 @@ import { useLanguage } from '@/lib/i18n/LanguageProvider'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
+import { FONT_FAMILY } from '@/constants/theme'
 
 const TOTAL_STEPS = 3
 
@@ -442,12 +443,12 @@ const styles = StyleSheet.create({
   },
   progressCheck: { fontSize: 14, fontWeight: '700' },
   progressLine: { width: 40, height: 2 },
-  stepLabel: { fontSize: FONT_SIZES.sm, textAlign: 'center', marginBottom: SPACING.xl },
+  stepLabel: { fontFamily: FONT_FAMILY.body, fontSize: FONT_SIZES.sm, textAlign: 'center', marginBottom: SPACING.xl },
   stepContent: { marginBottom: SPACING.xl },
-  stepTitle: { fontSize: FONT_SIZES.xxl, fontWeight: '700', textAlign: 'center', marginBottom: SPACING.sm },
-  stepSubtitle: { fontSize: FONT_SIZES.base, textAlign: 'center', marginBottom: SPACING.xl, lineHeight: 22 },
-  label: { fontSize: FONT_SIZES.base, fontWeight: '600', marginBottom: SPACING.xs, marginTop: SPACING.lg },
-  langHint: { fontSize: FONT_SIZES.sm, marginBottom: SPACING.sm },
+  stepTitle: { fontFamily: FONT_FAMILY.heading, fontSize: FONT_SIZES.xxl, fontWeight: '700', textAlign: 'center', marginBottom: SPACING.sm },
+  stepSubtitle: { fontFamily: FONT_FAMILY.body, fontSize: FONT_SIZES.base, textAlign: 'center', marginBottom: SPACING.xl, lineHeight: 22 },
+  label: { fontFamily: FONT_FAMILY.bodySemiBold, fontSize: FONT_SIZES.base, fontWeight: '600', marginBottom: SPACING.xs, marginTop: SPACING.lg },
+  langHint: { fontFamily: FONT_FAMILY.body, fontSize: FONT_SIZES.sm, marginBottom: SPACING.sm },
   langRow: { flexDirection: 'row', gap: SPACING.sm, marginBottom: SPACING.md },
   langRowRTL: { flexDirection: 'row-reverse' },
   langOption: {
@@ -461,7 +462,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   langFlag: { fontSize: 20 },
-  langLabel: { fontSize: FONT_SIZES.base, fontWeight: '500' },
+  langLabel: { fontFamily: FONT_FAMILY.body, fontSize: FONT_SIZES.base, fontWeight: '500' },
   langCheck: { fontWeight: '700', marginLeft: SPACING.xs },
   input: {
     height: 48, borderRadius: BORDER_RADIUS.md,
@@ -476,7 +477,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   optionItemRTL: { flexDirection: 'row-reverse' },
-  optionText: { fontSize: FONT_SIZES.base },
+  optionText: { fontFamily: FONT_FAMILY.body, fontSize: FONT_SIZES.base },
   optionTextActive: { fontWeight: '600' },
   optionCheck: { fontWeight: '700' },
   collectionsGrid: { gap: SPACING.sm },
@@ -491,8 +492,8 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   checkboxCheck: { fontSize: 12, fontWeight: '700' },
-  collectionName: { fontSize: FONT_SIZES.base, fontWeight: '500' },
-  collectionCount: { fontSize: FONT_SIZES.xs },
+  collectionName: { fontFamily: FONT_FAMILY.bodySemiBold, fontSize: FONT_SIZES.base, fontWeight: '500' },
+  collectionCount: { fontFamily: FONT_FAMILY.body, fontSize: FONT_SIZES.xs },
   levelToggle: {
     flexDirection: 'row',
     borderRadius: BORDER_RADIUS.lg, padding: 4,
@@ -500,18 +501,18 @@ const styles = StyleSheet.create({
   levelOption: {
     flex: 1, paddingVertical: SPACING.sm, borderRadius: BORDER_RADIUS.md, alignItems: 'center',
   },
-  levelText: { fontSize: FONT_SIZES.base, fontWeight: '500' },
+  levelText: { fontFamily: FONT_FAMILY.body, fontSize: FONT_SIZES.base, fontWeight: '500' },
   shieldIcon: { alignItems: 'center', marginBottom: SPACING.md },
   shieldEmoji: { fontSize: 48 },
   safetyPoint: { marginBottom: SPACING.sm },
-  safetyTitle: { fontSize: FONT_SIZES.base, fontWeight: '600', marginBottom: SPACING.xs },
-  safetyDesc: { fontSize: FONT_SIZES.sm, lineHeight: 20 },
+  safetyTitle: { fontFamily: FONT_FAMILY.bodySemiBold, fontSize: FONT_SIZES.base, fontWeight: '600', marginBottom: SPACING.xs },
+  safetyDesc: { fontFamily: FONT_FAMILY.body, fontSize: FONT_SIZES.sm, lineHeight: 20 },
   agreementRow: {
     flexDirection: 'row', alignItems: 'flex-start', gap: SPACING.md,
     paddingVertical: SPACING.md,
   },
   agreementRowRTL: { flexDirection: 'row-reverse' },
-  agreementText: { flex: 1, fontSize: FONT_SIZES.base, lineHeight: 22 },
+  agreementText: { fontFamily: FONT_FAMILY.body, flex: 1, fontSize: FONT_SIZES.base, lineHeight: 22 },
   linkText: { textDecorationLine: 'underline' },
   navRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',

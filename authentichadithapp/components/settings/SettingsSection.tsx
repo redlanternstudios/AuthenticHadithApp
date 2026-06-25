@@ -2,6 +2,7 @@ import React, { ReactNode } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { SPACING, FONT_SIZES , getColors } from '@/lib/styles/colors';
 import { useTheme } from '@/lib/theme/ThemeProvider';
+import { FONT_FAMILY } from '@/constants/theme';
 
 interface SettingsSectionProps {
   title: string;
@@ -32,6 +33,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONT_SIZES.sm,
     fontWeight: '600',
+    fontFamily: FONT_FAMILY.bodySemiBold,
     textTransform: 'uppercase',
     marginBottom: SPACING.sm,
     marginLeft: SPACING.md,

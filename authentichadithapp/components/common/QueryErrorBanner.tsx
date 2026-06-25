@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/lib/theme/ThemeProvider'
 import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
+import { FONT_FAMILY } from '@/constants/theme'
 
 interface Props {
   message?: string
@@ -51,6 +52,7 @@ const styles = StyleSheet.create({
   },
   message: {
     fontSize: FONT_SIZES.sm,
+    fontFamily: FONT_FAMILY.body,
     flex: 1,
     lineHeight: 18,
   },
@@ -68,5 +70,6 @@ const styles = StyleSheet.create({
   retryText: {
     fontSize: FONT_SIZES.xs,
     fontWeight: '600',
+    fontFamily: FONT_FAMILY.bodySemiBold,
   },
 })

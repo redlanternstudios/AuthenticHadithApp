@@ -14,6 +14,7 @@ import { useTheme } from '@/lib/theme/ThemeProvider'
 import { getLevelInfo } from '@/lib/gamification/level-calculator'
 import { filterVisibleCollections } from '@/lib/hadith/visibleCollections'
 import { QueryErrorBanner } from '@/components/common/QueryErrorBanner'
+import { FONT_FAMILY } from '@/constants/theme'
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
@@ -234,6 +235,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONT_SIZES.xxxl,
     fontWeight: '700',
+    fontFamily: FONT_FAMILY.heading,
     marginBottom: SPACING.lg,
     paddingTop: SPACING.md,
   },
@@ -243,6 +245,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: FONT_SIZES.md,
     fontWeight: '700',
+    fontFamily: FONT_FAMILY.heading,
     marginBottom: SPACING.md,
   },
   weekRow: {
@@ -256,6 +259,7 @@ const styles = StyleSheet.create({
   weekDayLabel: {
     fontSize: FONT_SIZES.xs,
     fontWeight: '500',
+    fontFamily: FONT_FAMILY.bodyMedium,
   },
   weekDot: {
     width: 36,
@@ -283,10 +287,12 @@ const styles = StyleSheet.create({
   collectionName: {
     fontSize: FONT_SIZES.base,
     fontWeight: '500',
+    fontFamily: FONT_FAMILY.bodyMedium,
     flex: 1,
   },
   collectionCount: {
     fontSize: FONT_SIZES.sm,
+    fontFamily: FONT_FAMILY.body,
   },
   progressBarBg: {
     height: 6,

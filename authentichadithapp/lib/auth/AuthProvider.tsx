@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { Alert } from 'react-native'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { Session, User } from '@supabase/supabase-js'
 import { supabase } from '../supabase/client'
 
@@ -30,19 +32,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  // Track whether a session existed before a SIGNED_OUT event fires
+  const hadSessionRef = useRef(false)
 
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setUser(session?.user ?? null)
+      hadSessionRef.current = !!session
       setIsLoading(false)
     })
 
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        AsyncStorage.removeItem('onboarded')
+        if (hadSessionRef.current) {
+          Alert.alert('Session Expired', 'Please sign in again.')
+        }
+      }
+      hadSessionRef.current = !!session
       setSession(session)
       setUser(session?.user ?? null)
     })

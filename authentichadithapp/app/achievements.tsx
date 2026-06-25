@@ -22,6 +22,7 @@ import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colo
 import { getLevelInfo } from '@/lib/gamification/level-calculator'
 import { useBadges, useProgressSummary } from '@/hooks/useProgress'
 import { BadgeDefinition } from '@/lib/progress/progressService'
+import { FONT_FAMILY } from '@/constants/theme'
 
 type Filter = 'all' | 'unlocked' | 'locked'
 
@@ -238,10 +239,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONT_SIZES.xxxl,
     fontWeight: '700',
+    fontFamily: FONT_FAMILY.heading,
     paddingTop: SPACING.md,
   },
   subtitle: {
     fontSize: FONT_SIZES.base,
+    fontFamily: FONT_FAMILY.body,
     marginBottom: SPACING.lg,
   },
   levelCard: { marginBottom: SPACING.md },
@@ -261,9 +264,11 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: FONT_SIZES.xl,
     fontWeight: '700',
+    fontFamily: FONT_FAMILY.heading,
   },
   statLabel: {
     fontSize: FONT_SIZES.xs,
+    fontFamily: FONT_FAMILY.body,
   },
   filtersScroll: { marginBottom: SPACING.md },
   filtersContent: { gap: SPACING.sm },
@@ -276,6 +281,7 @@ const styles = StyleSheet.create({
   filterChipText: {
     fontSize: FONT_SIZES.sm,
     fontWeight: '500',
+    fontFamily: FONT_FAMILY.bodyMedium,
   },
   grid: {
     flexDirection: 'row',
@@ -301,10 +307,12 @@ const styles = StyleSheet.create({
   badgeName: {
     fontSize: FONT_SIZES.base,
     fontWeight: '700',
+    fontFamily: FONT_FAMILY.heading,
     marginBottom: 4,
   },
   badgeDescription: {
     fontSize: FONT_SIZES.xs,
+    fontFamily: FONT_FAMILY.body,
     textAlign: 'center',
     minHeight: 32,
   },
@@ -325,6 +333,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: FONT_SIZES.base,
+    fontFamily: FONT_FAMILY.body,
     textAlign: 'center',
     lineHeight: 22,
   },

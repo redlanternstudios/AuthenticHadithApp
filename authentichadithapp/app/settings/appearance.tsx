@@ -5,6 +5,7 @@ import { SPACING, FONT_SIZES , getColors } from '@/lib/styles/colors';
 import { useTheme } from '@/lib/theme/ThemeProvider';
 import { SettingsSection } from '@/components/settings/SettingsSection';
 import { SettingsItem } from '@/components/settings/SettingsItem';
+import { FONT_FAMILY } from '@/constants/theme';
 
 /**
  * Appearance settings screen
@@ -79,10 +80,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: FONT_SIZES.xxl,
     fontWeight: '700',
+    fontFamily: FONT_FAMILY.heading,
     marginBottom: SPACING.xs,
   },
   headerSubtitle: {
     fontSize: FONT_SIZES.base,
+    fontFamily: FONT_FAMILY.body,
   },
   infoBox: {
     padding: SPACING.md,
@@ -91,6 +94,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: FONT_SIZES.sm,
+    fontFamily: FONT_FAMILY.body,
     lineHeight: 20,
   },
 });

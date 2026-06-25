@@ -14,6 +14,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import Purchases, { PurchasesPackage } from 'react-native-purchases'
 import { useTheme } from '@/lib/theme/ThemeProvider'
 import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
+import { FONT_FAMILY } from '@/constants/theme'
 import { Button } from '@/components/ui/Button'
 import { useRevenueCat } from '@/lib/revenuecat/RevenueCatProvider'
 import { ENTITLEMENT_ID } from '@/lib/revenuecat/config'
@@ -96,7 +97,6 @@ export default function PaywallScreen() {
     try {
       const { customerInfo } = await Purchases.purchasePackage(selectedPackage)
       if (customerInfo.entitlements.active[ENTITLEMENT_ID]?.isActive) {
-        await AsyncStorage.setItem('subscribed', '1')
         router.replace('/(tabs)')
       }
     } catch (error: any) {
@@ -113,11 +113,12 @@ export default function PaywallScreen() {
     setRestoring(true)
     try {
       const info = await restorePurchases()
-      if (info?.entitlements.active[ENTITLEMENT_ID]?.isActive) {
-        await AsyncStorage.setItem('subscribed', '1')
+      if (info === null) {
+        Alert.alert('Connection Error', 'Unable to connect to the App Store. Check your connection and try again.')
+      } else if (info.entitlements.active[ENTITLEMENT_ID]?.isActive) {
         router.replace('/(tabs)')
       } else {
-        Alert.alert('No Active Subscription', 'No active subscription found for this Apple ID.')
+        Alert.alert('No Subscription Found', 'No active subscription found for this Apple ID.')
       }
     } catch {
       Alert.alert('Restore Failed', 'Could not restore purchases. Please try again.')
@@ -341,6 +342,7 @@ const styles = StyleSheet.create({
     fontSize: 36,
   },
   title: {
+    fontFamily: FONT_FAMILY.heading,
     fontSize: FONT_SIZES.xxxl,
     fontWeight: '700',
     textAlign: 'center',
@@ -348,6 +350,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   subtitle: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.base,
     textAlign: 'center',
     lineHeight: 22,
@@ -381,11 +384,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   valuePropTitle: {
+    fontFamily: FONT_FAMILY.bodySemiBold,
     fontSize: FONT_SIZES.base,
     fontWeight: '600',
     marginBottom: 2,
   },
   valuePropDesc: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.sm,
     lineHeight: 18,
   },
@@ -399,6 +404,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xl,
   },
   plansLabel: {
+    fontFamily: FONT_FAMILY.headingMedium,
     fontSize: FONT_SIZES.md,
     fontWeight: '700',
     marginBottom: SPACING.md,
@@ -434,6 +440,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: BORDER_RADIUS.sm,
   },
   badgeText: {
+    fontFamily: FONT_FAMILY.bodySemiBold,
     fontSize: FONT_SIZES.xs,
     fontWeight: '700',
     textTransform: 'uppercase',
@@ -456,16 +463,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   planName: {
+    fontFamily: FONT_FAMILY.bodySemiBold,
     fontSize: FONT_SIZES.md,
     fontWeight: '600',
   },
   planDescription: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.sm,
     lineHeight: 20,
     marginTop: SPACING.xs,
     paddingLeft: 30,
   },
   planPrice: {
+    fontFamily: FONT_FAMILY.heading,
     fontSize: FONT_SIZES.lg,
     fontWeight: '700',
   },
@@ -479,6 +489,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.xs,
   },
   restoreText: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.base,
     fontWeight: '500',
     textDecorationLine: 'underline',
@@ -491,21 +502,25 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xs,
   },
   legalLink: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.xs,
     textDecorationLine: 'underline',
   },
   legalDot: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.xs,
   },
 
   // Unavailable state
   unavailableTitle: {
+    fontFamily: FONT_FAMILY.heading,
     fontSize: FONT_SIZES.xl,
     fontWeight: '700',
     textAlign: 'center',
     marginBottom: SPACING.sm,
   },
   unavailableDesc: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.base,
     textAlign: 'center',
     lineHeight: 22,

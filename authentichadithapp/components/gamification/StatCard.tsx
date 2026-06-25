@@ -2,6 +2,7 @@ import React from 'react'
 import { View, Text, StyleSheet } from 'react-native'
 import { Card } from '@/components/ui/Card'
 import { COLORS, SPACING, FONT_SIZES } from '@/lib/styles/colors'
+import { FONT_FAMILY } from '@/constants/theme'
 
 interface StatCardProps {
   icon: string
@@ -42,10 +43,12 @@ const styles = StyleSheet.create({
   value: {
     fontSize: FONT_SIZES.xl,
     fontWeight: '700',
+    fontFamily: FONT_FAMILY.heading,
     color: COLORS.bronzeText,
   },
   label: {
     fontSize: FONT_SIZES.xs,
+    fontFamily: FONT_FAMILY.body,
     color: COLORS.mutedText,
     textAlign: 'center',
     marginTop: 2,
