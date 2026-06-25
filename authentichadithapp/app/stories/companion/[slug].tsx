@@ -344,7 +344,7 @@ export default function CompanionStoryScreen() {
       <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
         <View style={styles.headerRow}>
           <Pressable
-            onPress={() => router.push('/stories')}
+            onPress={() => router.canGoBack() ? router.back() : router.push('/stories')}
             style={[styles.iconBtn, { backgroundColor: colors.background }]}
             accessibilityLabel="Back to stories"
           >

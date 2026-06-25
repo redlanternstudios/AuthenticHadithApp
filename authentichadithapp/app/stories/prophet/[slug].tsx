@@ -303,7 +303,7 @@ export default function ProphetStoryScreen() {
       <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
         <View style={styles.headerRow}>
           <Pressable
-            onPress={() => router.push('/stories')}
+            onPress={() => router.canGoBack() ? router.back() : router.push('/stories')}
             style={[styles.iconBtn, { backgroundColor: colors.background }]}
             accessibilityLabel="Back to stories"
           >
@@ -314,7 +314,7 @@ export default function ProphetStoryScreen() {
               Prophet {prophet.name_en}
             </Text>
             <Text style={[styles.headerSub, { color: colors.mutedText }]}>
-              Part {currentPart} of {parts.length || totalParts}
+              Part {currentPart} of {totalParts}
             </Text>
           </View>
           <View style={styles.headerActions}>
@@ -539,7 +539,7 @@ export default function ProphetStoryScreen() {
 
         {/* Part dots */}
         <View style={styles.dots}>
-          {Array.from({ length: parts.length || totalParts }, (_, i) => i + 1).map((num) => {
+          {Array.from({ length: totalParts }, (_, i) => i + 1).map((num) => {
             const active = num === currentPart
             const done = partsCompleted.includes(num)
             return (
