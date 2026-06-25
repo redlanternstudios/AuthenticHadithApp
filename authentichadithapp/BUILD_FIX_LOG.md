@@ -4010,3 +4010,90 @@ npx eas-cli build --platform ios --profile production --non-interactive
    `ANNOUNCEMENT_SECRET = 49D3DBEB-65D5-43C0-98B4-3260A4118275`
 
 **Lesson**: `npm omit=dev` global npm config silently strips all devDependencies (including TypeScript) when `npx expo install` runs `npm install`. Fix: `npm install --include=dev`. Expo SDK 54's `NotificationBehavior` type requires 5 fields — `shouldShowAlert`, `shouldShowBanner`, `shouldShowList`, `shouldPlaySound`, `shouldSetBadge`. Missing `shouldShowBanner`/`shouldShowList` causes TS2322. Always exclude `supabase/functions/` from tsconfig when using Deno Edge Functions in a TypeScript React Native monorepo.
+
+---
+
+### [FIX-113] — EAS stale provisioning profile blocking Push Notifications entitlement
+**Date**: 2026-06-25 PT · Cowork session
+**Pattern category**: EAS_BUILD / PROVISIONING_PROFILE / PUSH_NOTIFICATIONS
+**EAS Build**: Build 72 — ID `d6b46069-7333-4517-afbf-49d11fdb90d4` (IN_QUEUE)
+**Builds failed**: Build 70 (`42103975`), Build 71 (`5cda7e7e`) — both errored
+
+**Error Messages (Builds 70 + 71)**:
+```
+Provisioning profile "*[expo] com.byred.authentichadith AppStore 2026-06-24T04:53:18.344Z"
+doesn't support the Push Notifications capability.
+Provisioning profile "*[expo] com.byred.authentichadith AppStore 2026-06-24T04:53:18.344Z"
+doesn't include the aps-environment entitlement.
+```
+
+**Root Cause**:
+EAS cached provisioning profile `N3S2J9YNGD` (EAS internal ID `ba52729b-d54d-417f-ba6d-159bbda97d41`,
+created 2026-06-24T04:53:18) predated the `aps-environment: production` entitlement added to `app.json`
+in FIX-112. EAS reused the cached profile for both Build 70 and Build 71 without regenerating it,
+causing Xcode to reject the binary during archive signing. `eas credentials --platform ios` could not
+be run non-interactively (no TTY in Desktop Commander shell). `eas build --clear-credentials` flag
+does not exist in this CLI version.
+
+**Fix Applied**:
+Deleted the stale profile directly via EAS GraphQL API (no TTY required):
+
+```graphql
+# Step 1: Confirm profile ID via introspection
+{ app { byId(appId: "66afcbbf-55c3-48fb-9bf1-29efc52d09eb") {
+    iosAppCredentials { iosAppBuildCredentialsList {
+      iosDistributionType
+      provisioningProfile { id developerPortalIdentifier updatedAt }
+    }}
+}}}
+# Result: EAS ID ba52729b, Developer Portal ID N3S2J9YNGD, APP_STORE type
+
+# Step 2: Delete via mutation
+mutation { appleProvisioningProfile {
+  deleteAppleProvisioningProfile(id: "ba52729b-d54d-417f-ba6d-159bbda97d41") { id }
+}}
+# Result: { "id": "ba52729b-d54d-417f-ba6d-159bbda97d41" } ✓
+
+# Step 3: Verify profile is null
+# APP_STORE provisioningProfile → null ✓
+```
+
+EAS then auto-created fresh profile `ZX7SXD9ZUL` (with Push Notifications) on Build 72 trigger:
+```
+✔ Created Apple provisioning profile
+Developer Portal ID: ZX7SXD9ZUL  Status: active  Updated: 0 seconds ago
+```
+
+Build 72 triggered:
+```
+cd /Users/kp/Projects/AuthenticHadithApp/authentichadithapp
+npx eas-cli build --platform ios --profile production --non-interactive
+# Build 72 ID: d6b46069-7333-4517-afbf-49d11fdb90d4  Status: IN_QUEUE
+# buildNumber auto-incremented to 72
+```
+
+**Files Changed**: None — this was a credential management fix, no code changes.
+
+**Verification**:
+- GraphQL deletion confirmed: `ba52729b-d54d-417f-ba6d-159bbda97d41` returned by `deleteAppleProvisioningProfile`
+- Profile null confirmed: subsequent query shows `APP_STORE provisioningProfile: null`
+- New profile `ZX7SXD9ZUL` created by EAS during Build 72 credential setup
+- Build 72 queued: `d6b46069-7333-4517-afbf-49d11fdb90d4`
+
+**KP manual actions still required (unchanged from FIX-112)**:
+1. Supabase Dashboard → SQL Editor → project `nqklipakrfuwebkdnhwg`:
+   ```sql
+   ALTER TABLE profiles ADD COLUMN IF NOT EXISTS expo_push_token TEXT DEFAULT NULL;
+   CREATE INDEX IF NOT EXISTS idx_profiles_expo_push_token ON profiles(expo_push_token) WHERE expo_push_token IS NOT NULL;
+   ```
+2. Supabase Dashboard → Edge Functions → Secrets:
+   `ANNOUNCEMENT_SECRET = 49D3DBEB-65D5-43C0-98B4-3260A4118275`
+
+**Lesson**: When EAS reuses a cached provisioning profile that predates a new entitlement (e.g., Push
+Notifications added to `app.json`), you CANNOT fix it by retriggering a build — EAS will keep reusing
+the cached profile. The fix is to delete the profile from EAS so the next build is forced to create a
+fresh one. If `eas credentials --platform ios` is unavailable (no TTY), use the EAS GraphQL API:
+Auth header: `expo-session: <sessionSecret from ~/.expo/state.json auth.sessionSecret>`. Query
+`IosAppBuildCredentials.provisioningProfile { id developerPortalIdentifier }` to find the EAS internal
+ID, then run `mutation { appleProvisioningProfile { deleteAppleProvisioningProfile(id: "...") { id } } }`.
+EAS auto-creates a fresh profile on the next build trigger.
