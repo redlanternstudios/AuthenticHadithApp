@@ -1161,3 +1161,30 @@ grep -n "fontSize:" src/**/*.tsx | grep -v "fontFamily:"
 ```
 
 **Root cause reference**: FIX-108 — 80+ text styles across 11 files omitted fontFamily, causing all body/heading text to render in San Francisco instead of Cinzel. Source: FIX-108 (2026-06-24).
+
+---
+
+## Rule 043: App Store Screenshots MUST NEVER Include Paywall or Subscription Gate Screens
+
+**Trigger**: Any App Store Connect screenshot submission workflow, or any agent/human capturing screenshots for ASC upload.
+
+**Rule**: Paywall screens, subscription walls, and IAP upsell screens (any screen whose primary UI element is a "Subscribe / Upgrade" prompt rather than app content) are PERMANENTLY EXCLUDED from App Store screenshots. Apple Guideline 2.3.7 requires screenshots to demonstrate the actual in-app user experience. A paywall-only screenshot does not demonstrate app functionality and risks rejection for misrepresentation or misleading metadata.
+
+**Approved screenshot set for Authentic Hadith (both iPhone 6.9" and iPad 13"):**
+1. `01_home.png` — Home / Hadith feed
+2. `02_hadith_detail.png` — Hadith detail view
+3. `03_ai_assistant.png` — AI Assistant
+4. `04_collections.png` — Collections
+5. `05_quiz.png` — Quiz / Learn
+6. `06_stories.png` — Stories
+
+**Paywall captures**: Save to `DO_NOT_SUBMIT/` subfolder with `_EXCLUDED` suffix. Never upload to ASC.
+
+**Folders**:
+- iPhone 6.9" approved: `~/Downloads/asc_screenshots_iphone69/01_home.png` through `06_stories.png`
+- iPad 13" approved: `~/Downloads/asc_screenshots_ipad13/01_home.png` through `06_stories.png`
+- Excluded: `~/Downloads/asc_screenshots_iphone69/DO_NOT_SUBMIT/00_paywall_raw_EXCLUDED.png`
+
+**Applies to all future Red Lantern / By Red apps.** Any screen that gates content behind a purchase prompt is excluded from ASC screenshots by default.
+
+**Root cause reference**: KP directive 2026-06-24 — "Paywall can not be listed on Apple list ensure that is hardcoded." Source: session following FIX-108. Apple Guideline 2.3.7.
