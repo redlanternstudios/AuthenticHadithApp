@@ -5,8 +5,9 @@ import { SPACING, FONT_SIZES , getColors } from '@/lib/styles/colors';
 import { useTheme } from '@/lib/theme/ThemeProvider';
 import { supabase } from '@/lib/supabase/client';
 import Constants from 'expo-constants';
+import { normalizeApiBaseUrl } from '@/lib/config/constants';
 
-const API_URL = Constants.expoConfig?.extra?.apiUrl || 'https://authentichadith.app';
+const API_URL = normalizeApiBaseUrl(Constants.expoConfig?.extra?.apiUrl);
 export default function DeleteAccountScreen() {
   const { isDark } = useTheme();
   const colors = getColors(isDark);
@@ -48,13 +49,18 @@ export default function DeleteAccountScreen() {
               const body = await res.json();
               if (!res.ok) throw new Error(body.error || 'Deletion failed');
 
-              // Sign out locally
-              await supabase.auth.signOut();
-
+              // Sign out AFTER the user dismisses the alert to prevent
+              // AuthProvider's "Session Expired" alert firing simultaneously.
               Alert.alert(
                 'Account Deleted',
                 'Your account and all data have been permanently removed.',
-                [{ text: 'OK', onPress: () => router.replace('/') }],
+                [{
+                  text: 'OK',
+                  onPress: async () => {
+                    await supabase.auth.signOut();
+                    router.replace('/');
+                  },
+                }],
               );
             } catch (err: any) {
               Alert.alert('Deletion Failed', err.message || 'Something went wrong. Please try again or contact support.');

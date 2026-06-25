@@ -88,7 +88,7 @@ export default function OnboardingScreen() {
     try {
       // Live `profiles` schema: `name` (NOT full_name), `user_id` NOT NULL and is the
       // key the app reads by. FIX-064 — full_name/missing user_id broke onboarding save.
-      await supabase
+      const { error: profileError } = await supabase
         .from('profiles')
         .upsert({
           id: user.id,
@@ -97,7 +97,12 @@ export default function OnboardingScreen() {
           school_of_thought: data.schoolOfThought || null,
         }, { onConflict: 'user_id' })
 
-      await supabase
+      if (profileError) {
+        Alert.alert('Setup Error', 'Could not save your profile. Please try again.')
+        return
+      }
+
+      const { error: prefError } = await supabase
         .from('user_preferences')
         .upsert({
           user_id: user.id,
@@ -106,6 +111,11 @@ export default function OnboardingScreen() {
           onboarded: true,
           safety_agreed_at: new Date().toISOString(),
         })
+
+      if (prefError) {
+        Alert.alert('Setup Error', 'Could not save your preferences. Please try again.')
+        return
+      }
 
       await AsyncStorage.setItem('onboarded', 'true')
       router.replace('/paywall')

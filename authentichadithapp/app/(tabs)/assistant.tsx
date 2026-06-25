@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors';
 import { FONT_FAMILY } from '@/constants/theme';
 import { useTheme } from '@/lib/theme/ThemeProvider';
 import { usePremiumStatus } from '@/hooks/usePremiumStatus';
+import { useAuth } from '@/lib/auth/AuthProvider';
 import { ChatMessage, sendChatMessage, AI_REQUEST_FAILED } from '@/lib/api/groq';
 import { Ionicons } from '@expo/vector-icons';
 import Markdown from 'react-native-markdown-display';
@@ -35,6 +36,7 @@ function AssistantScreenInner() {
   const colors = getColors(isDark);
   const insets = useSafeAreaInsets();
   const { isPremium } = usePremiumStatus();
+  const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -42,6 +44,16 @@ function AssistantScreenInner() {
   const scrollViewRef = useRef<ScrollView>(null);
   const [freeUsed, setFreeUsed] = useState(0);
   const [quotaLoaded, setQuotaLoaded] = useState(false);
+
+  // FIX A: Clear conversation when user logs out or switches accounts.
+  // Tab screens stay mounted across logout/login — without this, user A's
+  // messages leak into user B's session.
+  useEffect(() => {
+    if (!user?.id) {
+      setMessages([]);
+      setFreeUsed(0);
+    }
+  }, [user?.id]);
 
   useEffect(() => {
     (async () => {
@@ -160,6 +172,11 @@ function AssistantScreenInner() {
   const canSend = !!input.trim() && quotaLoaded && !isLoading && !isAtLimit;
 
   return (
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={90}
+    >
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={[styles.header, { borderBottomColor: colors.border, paddingTop: insets.top + SPACING.md }]}>
           <Text style={[styles.title, { color: colors.bronzeText }]}>{'✨'} AI Assistant</Text>
@@ -298,6 +315,7 @@ function AssistantScreenInner() {
           </TouchableOpacity>
         </View>
       </View>
+    </KeyboardAvoidingView>
   );
 }
 

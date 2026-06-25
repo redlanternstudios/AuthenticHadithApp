@@ -5,6 +5,7 @@ import { useCollections } from '@/hooks/use-hadiths'
 import { Ionicons } from '@expo/vector-icons'
 import { getColors } from '@/lib/styles/colors'
 import { FONT_FAMILY } from '@/constants/theme'
+import { filterVisibleCollections } from '@/lib/hadith/visibleCollections'
 
 export default function CollectionsScreen() {
   const router = useRouter()
@@ -24,7 +25,7 @@ export default function CollectionsScreen() {
     <>
       <Stack.Screen options={{ title: 'Hadith Collections' }} />
       <FlatList
-        data={collections}
+        data={filterVisibleCollections(collections ?? [])}
         keyExtractor={(item) => item.id}
         contentContainerStyle={[styles.list, { backgroundColor: colors.background }]}
         renderItem={({ item }) => (

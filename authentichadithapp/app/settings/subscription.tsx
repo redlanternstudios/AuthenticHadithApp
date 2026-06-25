@@ -279,6 +279,17 @@ function SubscriptionScreenInner() {
           </View>
         )}
 
+        {/* Manage Subscription — deep-links to App Store subscriptions page */}
+        <TouchableOpacity
+          style={[styles.restoreButton, { borderColor: colors.border }]}
+          onPress={() => Linking.openURL('https://apps.apple.com/account/subscriptions')}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.restoreText, { color: colors.bronzeText }]}>
+            Manage Subscription
+          </Text>
+        </TouchableOpacity>
+
         {/* Restore Purchases button — Apple requires this */}
         <TouchableOpacity
           style={[styles.restoreButton, { borderColor: colors.border }]}

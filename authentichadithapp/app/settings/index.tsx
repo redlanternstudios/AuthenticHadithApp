@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { SPACING, FONT_SIZES , getColors } from '@/lib/styles/colors';
 import { useTheme } from '@/lib/theme/ThemeProvider';
+import { useAuth } from '@/lib/auth/AuthProvider';
 import { SettingsSection } from '@/components/settings/SettingsSection';
 import { SettingsItem } from '@/components/settings/SettingsItem';
 import { FONT_FAMILY } from '@/constants/theme';
@@ -18,6 +19,7 @@ import { FONT_FAMILY } from '@/constants/theme';
 export default function SettingsScreen() {
   const { isDark } = useTheme();
   const colors = getColors(isDark);
+  const { signOut } = useAuth();
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -100,6 +102,24 @@ export default function SettingsScreen() {
             subtitle="App info and version"
             showArrow
             onPress={() => router.push('/settings/about')}
+            isLast
+          />
+        </SettingsSection>
+
+        <SettingsSection title="Account">
+          <SettingsItem
+            icon="log-out"
+            title="Sign Out"
+            subtitle="Sign out of your account"
+            onPress={signOut}
+            isFirst
+          />
+          <SettingsItem
+            icon="trash"
+            title="Delete Account"
+            subtitle="Permanently delete your account and data"
+            showArrow
+            onPress={() => router.push('/settings/delete-account')}
             isLast
           />
         </SettingsSection>

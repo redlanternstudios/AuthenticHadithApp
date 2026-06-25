@@ -136,10 +136,26 @@ export default function PaywallScreen() {
   }
 
   // ─── Loading state ──────────────────────────────────────────────────────────
+  const handleDismiss = () => {
+    if (router.canGoBack()) {
+      router.back()
+    } else {
+      router.replace('/(tabs)')
+    }
+  }
+
   if (isLoading) {
     return (
       <View style={[styles.centered, { backgroundColor: colors.background }]}>
         <Stack.Screen options={{ headerShown: false }} />
+        <Pressable
+          style={styles.closeButton}
+          onPress={handleDismiss}
+          accessibilityRole="button"
+          accessibilityLabel="Close paywall"
+        >
+          <Text style={[styles.closeButtonText, { color: colors.mutedText }]}>✕</Text>
+        </Pressable>
         <ActivityIndicator size="large" color={colors.goldMid} />
       </View>
     )
@@ -150,6 +166,14 @@ export default function PaywallScreen() {
     return (
       <View style={[styles.centered, { backgroundColor: colors.background }]}>
         <Stack.Screen options={{ headerShown: false }} />
+        <Pressable
+          style={styles.closeButton}
+          onPress={handleDismiss}
+          accessibilityRole="button"
+          accessibilityLabel="Close paywall"
+        >
+          <Text style={[styles.closeButtonText, { color: colors.mutedText }]}>✕</Text>
+        </Pressable>
         <Text style={[styles.unavailableTitle, { color: colors.bronzeText }]}>
           Plans Temporarily Unavailable
         </Text>
@@ -179,6 +203,16 @@ export default function PaywallScreen() {
       showsVerticalScrollIndicator={false}
     >
       <Stack.Screen options={{ headerShown: false }} />
+
+      {/* ── Dismiss button ── */}
+      <Pressable
+        style={styles.closeButton}
+        onPress={handleDismiss}
+        accessibilityRole="button"
+        accessibilityLabel="Close paywall"
+      >
+        <Text style={[styles.closeButtonText, { color: colors.mutedText }]}>✕</Text>
+      </Pressable>
 
       {/* ── Header ── */}
       <View style={styles.headerSection}>
@@ -525,6 +559,20 @@ const styles = StyleSheet.create({
   legalDot: {
     fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.xs,
+  },
+
+  // Close / dismiss button
+  closeButton: {
+    position: 'absolute',
+    top: SPACING.lg,
+    right: SPACING.lg,
+    zIndex: 10,
+    padding: SPACING.sm,
+  },
+  closeButtonText: {
+    fontFamily: FONT_FAMILY.body,
+    fontSize: FONT_SIZES.xl,
+    lineHeight: 24,
   },
 
   // Unavailable state

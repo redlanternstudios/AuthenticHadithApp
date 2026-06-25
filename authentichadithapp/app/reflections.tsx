@@ -12,6 +12,8 @@ import { useTheme } from '@/lib/theme/ThemeProvider'
 import { trackActivity } from '@/lib/gamification/track-activity'
 import { QueryErrorBanner } from '@/components/common/QueryErrorBanner'
 import { FONT_FAMILY } from '@/constants/theme'
+import { getDailySeed } from '@/lib/hadith/dailySeed'
+import { HIDDEN_COLLECTION_FILTER } from '@/lib/hadith/visibleCollections'
 
 export default function ReflectionsScreen() {
   const { isDark } = useTheme()
@@ -39,30 +41,36 @@ export default function ReflectionsScreen() {
   const addNote = useMutation({
     mutationFn: async () => {
       if (!user || !newReflection.trim()) return
-      // Get today's daily hadith to attach the reflection
-      const today = new Date()
-      const dateStr = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`
-      let hash = 0
-      for (let i = 0; i < dateStr.length; i++) {
-        hash = (hash << 5) - hash + dateStr.charCodeAt(i)
-        hash |= 0
-      }
-      const seed = Math.abs(hash)
+      // Bug 2 fix: use getDailySeed() (UTC-stable) and apply the SAME filters as
+      // today.tsx (english_text NOT NULL/empty + hidden collection exclusions) so
+      // the seed % count offset resolves to the identical hadith on both screens.
+      const seed = getDailySeed()
 
-      const { count } = await supabase
+      let countQuery = supabase
         .from('hadiths')
         .select('id', { count: 'exact', head: true })
         .eq('grade', 'sahih')
+        .not('english_text', 'is', null)
+        .neq('english_text', '')
+      if (HIDDEN_COLLECTION_FILTER) {
+        countQuery = countQuery.not('collection_slug', 'in', HIDDEN_COLLECTION_FILTER)
+      }
+      const { count } = await countQuery
 
       if (!count) return
 
       const offset = seed % count
-      const { data: hadith } = await supabase
+      let rowQuery = supabase
         .from('hadiths')
         .select('id')
         .eq('grade', 'sahih')
-        .range(offset, offset)
-        .single()
+        .not('english_text', 'is', null)
+        .neq('english_text', '')
+      if (HIDDEN_COLLECTION_FILTER) {
+        rowQuery = rowQuery.not('collection_slug', 'in', HIDDEN_COLLECTION_FILTER)
+      }
+      // Bug 2 + Bug 1 fix: ORDER BY id for deterministic row selection.
+      const { data: hadith } = await rowQuery.order('id', { ascending: true }).range(offset, offset).single()
 
       if (!hadith) return
 

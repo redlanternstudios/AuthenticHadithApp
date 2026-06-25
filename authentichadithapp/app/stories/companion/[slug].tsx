@@ -452,7 +452,7 @@ export default function CompanionStoryScreen() {
             {/* Main content */}
             <View style={styles.articleBody}>
               {renderContentParagraphs(
-                part.content_en,
+                part.content_en ?? '',
                 themeColor,
                 colors.mutedText,
                 colors.bronzeText,
@@ -624,7 +624,7 @@ export default function CompanionStoryScreen() {
         </View>
 
         {/* Next / Complete */}
-        {currentPart >= parts.length ? (
+        {currentPart >= totalParts ? (
           <Pressable
             onPress={handleComplete}
             disabled={isAdvancing}

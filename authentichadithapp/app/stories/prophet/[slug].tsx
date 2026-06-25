@@ -437,7 +437,7 @@ export default function ProphetStoryScreen() {
             {/* Main content */}
             <View style={styles.articleBody}>
               {renderContentParagraphs(
-                part.content_en,
+                part.content_en ?? '',
                 themeColor,
                 colors.mutedText,
                 colors.bronzeText,
@@ -569,7 +569,7 @@ export default function ProphetStoryScreen() {
         </View>
 
         {/* Next / Done */}
-        {currentPart >= parts.length ? (
+        {currentPart >= totalParts ? (
           <Pressable
             onPress={handleDone}
             disabled={isAdvancing}

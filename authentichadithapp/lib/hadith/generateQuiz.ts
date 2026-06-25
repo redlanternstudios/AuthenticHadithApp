@@ -104,7 +104,13 @@ export function generateQuestions(hadiths: Hadith[]): QuizQuestion[] {
         hasan: 'Hasan (Good)',
         daif: "Da'if (Weak)",
       }
-      const correct = (hadith.grade && gradeDisplay[hadith.grade]) || 'Sahih (Authentic)'
+      // Skip grade question when hadith.grade is null/undefined or not in
+      // gradeDisplay — avoids silently reporting 'Sahih (Authentic)' as
+      // the correct answer for a da'if or ungraded hadith.
+      if (!hadith.grade || !gradeDisplay[hadith.grade]) {
+        continue
+      }
+      const correct = gradeDisplay[hadith.grade]
       const options = Object.values(gradeDisplay).sort(() => Math.random() - 0.5)
       questions.push({
         question: `What is the grade of this hadith?\n\n"${excerptHadith(hadith.english_text || '')}"`,

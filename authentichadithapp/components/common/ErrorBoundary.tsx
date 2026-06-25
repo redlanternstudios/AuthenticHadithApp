@@ -1,6 +1,7 @@
 import React from 'react'
 import { View, Text, StyleSheet } from 'react-native'
 import { COLORS, SPACING, FONT_SIZES } from '../../lib/styles/colors'
+import { FONT_FAMILY } from '../../constants/theme'
 
 interface ErrorBoundaryProps {
   children: React.ReactNode
@@ -22,7 +23,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo)
+    if (__DEV__) { console.error('ErrorBoundary caught an error:', error, errorInfo) }
   }
 
   render() {
@@ -58,6 +59,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.lg,
   },
   title: {
+    fontFamily: FONT_FAMILY.heading,
     fontSize: FONT_SIZES.xxl,
     fontWeight: '700',
     color: COLORS.bronzeText,
@@ -65,6 +67,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   message: {
+    fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.base,
     color: COLORS.mutedText,
     textAlign: 'center',

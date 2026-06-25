@@ -241,7 +241,7 @@ export async function syncSubscriptionToSupabase(
 ): Promise<void> {
   const status = await getSubscriptionStatus()
 
-  await supabase
+  const { error } = await supabase
     .from('profiles')
     .update({
       subscription_tier: status.tier,
@@ -249,4 +249,8 @@ export async function syncSubscriptionToSupabase(
       subscription_expires_at: status.expiresAt,
     })
     .eq('user_id', userId)
+
+  if (error) {
+    __DEV__ && console.error('[RevenueCat] syncSubscriptionToSupabase failed:', error)
+  }
 }

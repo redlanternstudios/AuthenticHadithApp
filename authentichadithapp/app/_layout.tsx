@@ -161,6 +161,15 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, fontError, authReady]);
 
+  // FIX C: Safety net — if Supabase hangs and authReady never fires, force-hide
+  // the splash after 8 seconds so the user is never stuck on a frozen screen.
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      SplashScreen.hideAsync().catch(() => {});
+    }, 8000);
+    return () => clearTimeout(timeout);
+  }, []);
+
   // Providers mount unconditionally — AppReadySignal (inside AuthProvider) must
   // be live immediately so auth hydration can resolve in parallel with font
   // loading rather than waiting for the font gate to pass first.

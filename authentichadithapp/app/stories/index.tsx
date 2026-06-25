@@ -97,7 +97,8 @@ export default function StoriesScreen() {
 
   // ── load per-companion progress for Continue Reading ─────────────
   useEffect(() => {
-    if (!companions || companions.length === 0) return
+    if (!companions) return
+    if (companions.length === 0) { setProgressLoading(false); return }
     let cancelled = false
 
     async function loadProgress() {

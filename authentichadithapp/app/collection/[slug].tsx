@@ -100,7 +100,8 @@ function GradeBar({ distribution, colors }: { distribution: Record<string, numbe
 export default function CollectionDetailScreen() {
   const { isDark } = useTheme();
   const colors = getColors(isDark);
-  const { slug } = useLocalSearchParams<{ slug: string }>();
+  const { slug } = useLocalSearchParams<{ slug: string | string[] }>();
+  const resolvedSlug = Array.isArray(slug) ? slug[0] : slug;
   const router = useRouter();
 
   // Fetch collection metadata
@@ -109,18 +110,18 @@ export default function CollectionDetailScreen() {
     isLoading: collectionLoading,
     error: collectionError,
   } = useQuery({
-    queryKey: ['collection-detail', slug],
+    queryKey: ['collection-detail', resolvedSlug],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('collections')
         .select('*')
-        .eq('slug', slug)
+        .eq('slug', resolvedSlug)
         .single();
 
       if (error) throw error;
       return data as Collection;
     },
-    enabled: !!slug,
+    enabled: !!resolvedSlug,
   });
 
   // Fetch books for this collection.
@@ -128,13 +129,13 @@ export default function CollectionDetailScreen() {
   // granular book rows exist, derive the book list from distinct book_number
   // values on the hadiths table so the user can still browse by book.
   const { data: books = [], isLoading: booksLoading } = useQuery({
-    queryKey: ['collection-books', slug],
+    queryKey: ['collection-books', resolvedSlug],
     queryFn: async () => {
       // First try the books table
       const { data: bookRows } = await supabase
         .from('books')
         .select('*')
-        .eq('collection_slug', slug as string)
+        .eq('collection_slug', resolvedSlug as string)
         .not('book_number', 'is', null)
         .order('book_number');
 
@@ -146,7 +147,7 @@ export default function CollectionDetailScreen() {
       const { data: hadiths } = await supabase
         .from('hadiths')
         .select('book_number')
-        .eq('collection_slug', slug as string)
+        .eq('collection_slug', resolvedSlug as string)
         .not('book_number', 'is', null);
 
       if (!hadiths || hadiths.length === 0) return [];
@@ -162,14 +163,14 @@ export default function CollectionDetailScreen() {
         .sort(([a], [b]) => a - b)
         .map(([num, count]) => ({
           id: num,
-          collection_slug: slug as string,
+          collection_slug: resolvedSlug as string,
           book_number: num,
           book_name: null,
           collection_name: null,
           hadith_count: count,
         })) as Book[];
     },
-    enabled: !!slug,
+    enabled: !!resolvedSlug,
   });
 
   if (collectionLoading || booksLoading) {
@@ -181,7 +182,7 @@ export default function CollectionDetailScreen() {
     );
   }
 
-  if (collectionError || !collection || isHiddenCollection(slug)) {
+  if (collectionError || !collection || isHiddenCollection(resolvedSlug)) {
     return (
       <>
         <Stack.Screen options={{ title: 'Collection', headerShown: true }} />
@@ -201,7 +202,7 @@ export default function CollectionDetailScreen() {
     const hadithCount = item.hadith_count ?? 0;
 
     return (
-      <Pressable onPress={() => router.push(`/book/${item.id}?slug=${slug}&book_number=${displayNumber}`)}>
+      <Pressable onPress={() => router.push(`/book/${item.id}?slug=${resolvedSlug}&book_number=${displayNumber}`)}>
         <Card style={styles.bookCard}>
           <View style={styles.bookRow}>
             <View style={[styles.bookNumberBadge, { backgroundColor: colors.emeraldMid + '15' }]}>

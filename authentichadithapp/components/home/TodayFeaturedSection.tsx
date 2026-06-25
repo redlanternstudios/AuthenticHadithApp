@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router'
 import { useTheme } from '@/lib/theme/ThemeProvider'
 import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors'
 import { Card } from '@/components/ui/Card'
+import { getDailyIndex } from '@/lib/hadith/dailySeed'
 
 // Curated daily content. Keep in sync with app/(tabs)/today.tsx until a future
 // content pass consolidates both lists into a single source. Duplication is
@@ -33,23 +34,14 @@ const REFLECTION_PROMPTS = [
   'What would the Prophet ﷺ advise in my circumstances?',
 ]
 
-function getDailyIndex(date: Date, max: number): number {
-  const dateStr = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
-  let hash = 0
-  for (let i = 0; i < dateStr.length; i++) {
-    hash = (hash << 5) - hash + dateStr.charCodeAt(i)
-    hash |= 0
-  }
-  return Math.abs(hash) % max
-}
-
 export function TodayFeaturedSection() {
   const router = useRouter()
   const { isDark } = useTheme()
   const colors = getColors(isDark)
   const today = new Date()
-  const todayAction = DAILY_ACTIONS[getDailyIndex(today, DAILY_ACTIONS.length)]
-  const todayReflection = REFLECTION_PROMPTS[getDailyIndex(today, REFLECTION_PROMPTS.length)]
+  // Bug 3 fix: getDailyIndex imported from dailySeed (UTC-stable, single source of truth)
+  const todayAction = DAILY_ACTIONS[getDailyIndex(DAILY_ACTIONS.length)]
+  const todayReflection = REFLECTION_PROMPTS[getDailyIndex(REFLECTION_PROMPTS.length)]
 
   const dateLabel = today
     .toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })

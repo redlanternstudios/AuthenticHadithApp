@@ -70,10 +70,19 @@ export default function ProfileScreen() {
   const [showPaywall, setShowPaywall] = React.useState(false);
   const [showCustomerCenter, setShowCustomerCenter] = React.useState(false);
   const [restoring, setRestoring] = React.useState(false);
+  const [isSigningOut, setIsSigningOut] = React.useState(false);
 
   const handleSignOut = async () => {
-    await signOut();
-    router.replace('/');
+    if (isSigningOut) return;
+    setIsSigningOut(true);
+    try {
+      await signOut();
+      router.replace('/');
+    } catch (err: any) {
+      Alert.alert('Sign Out Failed', err.message || 'Please try again.');
+    } finally {
+      setIsSigningOut(false);
+    }
   };
 
   const handleRestore = async () => {
@@ -251,9 +260,10 @@ export default function ProfileScreen() {
       <Pressable
         style={({ pressed }) => [
           styles.signOutRow,
-          { borderColor: colors.border, opacity: pressed ? 0.7 : 1 },
+          { borderColor: colors.border, opacity: pressed || isSigningOut ? 0.7 : 1 },
         ]}
         onPress={handleSignOut}
+        disabled={isSigningOut}
       >
         <Ionicons name="log-out-outline" size={18} color={colors.error} />
         <Text style={[styles.signOutText, { color: colors.error }]}>Sign Out</Text>

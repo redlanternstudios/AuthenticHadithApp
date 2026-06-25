@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react'
+import React, { useCallback, useState } from 'react'
 import {
   StyleSheet,
   View,
@@ -27,6 +27,8 @@ import { Hadith } from '@/types/hadith'
 import { getCollectionDisplayName } from '@/lib/hadith/collectionDisplayName'
 import { HIDDEN_COLLECTION_FILTER } from '@/lib/hadith/visibleCollections'
 import { QueryErrorBanner } from '@/components/common/QueryErrorBanner'
+import { getDailyIndex, getDailySeed, getUTCDateString } from '@/lib/hadith/dailySeed'
+import { SaveHadithModal } from '@/components/my-hadith/SaveHadithModal'
 
 const DAILY_ACTIONS = [
   { action: 'Say Bismillah before eating', reference: 'Sahih al-Bukhari 5376' },
@@ -52,36 +54,21 @@ const REFLECTION_PROMPTS = [
   'What would the Prophet ﷺ advise in my circumstances?',
 ]
 
-function getDailyIndex(date: Date, max: number): number {
-  const dateStr = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
-  let hash = 0
-  for (let i = 0; i < dateStr.length; i++) {
-    hash = (hash << 5) - hash + dateStr.charCodeAt(i)
-    hash |= 0
-  }
-  return Math.abs(hash) % max
-}
-
 export default function TodayScreen() {
   const router = useRouter()
   const { user } = useAuth()
   const { isDark } = useTheme()
   const colors = getColors(isDark)
   const { contentTop, contentBottom, pagePadding, maxContentWidth } = useDeviceLayout()
+  const [showSaveModal, setShowSaveModal] = useState(false)
   const today = new Date()
-  const todayAction = DAILY_ACTIONS[getDailyIndex(today, DAILY_ACTIONS.length)]
-  const todayReflection = REFLECTION_PROMPTS[getDailyIndex(today, REFLECTION_PROMPTS.length)]
+  const todayAction = DAILY_ACTIONS[getDailyIndex(DAILY_ACTIONS.length)]
+  const todayReflection = REFLECTION_PROMPTS[getDailyIndex(REFLECTION_PROMPTS.length)]
 
   const { data: dailyHadith, isLoading, isError, refetch } = useQuery({
-    queryKey: ['daily-hadith', today.toDateString()],
+    queryKey: ['daily-hadith', getUTCDateString()],
     queryFn: async () => {
-      const dateStr = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`
-      let hash = 0
-      for (let i = 0; i < dateStr.length; i++) {
-        hash = (hash << 5) - hash + dateStr.charCodeAt(i)
-        hash |= 0
-      }
-      const seed = Math.abs(hash)
+      const seed = getDailySeed()
 
       // UX hardening (FIX-038): only pick rows with non-empty english_text so
       // the Daily Hadith card always renders real text, not the empty-row
@@ -111,7 +98,10 @@ export default function TodayScreen() {
       if (HIDDEN_COLLECTION_FILTER) {
         rowQuery = rowQuery.not('collection_slug', 'in', HIDDEN_COLLECTION_FILTER)
       }
-      const { data } = await rowQuery.range(offset, offset).single()
+      // Bug 1 fix: ORDER BY id ensures deterministic row ordering regardless of
+      // PostgREST's default undefined order. Without this, the same offset
+      // returns a different row on every cold launch.
+      const { data } = await rowQuery.order('id', { ascending: true }).range(offset, offset).single()
       return data as Hadith | null
     },
   })
@@ -151,29 +141,18 @@ export default function TodayScreen() {
     }
   }, [dailyHadith, user])
 
-  const handleSave = useCallback(async () => {
+  const handleSave = useCallback(() => {
     if (!dailyHadith || !user) return
-    try {
-      const { error } = await supabase.from('saved_hadiths').upsert({
-        user_id: user.id,
-        hadith_id: dailyHadith.id,
-      })
-      if (error) throw error
-
-      try {
-        await trackActivity(user.id, 'bookmark')
-      } catch (activityError) {
-        __DEV__ && console.warn('[Today] bookmark activity tracking failed:', activityError)
-      }
-    } catch (error) {
-      __DEV__ && console.warn('[Today] save failed:', error)
-      Alert.alert('Save Failed', 'Could not save this hadith. Please check your connection and try again.')
-    }
+    // Bug 5 fix: open SaveHadithModal so the user can pick a folder.
+    // Previously this did a raw upsert with no folder_id, leaving the saved
+    // hadith orphaned and never visible in any My Hadith folder view.
+    setShowSaveModal(true)
   }, [dailyHadith, user])
 
   if (isLoading) return <LoadingSpinner />
 
   return (
+    <>
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={[
@@ -305,6 +284,16 @@ export default function TodayScreen() {
         ))}
       </View>
     </ScrollView>
+
+    {/* Bug 5 fix: SaveHadithModal ensures saved hadith is assigned to a folder */}
+    {dailyHadith && (
+      <SaveHadithModal
+        visible={showSaveModal}
+        hadithId={dailyHadith.id}
+        onClose={() => setShowSaveModal(false)}
+      />
+    )}
+    </>
   )
 }
 

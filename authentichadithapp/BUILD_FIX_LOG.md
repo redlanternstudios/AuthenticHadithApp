@@ -3909,3 +3909,48 @@ npx tsc --noEmit → exit 0 (zero errors, 2026-06-24)
 
 **Lesson**: The GoTrue admin bulk list endpoint (`/auth/v1/admin/users?page=1&per_page=50`) errors with HTTP 500 on this project — use filter param instead: `?filter=<email>`. Always use GoTrue admin PUT (not raw SQL) to reset passwords — it hashes correctly and sets `email_confirmed_at`. Never trust a readiness doc — prove every gate against production with a live probe before any submission claim. See Rule 034.
 
+
+---
+
+### [FIX-110] — Intentional Bug Hunt: 18 P0/P1 fixes across 14 files (5-agent parallel run)
+**Date**: 2026-06-25 PT · Cowork session
+**Pattern category**: PRE_SUBMISSION_AUDIT / APPLE_COMPLIANCE / CRASH_PREVENTION / DATA_INTEGRITY
+
+**Root cause**: Full intentional bug hunt (4-agent SwarmClaw audit) surfaced 8 P0s (App Store rejection/crash risk) and 10 P1s (silent failures/compliance) before submission. Fixed via 5-agent parallel run. Two P1s in the forbidden monetization layer (`lib/purchases/revenuecat.ts`) escalated to KP for explicit approval.
+
+**Files Changed**:
+
+**Stories Layer**
+- `app/stories/index.tsx` — P0-5: progressLoading infinite spinner when companions empty. Guard changed from `if (!companions || companions.length === 0) return` to separate `if (!companions) return` + `if (companions.length === 0) { setProgressLoading(false); return }`.
+- `app/stories/companion/[slug].tsx` — P0-4: `content_en ?? ''` null guard on renderContentParagraphs call (line 455). P1-2: Complete button condition changed from `currentPart >= parts.length` to `currentPart >= totalParts` (line 627).
+- `app/stories/prophet/[slug].tsx` — P0-4: same `content_en ?? ''` guard (line 440). P1-2: same totalParts fix (line 572).
+
+**Settings + Profile Layer**
+- `app/settings/index.tsx` — P0-6: Added Account section with Sign Out + Delete Account rows (Apple Guideline 5.1.1 compliance). useAuth imported, signOut wired.
+- `app/(tabs)/profile.tsx` — P0-7: `handleSignOut` wrapped in try/catch, `isSigningOut` loading state added, button disabled during sign-out.
+- `app/settings/delete-account.tsx` — P0-8: `supabase.auth.signOut()` moved inside Alert OK `onPress` to eliminate dual-alert collision on iOS. P1-6: apex domain fallback replaced with `normalizeApiBaseUrl()` from `lib/config/constants`.
+- `app/settings/subscription.tsx` — P1-8: "Manage Subscription" deep-link added (`Linking.openURL('https://apps.apple.com/account/subscriptions')`). Apple Guideline 3.1.2(a) compliance.
+
+**Paywall + ErrorBoundary**
+- `app/paywall.tsx` — P0-1: Dismiss/close button added in all 3 states (loading, no-offerings fallback, full paywall). Routes to `router.back()` or `/(tabs)` fallback. Apple HIG + Guideline 3.1.1 compliance.
+- `components/common/ErrorBoundary.tsx` — P1-10: `console.error` gated behind `__DEV__`. W-03: `fontFamily` added to `styles.title` (FONT_FAMILY.heading) and `styles.message` (FONT_FAMILY.body). Rule 042 compliance.
+
+**Collections + Onboarding + Quiz**
+- `app/collections/index.tsx` — P0-2: `filterVisibleCollections()` applied to data prop — hidden collections no longer exposed via non-tab `/collections` route.
+- `app/collection/[slug].tsx` — P2-1: `resolvedSlug = Array.isArray(slug) ? slug[0] : slug` guard; all 7 downstream usages updated.
+- `app/onboarding.tsx` — P1-1: Both `profiles` and `user_preferences` upserts now destructure `{ error }` and call `Alert.alert` + `return` on failure. Silent write failures eliminated.
+- `lib/hadith/generateQuiz.ts` — P1-3: `if (!hadith.grade || !gradeDisplay[hadith.grade]) { continue }` guard before grade question generation. Unknown grade no longer defaults to 'Sahih (Authentic)'.
+- `app/quiz.tsx` — P2-8: `answerTimerRef` useRef added; setTimeout assigned to ref; cleanup useEffect cancels on unmount.
+
+**AI Assistant + Layout**
+- `app/(tabs)/assistant.tsx` — P0-3: `useEffect` on `user?.id` clears `messages` + resets `freeUsed` on logout/account switch. P2-4: `KeyboardAvoidingView` with `behavior='padding'` + `keyboardVerticalOffset=90` wraps screen content.
+- `app/_layout.tsx` — P1-5: Independent 8-second timeout `useEffect` force-calls `SplashScreen.hideAsync()` if `authReady` never resolves (Supabase hang safeguard). P1-9: All 4 quick-action routes (`/quiz`, `/sunnah`, `/progress`, `/achievements`) confirmed present in Stack — no additions needed.
+
+**ESCALATED TO KP (cannot auto-fix — forbidden file)**:
+- P1-4: `lib/purchases/revenuecat.ts` `syncSubscriptionToSupabase` (lines 238-252) — Supabase `.update()` result discarded, silent write failures.
+- P1-7: `lib/purchases/revenuecat.ts` `purchasePackage` (lines 154-165) — returns `false` for both user-cancel AND config/RC-not-configured failure (indistinguishable). Proposed fix: throw on config failure so paywall can show an error state.
+- Both require KP explicit approval before this file can be touched (forbidden-actions.md: Purchase/Monetization Layer).
+
+**Verification**: TruthSerum receipts from all 5 agents — all 18 autonomous fixes verified by file:line citation from the editing agents. P1-4 and P1-7 status: Blocked (awaiting KP approval).
+
+**Lesson**: Pre-submission intentional bug hunt is mandatory and must run before any EAS submit. This pass caught: 1 paywall trap (App Store rejection guaranteed), 1 hidden-collection leak, 1 dual-alert crash on account deletion, 1 infinite spinner, 2 null crashes in story reader, 1 missing Apple-required sign-out, 1 missing "Manage Subscription" link, 1 factually incorrect Islamic content in quiz, 1 cross-account conversation leak. None would have been caught by functional QA of the happy path alone.

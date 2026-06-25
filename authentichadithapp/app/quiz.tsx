@@ -35,6 +35,7 @@ export default function QuizScreen() {
   const [timer, setTimer] = useState(0)
   const [quizMode, setQuizMode] = useState<string>('general')
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const answerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const { data: hadiths, isLoading, isError, refetch } = useQuery({
     queryKey: ['quiz-hadiths'],
@@ -76,6 +77,14 @@ export default function QuizScreen() {
     }
   }, [quizState])
 
+  // Cleanup: cancel any pending answer-advance timer on unmount to prevent
+  // setState calls on an unmounted component.
+  useEffect(() => {
+    return () => {
+      if (answerTimerRef.current) clearTimeout(answerTimerRef.current)
+    }
+  }, [])
+
   const startQuiz = useCallback(() => {
     let q: QuizQuestion[]
     if (quizMode === 'general') {
@@ -105,7 +114,7 @@ export default function QuizScreen() {
     setAnswers(newAnswers)
     setScore(newScore)
 
-    setTimeout(() => {
+    answerTimerRef.current = setTimeout(() => {
       if (currentQuestion + 1 < questions.length) {
         setCurrentQuestion((c) => c + 1)
         setSelectedAnswer(null)
