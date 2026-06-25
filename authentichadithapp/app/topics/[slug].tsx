@@ -85,7 +85,9 @@ export default function TopicHadithsScreen() {
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.bronzeText }]}>{tag.name_en}</Text>
         {tag.name_ar && <Text style={[styles.arabic, { color: colors.goldMid }]}>{tag.name_ar}</Text>}
-        <Text style={[styles.subtitle, { color: colors.mutedText }]}>{tag.usage_count} hadiths</Text>
+        <Text style={[styles.subtitle, { color: colors.mutedText }]}>
+          {hadithsLoading ? tag.usage_count : (hadiths?.length ?? 0)} hadiths
+        </Text>
       </View>
 
       <HadithList
