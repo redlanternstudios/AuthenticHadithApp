@@ -4548,3 +4548,32 @@ enabled on the App ID in the Apple Developer Portal. This is the same pattern as
 **Lesson**: Every new entitlement added via an Expo config plugin requires a matching capability
 toggle in Apple Developer Portal BEFORE the EAS build. Pattern: code change → commit → Apple Dev
 Portal capability → EAS build. Failing this order → XCODE_BUILD_ERROR on entitlement mismatch.
+
+---
+
+## BUILD RECEIPT — Build 80 + Submission to TestFlight
+
+**Date**: 2026-06-26 PT · Cowork session
+**EAS Build ID**: a1d564e0-66b7-478d-be4a-63b6fde812d9
+**Build number**: 80
+**Version**: 1.1.0
+**Commit**: 7ed62cd1 (FIX-116+121: Sign In with Apple + push token migration)
+**Provisioning profile**: RL2RYR793P (regenerated with SIWA entitlement)
+**Status**: FINISHED ✅ · Finished at: 2026-06-25 18:54:42 PT
+
+**EAS Submission ID**: e3e075fd-b2a8-48e2-bce5-7d20faa3437c
+**Submission status**: SUBMITTED ✅ — Apple processing
+**TestFlight URL**: https://appstoreconnect.apple.com/apps/6764673665/testflight/ios
+
+### Rule 034 Live Probes — ALL GREEN (verified 2026-06-26)
+1. **Reviewer login**: `apple.reviewer@authentichadith.app` → `access_token` ✅ (UUID: a1433858-cdce-4dbe-9a83-26ecb0022979; password reset via GoTrue admin PUT)
+2. **RC premium**: UUID → `premium` active, expires 2226-05-09 (lifetime promotional grant) ✅
+3. **API**: `POST https://www.authentichadith.app/api/mobile-chat` → 200 ✅
+
+### Duplicate builds (from session upload retries — NOT submitted)
+- Build 79 (f92d0af8) — same commit/profile — ignore
+- Build 81 (7e4651f4) — same commit/profile — ignore
+
+### Next gate: Rule 040 — KP device QA on TestFlight Build 80
+Install Build 80 from TestFlight on physical iPhone. Complete 8-item checklist.
+Submit for Review = KP's finger only.
