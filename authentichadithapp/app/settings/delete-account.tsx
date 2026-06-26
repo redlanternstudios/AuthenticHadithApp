@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { SPACING, FONT_SIZES , getColors } from '@/lib/styles/colors';
 import { FONT_FAMILY } from '@/constants/theme';
@@ -77,7 +77,13 @@ export default function DeleteAccountScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}> 
+    // FIX-136: KeyboardAvoidingView ensures the "Type DELETE" input and the
+    // Delete button remain accessible above the iOS keyboard. Without this the
+    // keyboard covers the destructive action button entirely.
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       <Stack.Screen
         options={{
           title: 'Delete Account',
@@ -139,7 +145,7 @@ export default function DeleteAccountScreen() {
           )}
         </TouchableOpacity>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

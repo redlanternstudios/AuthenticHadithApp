@@ -9,9 +9,24 @@
 
 **Status**: 🟢 No active errors
 
-**Current state**: Build 89 (v1.1.0, build 89) IN PROGRESS on EAS — 2026-06-25. Contains FIX-124 through FIX-129 (SwarmClaw CTP audit — 9 crash/UX fixes + SIWA profiles upsert) + all prior fixes through Build 85. FIX-130 (Rule 042 font parity sweep — 29 violations across 10 files, TSC EXIT:0, 2026-06-26) in working tree, not yet committed. Rule 034 re-probe required on Build 89 before Submit for Review.
+**Current state (2026-06-26)**: CTP precision sweep COMPLETE. FIX-130 through FIX-137 all committed on branch `fix/repair-batch-2026-06-25`. Pushed to GitHub. Awaiting KP authorization for next EAS build. Rule 034 re-probe required before Submit for Review (reviewer login + RC premium + backend API).
 
-**Build 89 (current — in progress):**
+**Committed fix batch (HEAD on fix/repair-batch-2026-06-25):**
+- FIX-134: `app/reflections.tsx` — KeyboardAvoidingView wrapping ScrollView (multiline textarea)
+- FIX-135: `app/onboarding.tsx` — KeyboardAvoidingView on Step 1 name input (CRITICAL — reviewer path)
+- FIX-136: `app/settings/delete-account.tsx` — Root View → KeyboardAvoidingView (Delete button blocked)
+- FIX-137: `app/learn/lesson/[lessonId].tsx` — scheduleLessonReminder() wired to lesson completion handler
+
+**Final audit results (2026-06-26):**
+- `npx tsc --noEmit` → EXIT:0 ✅
+- `npx expo-doctor` → 18/18 ✅
+- `npx expo lint` → EXIT:0 ✅
+- Backend probe: `POST https://www.authentichadith.app/api/mobile-chat` → HTTP 200 ✅
+- OPEN_BUGS.md: all 3 bugs CLOSED ✅
+- Routing: every screen has explicit Stack.Screen options (no raw route path leaks) ✅
+- TODO/FIXME scan: ZERO critical markers ✅
+
+**Build 89 (previous — completed on EAS):**
 - EAS Build ID: `03606269-c0c9-485a-82c4-d237b0e38023`
 - Build URL: `https://expo.dev/accounts/redlantern/projects/authentichadithapp/builds/03606269-c0c9-485a-82c4-d237b0e38023`
 - App Version: 1.1.0, Build Number: 89

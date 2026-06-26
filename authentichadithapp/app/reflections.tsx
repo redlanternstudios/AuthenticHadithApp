@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { StyleSheet, View, ScrollView, Text, TextInput, Alert } from 'react-native'
+import { StyleSheet, View, ScrollView, Text, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native'
 import { Stack } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
@@ -132,6 +132,13 @@ export default function ReflectionsScreen() {
   }
 
   return (
+    // FIX-134: KeyboardAvoidingView lifts the multiline TextInput above the iOS
+    // keyboard — without this, tapping the reflection textarea causes the keyboard
+    // to cover the input and the user cannot type.
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
       <Stack.Screen options={{ title: 'Reflections', headerShown: true }} />
       {isError && <QueryErrorBanner onRetry={refetch} />}
@@ -189,6 +196,7 @@ export default function ReflectionsScreen() {
         </View>
       )}
     </ScrollView>
+    </KeyboardAvoidingView>
   )
 }
 

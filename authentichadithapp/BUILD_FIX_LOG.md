@@ -4855,3 +4855,84 @@ exported for cross-provider access. Auth guards must be hard (null check + throw
 **Verification**: `npx tsc --noEmit` → EXIT:0.
 
 **Lesson**: In expo-router, setting `headerShown: false` on a parent segment in `_layout.tsx` does NOT propagate to nested sub-segments that lack their own `_layout.tsx`. Always create `_layout.tsx` files in every directory that has dynamic routes (`[id]`) to explicitly control header visibility.
+
+---
+
+### [FIX-134] — Keyboard covers multiline TextInput in reflections.tsx (missing KeyboardAvoidingView)
+**Date**: 2026-06-26
+**Session**: CTP precision sweep — keyboard avoidance audit
+**Pattern Category**: IOS_KEYBOARD / TEXTINPUT
+
+**Root cause**: `app/reflections.tsx` renders a 4-line multiline `TextInput` inside a `<ScrollView>` with no `KeyboardAvoidingView`. On iOS, the keyboard rises over the input — user cannot type. Severity: HIGH (affects all users on the Reflections tab).
+
+**Files changed (1):**
+- `app/reflections.tsx`
+  - Added `KeyboardAvoidingView, Platform` to React Native imports
+  - Wrapped root `<ScrollView>` with `<KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">`
+
+**Verification**: `npx tsc --noEmit` → EXIT:0.
+
+**Lesson**: Same as FIX-132. Any screen with a multiline TextInput (or a TextInput whose content matters) MUST have a `KeyboardAvoidingView` around the scroll container, not just inside Modals.
+
+---
+
+### [FIX-135] — Keyboard covers name TextInput in onboarding.tsx (missing KeyboardAvoidingView)
+**Date**: 2026-06-26
+**Session**: CTP precision sweep — keyboard avoidance audit
+**Pattern Category**: IOS_KEYBOARD / TEXTINPUT / ONBOARDING
+
+**Root cause**: `app/onboarding.tsx` Step 1 renders a name `TextInput` inside a `<ScrollView>` with no `KeyboardAvoidingView`. On iOS, the keyboard rises and covers the input. Severity: CRITICAL — the Apple reviewer goes through onboarding as the first screen after signup. A blocked name field is a direct rejection risk.
+
+**Files changed (1):**
+- `app/onboarding.tsx`
+  - Added `KeyboardAvoidingView, Platform` to React Native imports
+  - Wrapped root `<ScrollView>` (line 148) with `<KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">`
+  - Added matching `</KeyboardAvoidingView>` closing tag after `</ScrollView>` at line 446
+
+**Verification**: `npx tsc --noEmit` → EXIT:0.
+
+**Lesson**: The onboarding flow is the reviewer's first real interaction after signup. Any UX blocker here is a direct App Store rejection risk. Test every step with a keyboard visible.
+
+---
+
+### [FIX-136] — Keyboard covers Delete button in delete-account.tsx (missing KeyboardAvoidingView)
+**Date**: 2026-06-26
+**Session**: CTP precision sweep — keyboard avoidance audit
+**Pattern Category**: IOS_KEYBOARD / TEXTINPUT / SETTINGS
+
+**Root cause**: `app/settings/delete-account.tsx` renders a "Type DELETE" `TextInput` inside a root `<View>` with no `KeyboardAvoidingView`. When the keyboard appears on iOS, it covers the destructive "Permanently Delete Account" button below the input — user cannot confirm deletion.
+
+**Files changed (1):**
+- `app/settings/delete-account.tsx`
+  - Added `KeyboardAvoidingView, Platform` to React Native imports
+  - Changed root `<View style={[styles.container, ...]}>` to `<KeyboardAvoidingView style={[styles.container, ...]} behavior="padding">`
+  - Changed matching closing `</View>` to `</KeyboardAvoidingView>`
+
+**Verification**: `npx tsc --noEmit` → EXIT:0.
+
+**Lesson**: Static Views (non-scrolling) also need `KeyboardAvoidingView` when interactive content (buttons, submit actions) sits below a TextInput. Keyboard pushes the content up only when KAV is present.
+
+---
+
+### [FIX-137] — Lesson reminder notification never fires: scheduleLessonReminder() not called from lesson completion handler
+**Date**: 2026-06-26
+**Session**: CTP precision sweep — notification E2E audit
+**Pattern Category**: NOTIFICATIONS / WIRING
+
+**Root cause**: `lib/notifications/NotificationService.ts` exports `scheduleLessonReminder(lessonTitle)` (line 192) which schedules a one-time notification 24 hours after lesson completion to nudge continued learning. However, the function was never imported or called from the lesson screen. The lesson reminder toggle in Settings turned green (preference saved in AsyncStorage via `setLessonReminderEnabled`) but a notification was never actually scheduled — because no call site existed. The function's own comment at line 316 even noted: "Call scheduleLessonReminder() from the lesson completion handler." — the wiring was simply missing.
+
+**Files changed (1):**
+- `app/learn/lesson/[lessonId].tsx`
+  - Added import: `import { scheduleLessonReminder, getLessonReminderEnabled } from '@/lib/notifications'`
+  - After `trackActivity()` in the "Mark as Complete" `onPress` handler, added a non-fatal call:
+    ```
+    const lessonReminderEnabled = await getLessonReminderEnabled()
+    if (lessonReminderEnabled) {
+      await scheduleLessonReminder(lesson.title)
+    }
+    ```
+  - Wrapped in try/catch — notification failure never blocks the lesson completion flow
+
+**Verification**: `npx tsc --noEmit` → EXIT:0.
+
+**Lesson**: Implementing a function is not the same as wiring it. Any new notification function should be verified end-to-end from its call site — not just defined and exported. The existing comment in NotificationService.ts was the clue that wiring was always intended but never done.

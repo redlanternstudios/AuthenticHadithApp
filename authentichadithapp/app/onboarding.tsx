@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { StyleSheet, View, ScrollView, Text, Pressable, TextInput, Alert, Linking } from 'react-native'
+import { StyleSheet, View, ScrollView, Text, Pressable, TextInput, Alert, Linking, KeyboardAvoidingView, Platform } from 'react-native'
 import { Stack, useRouter } from 'expo-router'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { supabase } from '@/lib/supabase/client'
@@ -146,6 +146,13 @@ export default function OnboardingScreen() {
   }
 
   return (
+    // FIX-135: KeyboardAvoidingView ensures the name TextInput on Step 1 remains
+    // visible above the iOS keyboard. Without this, the keyboard covers the input
+    // and new users (including the Apple reviewer) cannot type their name.
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={[styles.content, isRTL && styles.contentRTL]}
@@ -437,6 +444,7 @@ export default function OnboardingScreen() {
         )}
       </View>
     </ScrollView>
+    </KeyboardAvoidingView>
   )
 }
 

@@ -15,6 +15,7 @@ import { usePathLessons, getLessonNeighbors } from '@/hooks/useLearning';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import { trackActivity } from '@/lib/gamification/track-activity';
 import { supabase } from '@/lib/supabase/client';
+import { scheduleLessonReminder, getLessonReminderEnabled } from '@/lib/notifications';
 
 export default function LessonDetailScreen() {
   const params = useLocalSearchParams<{ lessonId: string; pathId?: string }>();
@@ -159,6 +160,18 @@ export default function LessonDetailScreen() {
                 } catch (err) {
                   __DEV__ && console.warn('[Lesson] trackActivity failed (non-fatal):', err);
                 }
+              }
+              // FIX-137: Wire lesson reminder. scheduleLessonReminder() schedules
+              // a one-time notification 24h from now as a nudge to continue learning.
+              // Only fires when the user has enabled lesson reminders in Settings.
+              // Non-fatal: notification failure never blocks lesson completion flow.
+              try {
+                const lessonReminderEnabled = await getLessonReminderEnabled();
+                if (lessonReminderEnabled) {
+                  await scheduleLessonReminder(lesson.title);
+                }
+              } catch (err) {
+                __DEV__ && console.warn('[Lesson] scheduleLessonReminder failed (non-fatal):', err);
               }
               // Decision: completing advances. Brief delay so the optimistic
               // "Completed" state is visible, then continue to the next lesson —
