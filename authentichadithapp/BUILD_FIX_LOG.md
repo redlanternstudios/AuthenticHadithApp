@@ -4183,3 +4183,207 @@ cannot enable App ID capabilities; it only reflects what the App ID already has.
 developer.apple.com → Identifiers → [your bundle ID] → enable the capability → Save. Then delete the
 EAS profile (via GraphQL) so the next build creates a fresh profile that inherits the new capability.
 Two-layer fix: Apple Dev Portal first, EAS profile cache second.
+
+---
+
+### [FIX-115] — Push token upsert race + projectId missing + SCREENSHOT-BYPASS auth gate restored
+**Date**: 2026-06-25 PT · Cowork session
+**Pattern category**: PUSH_NOTIFICATIONS / AUTH_GATE / SUPABASE_UPSERT
+**EAS Build**: Build 76 — pending retrigger after FIX-118 + FIX-119 committed
+**Commit**: pending
+
+**Root Cause (3 bugs)**:
+
+B1 — `app/_layout.tsx` PushTokenSync used `.insert()` on `profiles(user_id, expo_push_token)`. On
+second app launch the unique constraint on `user_id` fires Postgres error 23505, token sync silently
+fails every subsequent launch.
+
+B2 — `lib/notifications/NotificationService.ts` called `getExpoPushTokenAsync()` without the required
+`{ projectId }` arg. On Expo SDK 54 this call throws `"Unable to get push token: projectId"` on all
+physical devices. Push tokens never registered.
+
+B4 — Auth gates in `app/_layout.tsx` NavigationGate (user check, onboarded check, isPro check) had
+been commented out for screenshot capture sessions and never restored. App was shipping with reviewer
+and user auth bypass still active — anyone could navigate without logging in.
+
+**Fix Applied**:
+
+B1 — Changed PushTokenSync insert to:
+```ts
+.upsert({ user_id: user.id, expo_push_token: token }, { onConflict: 'user_id' })
+```
+
+B2 — Added `projectId: '66afcbbf-55c3-48fb-9bf1-29efc52d09eb'` to `getExpoPushTokenAsync()`:
+```ts
+const tokenData = await Notifications.getExpoPushTokenAsync({
+  projectId: '66afcbbf-55c3-48fb-9bf1-29efc52d09eb',
+})
+```
+
+B4 — Restored all three NavigationGate guards in `app/_layout.tsx`:
+```ts
+if (!user) { /* redirect to login */ }
+if (!onboarded) { /* redirect to onboarding */ }
+if (requiresPro && !isPro) { /* redirect to paywall */ }
+```
+
+**Files Changed**:
+- `app/_layout.tsx` — B1: upsert, B4: auth gates restored
+- `lib/notifications/NotificationService.ts` — B2: projectId added
+
+**Verification**:
+- `npx tsc --noEmit` → exit 0, no type errors
+- Auth gates verified present: `grep -n "if (!user)" app/_layout.tsx` → found
+- Upsert verified: `grep "onConflict" app/_layout.tsx` → found
+- ProjectId verified: `grep "projectId" lib/notifications/NotificationService.ts` → found
+
+**KP manual actions required before push tokens work**:
+1. Supabase Dashboard → SQL Editor → project `nqklipakrfuwebkdnhwg`:
+   ```sql
+   ALTER TABLE profiles ADD COLUMN IF NOT EXISTS expo_push_token TEXT DEFAULT NULL;
+   CREATE INDEX IF NOT EXISTS idx_profiles_expo_push_token ON profiles(expo_push_token) WHERE expo_push_token IS NOT NULL;
+   ```
+2. Supabase Dashboard → Edge Functions → Secrets:
+   `ANNOUNCEMENT_SECRET = 49D3DBEB-65D5-43C0-98B4-3260A4118275`
+
+**Lesson**: Screenshots sessions that bypass auth gates MUST restore guards before committing. Tag
+the bypass block with `// SCREENSHOT-BYPASS: RESTORE BEFORE COMMIT` so grep can catch it. The
+`getExpoPushTokenAsync` projectId requirement is not optional on SDK 54 — always pass it explicitly.
+
+---
+
+### [FIX-118] — P0: Raw slug exposed in Today tab share + ShareSheet when collection not in static map
+**Date**: 2026-06-25 PT · Cowork session
+**Pattern category**: UI / SLUG_EXPOSURE / COLLECTION_DISPLAY_NAME
+**EAS Build**: Build 76 — included in this commit
+**Commit**: pending
+
+**Root Cause**:
+`getCollectionDisplayName(slug)` returns the raw slug string as fallback when: (a) no `namesByKey`
+map is passed AND (b) the slug is not in the 8-key STATIC_FALLBACK. Two call-sites were passing
+only the slug with no map:
+
+1. `app/(tabs)/today.tsx:127` — `handleShare` built the share text reference without `collectionNames`.
+   Any daily hadith from a collection outside the 8-key static map would share with raw slug visible.
+2. `components/share/ShareSheet.tsx:14` — `shareHadith()` is a plain async function (no hooks), so
+   it had no access to the React Query collection names cache. Called `getCollectionDisplayName`
+   with slug only.
+
+**Fix Applied**:
+1. `app/(tabs)/today.tsx` — added `useCollectionDisplayNames()` hook, passed `collectionNames` to
+   `getCollectionDisplayName`:
+   ```ts
+   const { data: collectionNames } = useCollectionDisplayNames()
+   // ...
+   const reference = `${getCollectionDisplayName(dailyHadith.collection_slug, collectionNames)} #${dailyHadith.hadith_number}`
+   ```
+
+2. `components/share/ShareSheet.tsx` — added optional `collectionNames?: CollectionNameMap` param:
+   ```ts
+   export async function shareHadith(hadith: Hadith, collectionNames?: CollectionNameMap) {
+     const reference = `${getCollectionDisplayName(hadith.collection_slug, collectionNames)} #${hadith.hadith_number}`
+   ```
+
+3. `app/hadith/[id].tsx:581` — updated call site to pass `collectionNames` (already had the hook):
+   ```ts
+   onPress: () => shareHadith(hadith, collectionNames),
+   ```
+
+**Files Changed**:
+- `app/(tabs)/today.tsx` — import + hook + pass collectionNames
+- `components/share/ShareSheet.tsx` — function signature + CollectionNameMap import
+- `app/hadith/[id].tsx` — pass collectionNames at call site
+
+**Verification**:
+- `npx tsc --noEmit` → exit 0, no type errors
+
+**Lesson**: Any function that formats a hadith reference for display or share MUST receive a
+`CollectionNameMap` from the component layer. The static 8-key fallback covers known production
+collections but is not a guarantee. Never call `getCollectionDisplayName(slug)` without a map
+in production code paths that render to users.
+
+---
+
+### [FIX-119] — P0: Bookmark save fails (userId undefined race) + double-save 23505 + wrong query key
+**Date**: 2026-06-25 PT · Cowork session
+**Pattern category**: SUPABASE / REACT_QUERY / AUTH_RACE / BOOKMARK
+**EAS Build**: Build 76 — included in this commit
+**Commit**: pending
+
+**Root Cause (3 bugs)**:
+
+Bug 1 — `lib/api/my-hadith.ts:saveHadithToFolder` called `supabase.auth.getUser()` internally.
+On stale sessions `user.user?.id` resolves to `undefined`. The insert sends `user_id: undefined`,
+Supabase RLS rejects it (policy requires `auth.uid() = user_id`), `throw error` fires, alert shown
+to user. KP's report: "I saved a hadith and it didn't save correctly."
+
+Bug 2 — `lib/services/bookmark-service.ts:BookmarkService.add()` used `.insert()`. On double-tap
+or re-bookmark, Postgres unique constraint `(user_id, hadith_id)` fires error 23505. React Query
+`onError` rolls back the optimistic update. Bookmark icon snaps back to unfilled — user sees the
+save visually fail.
+
+Bug 3 — `hooks/useMyHadith.ts:useSaveHadith` invalidated query key `['saved-hadiths']` — a key
+that does not exist in the cache. The actual bookmark state in `useHadith` is keyed as
+`['bookmark', hadithId, userId]`. After a folder-save the bookmark icon never updated to filled.
+
+**Fix Applied**:
+
+Bug 1 — Added `userId: string` parameter to `saveHadithToFolder`, removed internal `getUser()`:
+```ts
+export async function saveHadithToFolder(
+  userId: string,   // ← now passed from auth context in useSaveHadith hook
+  hadithId: string,
+  folderId?: string,
+  notes?: string
+) {
+  const { data, error } = await supabase
+    .from('saved_hadiths')
+    .upsert(
+      { user_id: userId, hadith_id: hadithId, folder_id: folderId, notes, notes_html: notes },
+      { onConflict: 'user_id,hadith_id' }
+    )
+    .select().single()
+  if (error) throw error
+  return data as SavedHadithWithNotes
+}
+```
+
+Bug 2 — Changed `BookmarkService.add()` to upsert:
+```ts
+await supabase
+  .from('saved_hadiths')
+  .upsert(
+    { hadith_id: hadithId, user_id: userId },
+    { onConflict: 'user_id,hadith_id', ignoreDuplicates: true }
+  )
+```
+
+Bug 3 — Fixed `useSaveHadith` to pull `user.id` from auth context and invalidate correct keys:
+```ts
+export function useSaveHadith() {
+  const queryClient = useQueryClient()
+  const { user } = useAuth()  // ← userId sourced here, not inside mutationFn
+  return useMutation({
+    mutationFn: ({ hadithId, folderId, notes }) =>
+      api.saveHadithToFolder(user!.id, hadithId, folderId, notes),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['bookmark', variables.hadithId, user?.id] })
+      queryClient.invalidateQueries({ queryKey: ['bookmarks', user?.id] })
+      queryClient.invalidateQueries({ queryKey: ['folders', user?.id] })
+    }
+  })
+}
+```
+
+**Files Changed**:
+- `lib/api/my-hadith.ts` — saveHadithToFolder: userId param + upsert
+- `lib/services/bookmark-service.ts` — BookmarkService.add: insert → upsert
+- `hooks/useMyHadith.ts` — useSaveHadith: useAuth() + correct query keys
+
+**Verification**:
+- `npx tsc --noEmit` → exit 0, no type errors
+
+**Lesson**: API functions that write to user-scoped tables must never call `getUser()` internally —
+the session can be stale between calls. Always source `userId` from the React auth context at the
+hook layer and pass it as a parameter. All Supabase inserts to tables with unique constraints
+(user_id, hadith_id) should use `.upsert()`, not `.insert()`, to survive idempotent re-calls.

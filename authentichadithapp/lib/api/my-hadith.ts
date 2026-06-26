@@ -49,25 +49,31 @@ export async function deleteFolder(id: string) {
 }
 
 // Saved Hadiths
+// FIX-119: userId passed from caller (auth context in hook) to eliminate the
+// getUser() race condition that was sending undefined user_id on stale sessions.
+// Also changed to upsert so repeated saves (double-tap, re-open modal) silently
+// update folder/notes rather than throwing a Postgres 23505 unique violation.
 export async function saveHadithToFolder(
+  userId: string,
   hadithId: string,
   folderId?: string,
   notes?: string
 ) {
-  const { data: user } = await supabase.auth.getUser()
-  
   const { data, error } = await supabase
     .from('saved_hadiths')
-    .insert({
-      user_id: user.user?.id,
-      hadith_id: hadithId,
-      folder_id: folderId,
-      notes,
-      notes_html: notes
-    })
+    .upsert(
+      {
+        user_id: userId,
+        hadith_id: hadithId,
+        folder_id: folderId,
+        notes,
+        notes_html: notes,
+      },
+      { onConflict: 'user_id,hadith_id' }
+    )
     .select()
     .single()
-  
+
   if (error) throw error
   return data as SavedHadithWithNotes
 }

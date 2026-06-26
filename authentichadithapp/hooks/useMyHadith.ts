@@ -60,16 +60,22 @@ export function useFolderHadiths(folderId?: string) {
 
 export function useSaveHadith() {
   const queryClient = useQueryClient()
-  
+  // FIX-119: pull userId from auth context here so saveHadithToFolder never
+  // has to call getUser() itself (race condition when session is stale).
+  const { user } = useAuth()
+
   return useMutation({
-    mutationFn: ({ hadithId, folderId, notes }: { 
+    mutationFn: ({ hadithId, folderId, notes }: {
       hadithId: string
       folderId?: string
-      notes?: string 
-    }) => api.saveHadithToFolder(hadithId, folderId, notes),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['saved-hadiths'] })
-      queryClient.invalidateQueries({ queryKey: ['folders'] })
+      notes?: string
+    }) => api.saveHadithToFolder(user!.id, hadithId, folderId, notes),
+    onSuccess: (_, variables) => {
+      // FIX-119: invalidate the exact bookmark key used by useHadith so the
+      // bookmark icon flips to filled immediately after a folder-save.
+      queryClient.invalidateQueries({ queryKey: ['bookmark', variables.hadithId, user?.id] })
+      queryClient.invalidateQueries({ queryKey: ['bookmarks', user?.id] })
+      queryClient.invalidateQueries({ queryKey: ['folders', user?.id] })
     }
   })
 }

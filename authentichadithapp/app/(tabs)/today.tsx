@@ -24,7 +24,7 @@ import { FONT_FAMILY } from '@/constants/theme'
 import { useDeviceLayout } from '@/lib/hooks/use-device-layout'
 import { trackActivity } from '@/lib/gamification/track-activity'
 import { Hadith } from '@/types/hadith'
-import { getCollectionDisplayName } from '@/lib/hadith/collectionDisplayName'
+import { getCollectionDisplayName, useCollectionDisplayNames } from '@/lib/hadith/collectionDisplayName'
 import { HIDDEN_COLLECTION_FILTER } from '@/lib/hadith/visibleCollections'
 import { QueryErrorBanner } from '@/components/common/QueryErrorBanner'
 import { getDailyIndex, getDailySeed, getUTCDateString } from '@/lib/hadith/dailySeed'
@@ -61,6 +61,8 @@ export default function TodayScreen() {
   const colors = getColors(isDark)
   const { contentTop, contentBottom, pagePadding, maxContentWidth } = useDeviceLayout()
   const [showSaveModal, setShowSaveModal] = useState(false)
+  // FIX-118: fetch live collection names so Daily Hadith share never shows a raw slug.
+  const { data: collectionNames } = useCollectionDisplayNames()
   const today = new Date()
   const todayAction = DAILY_ACTIONS[getDailyIndex(DAILY_ACTIONS.length)]
   const todayReflection = REFLECTION_PROMPTS[getDailyIndex(REFLECTION_PROMPTS.length)]
@@ -124,7 +126,7 @@ export default function TodayScreen() {
     if (!dailyHadith) return
     try {
       const text = dailyHadith.english_text || dailyHadith.arabic_text
-      const reference = `${getCollectionDisplayName(dailyHadith.collection_slug)} #${dailyHadith.hadith_number}`
+      const reference = `${getCollectionDisplayName(dailyHadith.collection_slug, collectionNames)} #${dailyHadith.hadith_number}`
       await Share.share({
         message: `Daily Hadith:\n\n${text}\n\n— ${reference}\n\nShared from Authentic Hadith`,
       })

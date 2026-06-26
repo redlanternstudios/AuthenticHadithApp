@@ -578,7 +578,7 @@ export default function HadithDetailScreen() {
             {
               icon: 'share-outline' as const,
               label: 'Share',
-              onPress: () => shareHadith(hadith),
+              onPress: () => shareHadith(hadith, collectionNames),
             },
             {
               icon: 'library-outline' as const,

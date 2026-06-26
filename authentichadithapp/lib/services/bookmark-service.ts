@@ -2,13 +2,15 @@ import { supabase } from '../supabase/client'
 
 export class BookmarkService {
   static async add(hadithId: string, userId: string): Promise<void> {
+    // FIX-119: upsert with ignoreDuplicates so double-tap / re-bookmark never
+    // throws a Postgres 23505 unique violation on (user_id, hadith_id).
     const { error } = await supabase
       .from('saved_hadiths')
-      .insert({
-        hadith_id: hadithId,
-        user_id: userId,
-      })
-    
+      .upsert(
+        { hadith_id: hadithId, user_id: userId },
+        { onConflict: 'user_id,hadith_id', ignoreDuplicates: true }
+      )
+
     if (error) {
       throw new Error(`Failed to add bookmark: ${error.message}`)
     }
