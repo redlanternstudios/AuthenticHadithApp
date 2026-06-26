@@ -7,6 +7,9 @@ import { Button } from '@/components/ui/Button';
 import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors';
 import { FONT_FAMILY } from '@/constants/theme';
 import { useTheme } from '@/lib/theme/ThemeProvider';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import * as Crypto from 'expo-crypto';
+import { supabase } from '@/lib/supabase/client';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -31,6 +34,37 @@ export default function LoginScreen() {
       Alert.alert('Login Failed', error.message || 'Invalid credentials');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    try {
+      const rawNonce = Crypto.randomUUID();
+      const hashedNonce = await Crypto.digestStringAsync(
+        Crypto.CryptoDigestAlgorithm.SHA256,
+        rawNonce
+      );
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+        nonce: hashedNonce,
+      });
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: 'apple',
+        token: credential.identityToken!,
+        nonce: rawNonce,
+      });
+      if (error) {
+        Alert.alert('Apple Sign In Failed', error.message);
+        return;
+      }
+      router.replace('/(tabs)');
+    } catch (error: any) {
+      if (error.code !== 'ERR_CANCELED') {
+        Alert.alert('Apple Sign In Failed', error.message || 'Something went wrong');
+      }
     }
   };
 
@@ -64,6 +98,22 @@ export default function LoginScreen() {
           title="Sign In"
           onPress={handleLogin}
           isLoading={isLoading}
+        />
+
+        {/* Divider */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 12 }}>
+          <View style={{ flex: 1, height: 1, backgroundColor: '#333' }} />
+          <Text style={{ color: '#888', marginHorizontal: 8, fontSize: 13 }}>or</Text>
+          <View style={{ flex: 1, height: 1, backgroundColor: '#333' }} />
+        </View>
+
+        {/* Sign in with Apple */}
+        <AppleAuthentication.AppleAuthenticationButton
+          buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+          buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
+          cornerRadius={8}
+          style={{ width: '100%', height: 50 }}
+          onPress={handleAppleSignIn}
         />
 
         <Link href="/auth/forgot-password" style={styles.link}>

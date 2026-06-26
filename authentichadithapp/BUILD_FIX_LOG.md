@@ -3167,6 +3167,7 @@ Any usage limit displayed to the user MUST be backed by actual enforcement. A co
 | Ungated console statements | 19 statements (FIX-023) | console.error/warn shipped to production without __DEV__ guard | All console statements must be prefixed with __DEV__ && except ErrorBoundary and server routes |
 | Cosmetic-only enforcement | 1 (FIX-022) | Usage limit displayed but not persisted or enforced | Any user-facing limit must be backed by AsyncStorage persistence + actual send gate |
 | EAS env pipeline drift | 1 (FIX-040) | `.env.local` is gitignored and invisible to EAS Build; production env was empty | Before every TestFlight/App Store submit, run `eas env:list --environment production` and confirm all EXPO_PUBLIC_* keys the mobile app reads are present |
+| EAS Submit False-ERRORED on Duplicate Upload | 1 (FIX-120) | EAS reports ERRORED when Apple returns an instant duplicate-binary rejection; the first submit actually succeeded | When `eas submit` errors and upload time was <1s (vs ~2 min for a real upload), check ASC TestFlight directly before retrying. `error: null` + sub-second upload = duplicate reject, not a real failure |
 
 ---
 
@@ -4387,3 +4388,123 @@ export function useSaveHadith() {
 the session can be stale between calls. Always source `userId` from the React auth context at the
 hook layer and pass it as a parameter. All Supabase inserts to tables with unique constraints
 (user_id, hadith_id) should use `.upsert()`, not `.insert()`, to survive idempotent re-calls.
+
+---
+
+### [FIX-120] — Build 77 TestFlight Confirmed — EAS Submit False-ERRORED Diagnostic
+**Date**: 2026-06-25 PT · Cowork session
+**Pattern category**: Build/Submit/Distribution — EAS Submit False-ERRORED
+**EAS Build**: Build 77 — EAS Build ID `4947bf11-5c46-4d3d-af37-31905a1dfab4`
+**Commit**: `d18a515` on `main`
+
+**Root Cause**:
+`eas submit` reports ERRORED when Apple's binary-upload endpoint returns an immediate duplicate-binary
+rejection. The first submission attempt at `2026-06-26T00:49:49Z` uploaded the binary to Apple
+successfully (full upload). All subsequent retries at `00:49:59`, `~01:00`, `~01:01` completed in
+391ms — Apple's "binary already exists" gate returning instantly (vs. the 2m 20s it took Build 74's
+successful upload). EAS interpreted Apple's immediate rejection response as a submission error and
+marked every attempt ERRORED. The binary was live in ASC the entire time.
+
+**Diagnostic Signal**:
+- First submit: `2026-06-26T00:49:49Z` — full upload time (~2 min), EAS ERRORED
+- Subsequent submits: `00:49:59`, `~01:00`, `~01:01` — 391ms each (instant Apple duplicate reject)
+- Build 74 reference: successful upload took 2m 20s
+- Confirmation: ASC TestFlight dashboard showed Build 77 v1.1.0 "Ready to Submit" at
+  `appstoreconnect.apple.com/apps/6764673665/testflight/ios` — binary present, assigned to test
+  group "AH - Authentic Hadith App - Test Group"
+
+**What Build 77 Contains (commit d18a515)**:
+- FIX-115: NavigationGate auth guards restored (SCREENSHOT-BYPASS reverted); push token
+  `.upsert({onConflict:'user_id'})`; `projectId` passed to `getExpoPushTokenAsync()`
+- FIX-118: `today.tsx` + `ShareSheet.tsx` + `hadith/[id].tsx` — all `shareHadith` call sites
+  pass `collectionNames` — zero raw slugs in share text
+- FIX-119: `lib/api/my-hadith.ts` saveHadithToFolder — userId param (no internal getUser()),
+  `.upsert({onConflict:'user_id,hadith_id'})`; `lib/services/bookmark-service.ts`
+  BookmarkService.add — `.upsert({ignoreDuplicates:true})`; `hooks/useMyHadith.ts` useSaveHadith
+  — `useAuth()` userId at hook level; correct query key invalidation
+
+**Files Changed**:
+None — this is a documentation/diagnostic entry only. No app code was changed in this session.
+
+**Verification**:
+- `npx tsc --noEmit` → EXIT:0 (verified before build trigger)
+- EAS Build ID `4947bf11-5c46-4d3d-af37-31905a1dfab4` finished `2026-06-26T00:46:49Z`
+- ASC TestFlight dashboard: Build 77 v1.1.0 (build 77) status "Ready to Submit", assigned to
+  "AH - Authentic Hadith App - Test Group" — verified `2026-06-26` via
+  `appstoreconnect.apple.com/apps/6764673665/testflight/ios`
+
+**Lesson**: When `eas submit` shows ERRORED and the upload time was <1s, the binary likely uploaded
+on the first attempt and Apple is returning a duplicate-binary rejection on retries. ALWAYS verify
+in ASC TestFlight dashboard before re-submitting. A real upload failure takes ~2 minutes; a 391ms
+"upload" is Apple rejecting a duplicate. `error: null` in EAS submit logs alongside sub-second
+upload time is the fingerprint of this false-ERRORED pattern.
+
+**Next Step**: Rule 040 device QA required — KP tests Build 77 on physical iPhone using the 8-item
+checklist (cold launch, reviewer login+premium, account deletion, AI assistant, paywall prices,
+restore purchases, lessons, app icon) before "Submit for Review" in ASC.
+
+---
+
+### [FIX-121] — Supabase profiles.expo_push_token migration (re-run)
+**Date**: 2026-06-25 PT · Cowork session
+**Pattern category**: Database / Schema — missing column
+
+**Root Cause**:
+`profiles` table was missing the `expo_push_token` column needed by push notification registration
+logic in `lib/notifications/useNotifications.ts`. Previous migration (Task #30) was gated but had
+not been confirmed executed against production.
+
+**Migration executed** (Supabase SQL editor, project `nqklipakrfuwebkdnhwg`):
+```sql
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS expo_push_token TEXT DEFAULT NULL;
+CREATE INDEX IF NOT EXISTS idx_profiles_expo_push_token ON profiles(expo_push_token)
+  WHERE expo_push_token IS NOT NULL;
+```
+
+**Verification**:
+- SQL editor result: "Success. No rows returned" (correct DDL response)
+- `SELECT column_name FROM information_schema.columns WHERE table_schema='public'
+  AND table_name='profiles' AND column_name='expo_push_token'` → 1 row returned ✅
+- Column now exists: `expo_push_token TEXT DEFAULT NULL` with partial index on non-null values
+
+**Files Changed**: None (Supabase schema change only — no app code touched)
+
+---
+
+### [FIX-116] — Sign In with Apple (SIWA) Implementation
+**Date**: 2026-06-25 PT · Cowork session
+**Pattern category**: Auth — Apple Sign In / OAuth
+
+**Root Cause**:
+App had no Apple Sign In option despite being required for Apple App Store compliance (apps that
+offer third-party social login must include Sign In with Apple). Missing from `app/auth/login.tsx`.
+
+**Packages installed** (via `npx expo install`):
+- `expo-apple-authentication: ~8.0.8`
+- `expo-crypto: ~15.0.9`
+
+**Fix Applied**:
+
+`app.json` — added `"expo-apple-authentication"` to the `plugins` array (after `expo-font`).
+
+`app/auth/login.tsx`:
+- Imports: `import * as AppleAuthentication from 'expo-apple-authentication'`
+- Imports: `import * as Crypto from 'expo-crypto'`
+- Imports: `import { supabase } from '@/lib/supabase/client'`
+- `handleAppleSignIn()`: generates `rawNonce` via `Crypto.randomUUID()`, hashes with
+  `Crypto.digestStringAsync(SHA256, rawNonce)` → `hashedNonce`, calls
+  `AppleAuthentication.signInAsync({ requestedScopes: [FULL_NAME, EMAIL], nonce: hashedNonce })`,
+  then `supabase.auth.signInWithIdToken({ provider: 'apple', token: identityToken!, nonce: rawNonce })`,
+  navigates to `/(tabs)` on success. ERR_CANCELED is swallowed silently; other errors → Alert.
+- UI: "or" divider + `AppleAuthenticationButton` (WHITE style, 50px height) after Sign In button,
+  before Forgot Password link.
+
+**tsc status**: Unknown locally — `node_modules/typescript` directory was removed during
+`npx expo install` dedup (removed 353 packages). EAS cloud build will perform authoritative check.
+
+**Forbidden files**: Not touched. `lib/auth/AuthProvider.tsx`, `lib/supabase/client.ts`, all
+`.env` files, `eas.json`, `package-lock.json` dependency pinning — all byte-identical.
+
+**Next gate**: Supabase Apple provider must be configured in dashboard (Task #48) with Apple
+Services ID, Key ID, and private key — required for `signInWithIdToken` to exchange tokens.
+EAS Build 78 to be triggered after commit + KP authorization.

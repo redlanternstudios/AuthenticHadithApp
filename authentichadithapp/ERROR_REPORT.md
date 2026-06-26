@@ -7,7 +7,22 @@
 
 ## CURRENT ERROR
 
-**Status**: 🟡 PENDING DECISION — CONTENT INTEGRITY review open (see section below); no active code bugs as of 2026-06-24. BUG-A resolved-by-hide for V1 (FIX-060); BUG-B resolved 2026-06-05; BUG-C RESOLVED 2026-06-09 (FIX-062 — AI route deployed to prod, verified HTTP 200 + real response). FIX-095 through FIX-102 (parity/friday-demo batch) committed 2026-06-24, tsc TSCEXIT:0. Next action: KP authorizes git push → trigger EAS build.
+**Status**: 🟢 No active errors
+
+**Current state**: Build 77 (v1.1.0, build 77) confirmed in TestFlight "Ready to Submit". All P0 bugs fixed: FIX-115 (auth gates + push token), FIX-118 (slug leaks E2E), FIX-119 (bookmark save). TypeScript clean (EXIT:0). Awaiting KP Rule 040 device QA on physical iPhone before Submit for Review.
+
+**Build 77 receipts**:
+- EAS Build ID: `4947bf11-5c46-4d3d-af37-31905a1dfab4`
+- App Version: 1.1.0, Build Number: 77
+- EAS Build finished: `2026-06-26T00:46:49Z`
+- TestFlight status: "Ready to Submit" — verified in ASC dashboard `appstoreconnect.apple.com/apps/6764673665/testflight/ios`
+- Assigned to test group: AH - Authentic Hadith App - Test Group
+- Commit: `d18a515` on `main`
+- `npx tsc --noEmit` → EXIT:0
+
+**EAS Submit note (FIX-120)**: All `eas submit` attempts showed ERRORED. First submission at `00:49:49Z` uploaded successfully; subsequent attempts hit Apple's duplicate-binary gate (391ms = instant reject). Binary was in ASC the entire time. See `BUILD_FIX_LOG.md` FIX-120.
+
+**Remaining gate**: Rule 040 — KP device QA on physical iPhone (8-item checklist) required before "Submit for Review" in ASC. Content Integrity items below remain open governance decisions (not code bugs).
 
 ---
 
