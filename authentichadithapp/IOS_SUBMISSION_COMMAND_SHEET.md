@@ -70,14 +70,39 @@ Record:
 
 ## 5) Submit (after build is processed)
 
+⛔ NEVER use `--latest`. Always use the specific Build ID captured in Step 4.
+This is a standing security rule (CLAUDE.md + BUILD_FIX_LOG.md FIX-120).
+
 ```bash
-npx eas submit --platform ios --latest --non-interactive
+npx eas submit --platform ios --id {BUILD_ID_FROM_STEP_4} --non-interactive
 ```
 
 Record:
 
 - Submission ID
 - ASC processing status
+
+## 5a) Rule 034 — Live Probes BEFORE submit (all 3 must be GREEN)
+
+1. Reviewer login: `POST {SUPABASE_URL}/auth/v1/token?grant_type=password` with reviewer credentials → must return `access_token`
+2. RC premium: `GET https://api.revenuecat.com/v1/subscribers/{reviewer_uuid}` → `premium` entitlement must be active
+3. API: `POST https://www.authentichadith.app/api/mobile-chat` → must NOT return 404
+
+If any probe fails: fix live state first, re-probe, then submit.
+
+## 5b) Rule 040 — KP Device QA BEFORE Submit for Review
+
+Must be completed on physical iPhone running the TestFlight build. Submit for Review = KP's finger in ASC only, never automated.
+
+Checklist:
+1. Cold launch — no white flash, no hang
+2. Reviewer login (apple.reviewer@authentichadith.app) + premium confirmed
+3. Account deletion flow
+4. AI assistant — response in <12s + disclaimer
+5. Paywall prices — correct amounts, no crash
+6. Restore purchases — no crash
+7. Lessons — Mark Complete → progress bar advances
+8. App icon — correct branding (not Expo default)
 
 ## 6) Immediate Post-Submit Checks (manual)
 

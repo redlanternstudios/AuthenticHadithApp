@@ -9,20 +9,27 @@
 
 **Status**: 🟢 No active errors
 
-**Current state**: Build 77 (v1.1.0, build 77) confirmed in TestFlight "Ready to Submit". All P0 bugs fixed: FIX-115 (auth gates + push token), FIX-118 (slug leaks E2E), FIX-119 (bookmark save). TypeScript clean (EXIT:0). Awaiting KP Rule 040 device QA on physical iPhone before Submit for Review.
+**Current state**: Build 80 (v1.1.0, build 80) SUBMITTED to TestFlight. Contains FIX-116 (Sign In with Apple), FIX-119 (bookmark save), FIX-121 (push token schema), FIX-122 (SIWA Apple Developer Portal capability). Rule 034 all 3 probes GREEN (2026-06-25). Awaiting KP Rule 040 device QA on physical iPhone before Submit for Review.
 
-**Build 77 receipts**:
-- EAS Build ID: `4947bf11-5c46-4d3d-af37-31905a1dfab4`
-- App Version: 1.1.0, Build Number: 77
-- EAS Build finished: `2026-06-26T00:46:49Z`
-- TestFlight status: "Ready to Submit" — verified in ASC dashboard `appstoreconnect.apple.com/apps/6764673665/testflight/ios`
-- Assigned to test group: AH - Authentic Hadith App - Test Group
-- Commit: `d18a515` on `main`
-- `npx tsc --noEmit` → EXIT:0
+**SwarmClaw audit (2026-06-25):** 3 Medium bugs must be fixed before Rule 040 passes cleanly:
+- Problem 2: SaveHadithModal dark mode broken (components/my-hadith/SaveHadithModal.tsx — static COLORS)
+- Problem 3: PaywallScreen + CustomerCenterScreen dark mode broken (components/premium/ — static COLORS)
+- Problem 1 (KP decision): queryClient.clear() on signout (lib/auth/AuthProvider.tsx — forbidden zone, one-line fix)
 
-**EAS Submit note (FIX-120)**: All `eas submit` attempts showed ERRORED. First submission at `00:49:49Z` uploaded successfully; subsequent attempts hit Apple's duplicate-binary gate (391ms = instant reject). Binary was in ASC the entire time. See `BUILD_FIX_LOG.md` FIX-120.
+**Build 80 receipts**:
+- EAS Build ID: `a1d564e0-66b7-478d-be4a-63b6fde812d9`
+- App Version: 1.1.0, Build Number: 80
+- Commit: `7ed62cd1` on `main`
+- Provisioning profile: RL2RYR793P (with SIWA entitlement)
+- EAS Submission ID: `e3e075fd-b2a8-48e2-bce5-7d20faa3437c`
+- TestFlight status: SUBMITTED ✅
+- TestFlight URL: `appstoreconnect.apple.com/apps/6764673665/testflight/ios`
+- `npx tsc --noEmit` → EXIT:0 (last confirmed on Build 80 EAS build machine)
 
-**Remaining gate**: Rule 040 — KP device QA on physical iPhone (8-item checklist) required before "Submit for Review" in ASC. Content Integrity items below remain open governance decisions (not code bugs).
+**Previous Build 77 receipts (superseded by Build 80)**:
+- EAS Build ID: `4947bf11-5c46-4d3d-af37-31905a1dfab4` · Build Number: 77 · Commit: `d18a515`
+
+**Remaining gate**: Rule 040 — KP device QA on physical iPhone (8-item checklist + dark mode check) required before "Submit for Review" in ASC. Content Integrity items below remain open governance decisions (not code bugs).
 
 ---
 

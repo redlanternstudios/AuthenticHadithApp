@@ -4577,3 +4577,53 @@ Portal capability → EAS build. Failing this order → XCODE_BUILD_ERROR on ent
 ### Next gate: Rule 040 — KP device QA on TestFlight Build 80
 Install Build 80 from TestFlight on physical iPhone. Complete 8-item checklist.
 Submit for Review = KP's finger only.
+
+---
+
+### [FIX-123] — Dark-mode, auth cache, accessibility, and API safety repair batch
+**Date**: 2026-06-25
+**Session**: Claude Code — asf-builder fleet (Agents A-F)
+**Severity**: Medium (dark mode + auth cache) / Low (accessibility, API safety)
+
+**Problems Fixed**:
+1. SaveHadithModal, PaywallScreen, CustomerCenterScreen — broken in dark mode (static COLORS)
+2. AchievementCard, StatCard, LevelProgressBar, StreakCounter — broken in dark mode (static COLORS)
+3. ErrorBoundary — broken in dark mode (class component, static COLORS)
+4. AuthProvider — React Query private cache not cleared on sign-out (stale data risk)
+5. bookmarks/index.tsx — no Geist fontFamily on text styles; no accessibility attributes
+6. lib/api/my-hadith.ts addComment() — undefined user_id race condition on stale session
+7. settings/notifications.tsx — unescaped apostrophe lint error (pre-existing, fixed here)
+
+**Root Cause**:
+- Components imported static `COLORS` (light-only palette) instead of `getColors(isDark)`.
+- AuthProvider's SIGNED_OUT handler did not call `queryClient.clear()`.
+- addComment() used optional chaining (`user.user?.id`) which silently passed `undefined`.
+- ErrorBoundary class rendered fallback without theme hooks (hooks not callable in classes).
+
+**Files Changed**:
+- `components/my-hadith/SaveHadithModal.tsx` — makeStyles(colors) pattern
+- `components/premium/PaywallScreen.tsx` — inline background color
+- `components/premium/CustomerCenterScreen.tsx` — inline background color
+- `components/gamification/AchievementCard.tsx` — makeStyles(colors) pattern
+- `components/gamification/StatCard.tsx` — makeStyles(colors) pattern
+- `components/gamification/LevelProgressBar.tsx` — makeStyles(colors) pattern
+- `components/gamification/StreakCounter.tsx` — makeStyles(colors) pattern
+- `components/common/ErrorBoundary.tsx` — ThemedErrorFallback functional wrapper
+- `lib/auth/AuthProvider.tsx` — queryClient.clear() in SIGNED_OUT handler
+- `lib/providers/react-query-provider.tsx` — exported queryClient singleton
+- `app/bookmarks/index.tsx` — Geist_400Regular/Geist_600SemiBold + accessibilityRole/Label/Hint
+- `lib/api/my-hadith.ts` — authData.user null guard before insert
+- `app/settings/notifications.tsx` — escaped apostrophe fix
+- `__tests__/ui/error-boundary.test.tsx` — jest.mock useTheme for test harness
+
+**Verification**:
+- `npx tsc --noEmit` → exit 0, zero errors
+- `npm run lint` → exit 0, 0 errors, 15 pre-existing warnings
+- `npm test` → 135/135 PASS
+- `npx expo-doctor` → 18/18 PASS
+- `rg "COLORS\."` on all 8 repaired components → empty (PASS)
+
+**Lesson Learned**:
+Pattern: all new components must use `getColors(isDark)` not static `COLORS`. Class-based error
+boundaries need a functional wrapper for theme hooks. React Query module-level singletons should be
+exported for cross-provider access. Auth guards must be hard (null check + throw), not soft (optional chaining).
