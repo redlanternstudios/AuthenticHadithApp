@@ -77,3 +77,25 @@ Even if a task seems trivial, these always gate to human:
 - Any change to files listed in `.claude/rules/forbidden-actions.md`
 - Any external network call that costs money (EAS builds, OpenAI/Groq inference at scale, Stripe API mutations)
 - Any operation that creates artifacts visible to third parties (App Store Connect submissions, GitHub PRs, Slack/email sends)
+
+## 4. OPEN-BUGS GATE — No TestFlight submit until spotted bugs are closed end to end (HARDCODED)
+
+`eas submit` (TestFlight / App Store upload) is BLOCKED automatically while
+`OPEN_BUGS.md` (repo root) has any bug marked `| OPEN`. This is enforced by a
+self-firing PreToolUse hook — `~/.claude/hooks/testflight-submit-gate.mjs`,
+wired in `~/.claude/settings.json` (matcher: `Bash`) — that exits non-zero on
+any `eas submit` while open bugs exist. It is NOT a doc you have to remember.
+
+The discipline:
+1. The MOMENT a bug is spotted (review, QA grep, crash, audit), add it to
+   `OPEN_BUGS.md` as `## BUG-<id> | OPEN` with what/where/why.
+2. Fix it. Verify with a real receipt (tsc/lint/test exit code, grep gate,
+   logic proof). Flip status to `CLOSED` and paste the receipt.
+3. Only when zero bugs are `OPEN` does the gate let a TestFlight submit through.
+
+Two-gate model — do not conflate: this gate = pre-TestFlight (no open code/logic
+bug ships to testers). `SYSTEM_RULES.md` Rule 040 = pre-App-Store-Review device
+QA on the actual TestFlight build. Building (`eas build`) is NOT gated by this —
+only `eas submit`. Origin: Build 82 crash (FIX-124) reached TestFlight because a
+spotted-class bug was not closed before submit. Undo: remove the `Bash` matcher
+from `settings.json` PreToolUse and delete the hook script.
