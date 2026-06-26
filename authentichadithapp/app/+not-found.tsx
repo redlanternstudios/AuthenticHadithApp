@@ -12,7 +12,7 @@ export default function NotFoundScreen() {
       <Stack.Screen options={{ title: 'Oops!' }} />
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <Text style={styles.emoji}>📖</Text>
-        <Text style={[styles.title, { color: colors.bronzeText }]}>This hadith cannot be found</Text>
+        <Text style={[styles.title, { color: colors.bronzeText }]}>Page not found</Text>
         <Text style={[styles.message, { color: colors.mutedText }]}>
           {"The page you're looking for doesn't exist."}
         </Text>

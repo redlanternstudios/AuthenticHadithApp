@@ -95,6 +95,16 @@ export default function QuizScreen() {
       if (!staticQuiz || staticQuiz.questions.length === 0) return
       q = [...staticQuiz.questions]
     }
+    // FIX-CRASH-003: generateQuestions() can return [] when all fetched hadiths
+    // fail the content filter (empty english_text / narrator). Without this guard
+    // the screen enters 'playing' state with no questions, the render gate
+    // (questions.length > 0) shows nothing, and the user is stuck with no way
+    // back except the nav header. Guard here so we never enter 'playing' on an
+    // empty deck.
+    if (q.length === 0) {
+      __DEV__ && console.warn('[Quiz] generateQuestions returned 0 questions — aborting start')
+      return
+    }
     setQuestions(q)
     setCurrentQuestion(0)
     setSelectedAnswer(null)
@@ -121,13 +131,21 @@ export default function QuizScreen() {
       } else {
         setQuizState('results')
         if (user) {
-          trackActivity(user.id, 'complete_quiz')
+          // FIX-CRASH-004: trackActivity and quiz_attempts.insert are fire-and-forget
+          // analytics calls inside a setTimeout — any unhandled rejection here would
+          // propagate silently. Wrap in void + .catch() so errors are logged in DEV
+          // and never surface as an unhandled rejection warning in Sentry/Crashlytics.
+          void trackActivity(user.id, 'complete_quiz').catch((err) => {
+            __DEV__ && console.warn('[Quiz] trackActivity failed (non-fatal):', err)
+          })
           // Save attempt
-          supabase.from('quiz_attempts').insert({
+          void supabase.from('quiz_attempts').insert({
             user_id: user.id,
             score: newScore,
             total_questions: questions.length,
             time_seconds: timer,
+          }).then(({ error }) => {
+            if (error) __DEV__ && console.warn('[Quiz] quiz_attempts insert failed (non-fatal):', error)
           })
         }
       }

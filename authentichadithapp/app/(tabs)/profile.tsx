@@ -14,6 +14,7 @@ import { useAuth } from '@/lib/auth/AuthProvider';
 import { useTheme } from '@/lib/theme/ThemeProvider';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { usePremiumStatus } from '@/hooks/usePremiumStatus';
 import { useRevenueCatSubscription } from '@/hooks/useRevenueCatSubscription';
 import { useRevenueCat } from '@/lib/revenuecat/RevenueCatProvider';
@@ -62,7 +63,7 @@ function SettingsRow({ icon, label, value, onPress, tint, showChevron = true }: 
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { user, isGuest, signOut } = useAuth();
+  const { user, isGuest, isLoading: authLoading, signOut } = useAuth();
   const { isDark } = useTheme();
   const colors = getColors(isDark);
   const { contentTop, contentBottom, pagePadding, maxContentWidth } = useDeviceLayout();
@@ -114,6 +115,11 @@ export default function ProfileScreen() {
   const initials = user?.email
     ? user.email.slice(0, 2).toUpperCase()
     : 'AH';
+
+  // Guard: auth is still resolving — don't flash guest state prematurely
+  if (authLoading) {
+    return <LoadingSpinner />;
+  }
 
   if (isGuest) {
     return (

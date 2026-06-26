@@ -9,20 +9,26 @@
 
 **Status**: 🟢 No active errors
 
-**Current state**: Build 82 (v1.1.0, build 82) SUBMITTED to TestFlight 2026-06-25. Contains FIX-123 (dark mode, auth cache, a11y, API safety) + all prior fixes (FIX-116/119/121/122). Rule 034 all 3 probes GREEN. Awaiting KP Rule 040 device QA on physical iPhone before Submit for Review.
+**Current state**: Build 85 (v1.1.0, build 85) SUBMITTED to TestFlight 2026-06-26. Contains FIX-124 (ErrorBoundary crash fix — useContext safe pattern replaces useTheme hook above ThemeProvider) + FIX-123 (dark mode, auth cache, a11y, API safety) + all prior fixes. Rule 034 all 3 probes GREEN. Awaiting KP Rule 040 device QA on physical iPhone before Submit for Review.
 
-**FIX-123 repairs (all in build 82):** SaveHadithModal dark mode, PaywallScreen + CustomerCenterScreen dark mode, bookmarks font constants (P4), auth cache clear on signout, a11y accessibilityLabels, API safety (AbortController + timeout).
+**FIX-124 (critical — Build 82 crash):** ErrorBoundary fallback called `useTheme()` which throws when above ThemeProvider. Fixed by exporting `ThemeContext` and using `useContext(ThemeContext) ?? false` in the fallback — safe when context is absent. OPEN-BUGS gate hardcoded to prevent recurrence.
 
-**Build 82 receipts**:
-- EAS Build ID: `9cb04ca6-586a-4260-a85e-aa030292f3aa`
-- App Version: 1.1.0, Build Number: 82
-- Commit: `212d1cf` on `fix/repair-batch-2026-06-25`
+**FIX-123 repairs:** SaveHadithModal dark mode, PaywallScreen + CustomerCenterScreen dark mode, bookmarks font constants (P4), auth cache clear on signout, a11y accessibilityLabels, API safety (AbortController + timeout).
+
+**Build 85 receipts**:
+- EAS Build ID: `add4a81e-f6c9-4b30-8950-b20f8ed64e0e`
+- App Version: 1.1.0, Build Number: 85
+- Commit: `15ca210` (HEAD of `fix/repair-batch-2026-06-25`)
 - Distribution cert: `18C72B87D58A8D6CB6E00020B9E1D9BD` (valid until May 2027)
 - Provisioning profile: RL2RYR793P (active, with SIWA entitlement)
-- EAS Submission ID: `3d9787f4-de64-4eb1-8644-f62a887e77f7`
+- EAS Submission ID: `650eece6-f17d-41bf-9d67-8ad4d32399c6`
 - TestFlight status: SUBMITTED ✅ — "binary successfully uploaded to App Store Connect"
 - TestFlight URL: `appstoreconnect.apple.com/apps/6764673665/testflight/ios`
-- `npx tsc --noEmit` → EXIT:0 | expo-doctor 18/18 | lint exit 0 | 135/135 tests
+- OPEN_BUGS gate: all bugs CLOSED (BUG-123, BUG-124) — gate passed clean
+
+**Previous Build 82 receipts (superseded — crashed on launch)**:
+- EAS Build ID: `9cb04ca6-586a-4260-a85e-aa030292f3aa` | Build Number: 82
+- EAS Submission ID: `3d9787f4-de64-4eb1-8644-f62a887e77f7` | Crash: FIX-124 (ErrorBoundary above ThemeProvider)
 
 **Previous Build 77 receipts (superseded by Build 80)**:
 - EAS Build ID: `4947bf11-5c46-4d3d-af37-31905a1dfab4` · Build Number: 77 · Commit: `d18a515`

@@ -51,14 +51,42 @@ export default function LoginScreen() {
         ],
         nonce: hashedNonce,
       });
-      const { error } = await supabase.auth.signInWithIdToken({
+      // FIX-CRASH-001: Apple docs declare identityToken as string | null.
+      // A null token must be treated as a failed sign-in, not passed as
+      // undefined to Supabase (which would throw a runtime TypeError).
+      if (!credential.identityToken) {
+        Alert.alert('Apple Sign In Failed', 'No identity token received. Please try again.');
+        return;
+      }
+      const { data: siwaData, error } = await supabase.auth.signInWithIdToken({
         provider: 'apple',
-        token: credential.identityToken!,
+        token: credential.identityToken,
         nonce: rawNonce,
       });
       if (error) {
         Alert.alert('Apple Sign In Failed', error.message);
         return;
+      }
+      // SIWA-GAP-001: SIWA does not trigger the auth trigger that creates profiles rows.
+      // Upsert idempotently so repeat SIWA logins are safe. Fire-and-forget — navigation
+      // is NOT blocked if the upsert fails. Schema: id + user_id (NOT NULL) + name + avatar_url + role.
+      // onConflict: 'user_id' matches onboarding.tsx pattern (verified 2026-06-25).
+      if (siwaData?.user) {
+        supabase
+          .from('profiles')
+          .upsert(
+            {
+              id: siwaData.user.id,
+              user_id: siwaData.user.id,
+              name: siwaData.user.user_metadata?.full_name
+                || siwaData.user.email?.split('@')[0]
+                || 'Apple User',
+              avatar_url: null,
+              role: 'user',
+            },
+            { onConflict: 'user_id', ignoreDuplicates: true }
+          )
+          .then() // fire-and-forget — navigation never blocked by this
       }
       router.replace('/(tabs)');
     } catch (error: any) {

@@ -2,7 +2,7 @@ import React from 'react'
 import { Text, StyleSheet, Modal, Pressable, ActivityIndicator, View } from 'react-native'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
-import { getColors, COLORS, SPACING, FONT_SIZES } from '../../lib/styles/colors'
+import { getColors, SPACING, FONT_SIZES } from '../../lib/styles/colors'
 import { useTheme } from '../../lib/theme/ThemeProvider'
 import { FONT_FAMILY } from '../../constants/theme'
 import { usePremiumStatus } from '../../hooks/usePremiumStatus'
@@ -14,10 +14,47 @@ interface PremiumGateProps {
   children: React.ReactNode
 }
 
+function makeStyles(colors: ReturnType<typeof getColors>) {
+  return StyleSheet.create({
+    loadingContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: SPACING.xl,
+    },
+    lockedCard: {
+      alignItems: 'center',
+      padding: SPACING.xl,
+      opacity: 0.8,
+    },
+    lockIcon: {
+      fontSize: 48,
+      marginBottom: SPACING.md,
+    },
+    lockTitle: {
+      fontSize: FONT_SIZES.lg,
+      fontWeight: '600',
+      fontFamily: FONT_FAMILY.bodySemiBold,
+      color: colors.bronzeText,
+      marginBottom: SPACING.sm,
+    },
+    lockDescription: {
+      fontSize: FONT_SIZES.base,
+      fontFamily: FONT_FAMILY.body,
+      color: colors.mutedText,
+      textAlign: 'center',
+      marginBottom: SPACING.md,
+    },
+    upgradeButton: {
+      marginTop: SPACING.sm,
+    },
+  })
+}
+
 export function PremiumGate({ feature, description, children }: PremiumGateProps) {
   const { isPremium, isLoading } = usePremiumStatus()
   const { isDark } = useTheme()
   const colors = getColors(isDark)
+  const styles = makeStyles(colors)
   const [showPaywall, setShowPaywall] = React.useState(false)
 
   if (isLoading) {
@@ -68,36 +105,3 @@ export function PremiumGate({ feature, description, children }: PremiumGateProps
   )
 }
 
-const styles = StyleSheet.create({
-  loadingContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: SPACING.xl,
-  },
-  lockedCard: {
-    alignItems: 'center',
-    padding: SPACING.xl,
-    opacity: 0.8,
-  },
-  lockIcon: {
-    fontSize: 48,
-    marginBottom: SPACING.md,
-  },
-  lockTitle: {
-    fontSize: FONT_SIZES.lg,
-    fontWeight: '600',
-    fontFamily: FONT_FAMILY.bodySemiBold,
-    color: COLORS.bronzeText,
-    marginBottom: SPACING.sm,
-  },
-  lockDescription: {
-    fontSize: FONT_SIZES.base,
-    fontFamily: FONT_FAMILY.body,
-    color: COLORS.mutedText,
-    textAlign: 'center',
-    marginBottom: SPACING.md,
-  },
-  upgradeButton: {
-    marginTop: SPACING.sm,
-  },
-})

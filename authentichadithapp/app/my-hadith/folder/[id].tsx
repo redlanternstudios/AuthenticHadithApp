@@ -18,7 +18,7 @@ export default function FolderDetailScreen() {
   const colors = getColors(isDark)
   const { id } = useLocalSearchParams<{ id: string }>()
   const router = useRouter()
-  const { data: hadiths, isLoading } = useFolderHadiths(id)
+  const { data: hadiths, isLoading, isError } = useFolderHadiths(id)
   const [isGeneratingToken, setIsGeneratingToken] = useState(false)
 
   // Fetch folder details to get share token
@@ -61,6 +61,19 @@ export default function FolderDetailScreen() {
 
   if (isLoading) {
     return <LoadingSpinner />
+  }
+
+  if (isError) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <ScreenHeader title={folder?.name ?? 'Folder'} showBack />
+        <View style={styles.empty}>
+          <Text style={[styles.emptyText, { color: colors.mutedText }]}>
+            Could not load hadiths. Please try again.
+          </Text>
+        </View>
+      </View>
+    )
   }
 
   return (

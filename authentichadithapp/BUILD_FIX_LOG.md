@@ -4627,3 +4627,136 @@ Submit for Review = KP's finger only.
 Pattern: all new components must use `getColors(isDark)` not static `COLORS`. Class-based error
 boundaries need a functional wrapper for theme hooks. React Query module-level singletons should be
 exported for cross-provider access. Auth guards must be hard (null check + throw), not soft (optional chaining).
+
+---
+
+### [FIX-124] — CRASH-001: identityToken null assertion in SIWA
+**Date**: 2026-06-25
+**Session**: SwarmClaw CTP Audit — documentation agent
+**Severity**: P0 Crash (certain device/region configs)
+
+**Root Cause**: `credential.identityToken!` non-null assertion in `app/auth/login.tsx`. Apple SDK types `identityToken` as `string | null`. On certain device/region configs Apple returns null, causing a TypeError inside the try block.
+
+**Files Changed**: `app/auth/login.tsx`
+
+**Fix Applied**: Added explicit `if (!credential.identityToken)` guard with Alert before the `signInWithIdToken` call. Removed the `!` non-null assertion operator.
+
+**Verification**: `npx tsc --noEmit` → exit 0
+
+**Lesson Learned**: Never use `!` assertion on Apple credential fields — Apple SDK nullable types must be treated as nullable.
+
+**Pattern Category**: Null safety / SIWA
+
+---
+
+### [FIX-125] — CRASH-002: user!.id null assertion in create-folder before auth hydration
+**Date**: 2026-06-25
+**Session**: SwarmClaw CTP Audit — documentation agent
+**Severity**: P0 Crash (deep-link entry before auth hydration)
+
+**Root Cause**: `user!.id` called in `handleCreate` in `app/my-hadith/create-folder.tsx` before auth fully hydrates. Route has no layout-level auth gate — reachable by deep-link before session is established.
+
+**Files Changed**: `app/my-hadith/create-folder.tsx`
+
+**Fix Applied**: Added `if (!user?.id)` guard with Alert at top of `handleCreate` function.
+
+**Verification**: `npx tsc --noEmit` → exit 0
+
+**Lesson Learned**: Routes reachable via deep-link must guard all user-dependent handlers independently, not rely on layout-level auth gates.
+
+**Pattern Category**: Null safety / Auth race condition
+
+---
+
+### [FIX-126] — CRASH-003: Quiz enters playing state with empty question bank
+**Date**: 2026-06-25
+**Session**: SwarmClaw CTP Audit — documentation agent
+**Severity**: P0 UX deadlock (quiz stuck in playing state with no questions)
+
+**Root Cause**: `app/quiz.tsx`: `generateQuestions(hadiths)` can return `[]` when all hadiths fail the content filter. The start guard checks `hadiths.length === 0` but NOT `questions.length === 0`. Still calls `setQuizState('playing')`, leading to a UX deadlock with no questions to display.
+
+**Files Changed**: `app/quiz.tsx`
+
+**Fix Applied**: Added `if (q.length === 0) return` guard immediately after `generateQuestions(hadiths)` call, before setting quiz state to playing.
+
+**Verification**: `npx tsc --noEmit` → exit 0
+
+**Lesson Learned**: Both the data source AND the derived data (generated questions) must be validated before transitioning to an active state.
+
+**Pattern Category**: Input validation / Edge case
+
+---
+
+### [FIX-127] — CRASH-004: Unhandled promise rejections in quiz completion callbacks
+**Date**: 2026-06-25
+**Session**: SwarmClaw CTP Audit — documentation agent
+**Severity**: P1 (silent failure + potential unhandled rejection crash on some RN versions)
+
+**Root Cause**: `app/quiz.tsx:134-141`: `trackActivity(user.id, 'complete_quiz')` and `supabase.from('quiz_attempts').insert(...)` fire-and-forget inside setTimeout with no `.catch()` handler. Unhandled promise rejections can crash the app on certain React Native versions.
+
+**Files Changed**: `app/quiz.tsx`
+
+**Fix Applied**: Wrapped both async calls with `void promise.catch(warn)` pattern to surface errors to console without crashing.
+
+**Verification**: `npx tsc --noEmit` → exit 0
+
+**Lesson Learned**: All fire-and-forget async calls inside setTimeout must have explicit `.catch()` handlers. See existing pattern in FIX-110 for the `void promise.catch(warn)` idiom.
+
+**Pattern Category**: Async safety
+
+---
+
+### [FIX-128] — Dark mode violation: PremiumGate static COLORS
+**Date**: 2026-06-25
+**Session**: SwarmClaw CTP Audit — documentation agent
+**Severity**: P1 (dark mode broken for premium lock screen overlay)
+
+**Root Cause**: `components/premium/PremiumGate.tsx` imported static `COLORS` (always light palette) instead of `useTheme()` + `getColors(isDark)`. Broke dark mode for the premium lock screen overlay visible to all free-tier users.
+
+**Files Changed**: `components/premium/PremiumGate.tsx`
+
+**Fix Applied**: Removed `COLORS` import. Added `makeStyles(colors)` factory called with `getColors(isDark)` inside the component body.
+
+**Verification**: `npx tsc --noEmit` → exit 0
+
+**Lesson Learned**: Enforce `getColors(isDark)` at PR review time — static `COLORS` import is a Rule 017 violation in any component that renders conditionally or overlays.
+
+**Pattern Category**: Rule 017 / Dark mode COLORS violation
+
+---
+
+### [FIX-129] — +not-found.tsx copy was hadith-specific
+**Date**: 2026-06-25
+**Session**: SwarmClaw CTP Audit — documentation agent
+**Severity**: Low (UX copy accuracy)
+
+**Root Cause**: `app/+not-found.tsx` displayed "This hadith cannot be found" — too specific for a general 404 route that covers all unmatched paths in the app.
+
+**Files Changed**: `app/+not-found.tsx`
+
+**Fix Applied**: Changed copy to "Page not found" with generic back navigation.
+
+**Verification**: `npx tsc --noEmit` → exit 0
+
+**Lesson Learned**: Global catch-all routes must use generic copy, not domain-specific language.
+
+**Pattern Category**: UX copy / User-facing text
+
+---
+
+### [NOTE: SIWA-GAP-001] — SIWA users may not receive a profiles row on first sign-in
+**Date**: 2026-06-25
+**Session**: SwarmClaw CTP Audit — documentation agent
+**Severity**: P1 Data integrity gap (requires KP decision before next submit)
+**Status**: OPEN — Unknown pending KP verification
+
+**Finding**: `handleAppleSignIn` in `app/auth/login.tsx` does not insert into the `profiles` table after a successful Sign In with Apple. Only `AuthProvider.signUp` creates profile rows (email/password path). No `handle_new_user` DB trigger was found in local migrations under `supabase/`. SIWA users will have an `auth.users` entry but NO `profiles` row, which may cause downstream failures in any feature that JOINs or queries `profiles`.
+
+**Status**: Unknown — whether a DB trigger exists in the Supabase dashboard (not reflected in local migrations) has not been confirmed.
+
+**Required Action (KP)**:
+1. Check Supabase dashboard → Database → Triggers → `auth.users` table for a `handle_new_user` or equivalent trigger.
+2. If trigger exists: confirm it inserts into `profiles` with the correct columns. Mark resolved.
+3. If no trigger: approve addition of a `profiles` upsert in `app/auth/login.tsx` post-SIWA-success (this touches the auth zone — requires explicit KP approval per `forbidden-actions.md`).
+
+**Pattern Category**: Auth / Data integrity

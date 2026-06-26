@@ -26,10 +26,17 @@ export default function CreateFolderScreen() {
 
   const handleCreate = async () => {
     if (!name.trim()) return
+    // FIX-CRASH-002: user could be null on a direct deep-link to this route
+    // before auth hydration completes, or for a guest. Guard here so the
+    // mutation never fires with user_id: undefined (server-side 400/RLS deny).
+    if (!user?.id) {
+      Alert.alert('Sign In Required', 'Please sign in to create a folder.')
+      return
+    }
 
     try {
       await createFolder.mutateAsync({
-        user_id: user!.id,
+        user_id: user.id,
         name: name.trim(),
         description: description.trim() || undefined,
         icon,

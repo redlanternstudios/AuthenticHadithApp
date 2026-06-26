@@ -263,26 +263,30 @@ export default function HomeScreen() {
         <Text style={[styles.shareChevron, { color: colors.goldMid }]}>›</Text>
       </TouchableOpacity>
 
-      {/* Hadith of the Moment */}
-      <View style={styles.sectionRow}>
-        <Text style={[styles.sectionTitle, { color: colors.bronzeText }]}>
-          Hadith of the Moment
-        </Text>
-        <Pressable
-          onPress={handleRefresh}
-          accessibilityRole="button"
-          accessibilityLabel="Refresh hadith"
-        >
-          <Text style={[styles.refreshLink, { color: colors.goldMid }]}>Refresh</Text>
-        </Pressable>
-      </View>
+      {/* Hadith of the Moment — hide entire section on error to avoid orphaned header */}
+      {!isError && (
+        <>
+          <View style={styles.sectionRow}>
+            <Text style={[styles.sectionTitle, { color: colors.bronzeText }]}>
+              Hadith of the Moment
+            </Text>
+            <Pressable
+              onPress={handleRefresh}
+              accessibilityRole="button"
+              accessibilityLabel="Refresh hadith"
+            >
+              <Text style={[styles.refreshLink, { color: colors.goldMid }]}>Refresh</Text>
+            </Pressable>
+          </View>
 
-      {hadith && (
-        <HadithCard
-          hadith={hadith}
-          onPress={() => router.push(`/hadith/${hadith.id}`)}
-          showSummarize
-        />
+          {hadith && (
+            <HadithCard
+              hadith={hadith}
+              onPress={() => router.push(`/hadith/${hadith.id}`)}
+              showSummarize
+            />
+          )}
+        </>
       )}
 
       <View style={styles.actions}>
