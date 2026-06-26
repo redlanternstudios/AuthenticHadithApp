@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Modal, StyleSheet, View, Text, TextInput, FlatList, Pressable, Alert } from 'react-native'
+import { Modal, StyleSheet, View, Text, TextInput, FlatList, Pressable, Alert, KeyboardAvoidingView, Platform } from 'react-native'
 import { useFolders, useSaveHadith } from '@/hooks/useMyHadith'
 import { Button } from '@/components/ui/Button'
 import { SPACING, FONT_SIZES, getColors } from '@/lib/styles/colors'
@@ -107,7 +107,13 @@ export function SaveHadithModal({ visible, hadithId, onClose }: Props) {
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
-      <View style={styles.overlay}>
+      {/* FIX-132: KeyboardAvoidingView lifts the bottom sheet above the iOS
+          keyboard. Without this the notes TextInput is hidden under the keyboard
+          and the user cannot type — the keyboard "gets stuck" with no visible input. */}
+      <KeyboardAvoidingView
+        style={styles.overlay}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
         <View style={styles.modal}>
           <Text style={styles.title}>Save Hadith</Text>
 
@@ -152,7 +158,7 @@ export function SaveHadithModal({ visible, hadithId, onClose }: Props) {
             />
           </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   )
 }

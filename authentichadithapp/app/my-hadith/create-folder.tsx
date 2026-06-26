@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { StyleSheet, View, Text, TextInput, ScrollView, Pressable, Alert } from 'react-native'
+import { StyleSheet, View, Text, TextInput, ScrollView, Pressable, Alert, KeyboardAvoidingView, Platform } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useCreateFolder } from '@/hooks/useMyHadith'
 import { useAuth } from '@/lib/auth/AuthProvider'
@@ -52,7 +52,17 @@ export default function CreateFolderScreen() {
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+    // FIX-132: KeyboardAvoidingView prevents the description TextInput from being
+    // hidden under the keyboard on iOS — without this the keyboard "gets stuck"
+    // with no visible way to dismiss or type in the input.
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      keyboardShouldPersistTaps="handled"
+    >
       <ScreenHeader title="Create Folder" showBack />
 
       <View style={styles.form}>
@@ -116,6 +126,7 @@ export default function CreateFolderScreen() {
         />
       </View>
     </ScrollView>
+    </KeyboardAvoidingView>
   )
 }
 

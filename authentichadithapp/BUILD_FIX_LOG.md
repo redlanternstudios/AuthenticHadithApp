@@ -4795,3 +4795,63 @@ exported for cross-provider access. Auth guards must be hard (null check + throw
 **Status**: **Verified** — scan clean + TSC clean. Code in working tree, not yet committed. Requires EAS Build for on-device confirmation per Rule 040.
 
 **Lesson**: Rule 042 grep `grep -n "{ fontSize:" | grep -v "fontFamily:"` catches inline single-line objects but produces false positives for multi-line objects where fontFamily is on an adjacent line. Always read the actual style object context around each flagged line before counting it as a violation. Icon/emoji `fontSize` entries (no text rendered) are structurally exempt — add them to a skip list, don't "fix" them.
+
+---
+
+### [FIX-131] — Notification trigger format broken in expo-notifications v0.32 (streak toggles back to off silently)
+**Date**: 2026-06-26
+**Session**: Build 90 device QA — streak reminder P0
+**Pattern Category**: EXPO_API_BREAKING_CHANGE / NOTIFICATION_SCHEDULING
+
+**Root cause**: expo-notifications v0.32 introduced a `hasValidTriggerObject()` check in `scheduleNotificationAsync.js`. All schedulable triggers now REQUIRE a `type` field matching the `SchedulableTriggerInputTypes` enum. The old format `{ hour, minute, repeats: true }` (daily) and `{ date: fireDate }` (one-shot) throw `TypeError: The trigger object you provided is invalid. It needs to contain a type or channelId entry.` This error was silently swallowed because the JSX caller used `void toggleStreak(val)` — `void` discards the Promise rejection, `setStreakEnabledState(enabled)` is never called, and the toggle snaps back to off with no user feedback.
+
+**Files changed (2):**
+- `lib/notifications/NotificationService.ts`
+  - `scheduleStreakReminder`: trigger changed from `{ hour, minute, repeats: true }` → `{ type: Notifications.SchedulableTriggerInputTypes.DAILY, hour, minute }`
+  - `scheduleLessonReminder`: trigger changed from `{ date: fireDate }` → `{ type: Notifications.SchedulableTriggerInputTypes.DATE, date: fireDate }`
+- `lib/notifications/useNotifications.ts`
+  - Added `AsyncStorage` + `NOTIF_KEYS` imports
+  - `toggleStreak`: wrapped body in try/catch — on scheduling failure, reverts AsyncStorage and logs warn in __DEV__. Previously used bare `void toggleStreak(val)` pattern which silently swallowed all rejections.
+
+**Verification**: `npx tsc --noEmit` → EXIT:0. Commit: `e8813fb`.
+
+**Lesson**: expo-notifications v0.32 is a breaking change. The `type` field is mandatory on all trigger objects. Any `void asyncFn()` call site silently swallows errors — use proper try/catch or `.catch()` in the calling hook, not `void` at JSX level.
+
+---
+
+### [FIX-132] — Keyboard stuck/covers TextInput in SaveHadithModal and create-folder screen
+**Date**: 2026-06-26
+**Session**: Build 90 device QA — save hadith keyboard P1
+**Pattern Category**: IOS_KEYBOARD / MODAL_UI
+
+**Root cause**: `SaveHadithModal` renders as a bottom sheet (`justifyContent: 'flex-end'`) containing a multiline `TextInput` for notes. No `KeyboardAvoidingView` was present — when the iOS keyboard appears it covers the input entirely, making it inaccessible. Same issue in `app/my-hadith/create-folder.tsx` where the description `TextInput` (multiline, inside a bare `ScrollView`) is also hidden under the keyboard.
+
+**Files changed (2):**
+- `components/my-hadith/SaveHadithModal.tsx`
+  - Added `KeyboardAvoidingView, Platform` imports
+  - Replaced outer `<View style={styles.overlay}>` with `<KeyboardAvoidingView style={styles.overlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>`
+- `app/my-hadith/create-folder.tsx`
+  - Added `KeyboardAvoidingView, Platform` imports
+  - Wrapped `ScrollView` with `<KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>`
+  - Added `keyboardShouldPersistTaps="handled"` to `ScrollView`
+
+**Verification**: `npx tsc --noEmit` → EXIT:0.
+
+**Lesson**: Every Modal or bottom-sheet containing a TextInput MUST have a `KeyboardAvoidingView` with `behavior="padding"` on iOS. ScrollViews with TextInputs need `keyboardShouldPersistTaps="handled"` to prevent tap-to-dismiss stealing the first tap.
+
+---
+
+### [FIX-133] — my-hadith/folder/[id] raw route string shown in native Stack header
+**Date**: 2026-06-26
+**Session**: Build 90 device QA — folder detail header bug P1
+**Pattern Category**: EXPO_ROUTER / NAVIGATION_HEADER
+
+**Root cause**: `app/_layout.tsx` declares `<Stack.Screen name="my-hadith" options={{ headerShown: false }} />` which hides the header for the `my-hadith` segment. However, with NO `app/my-hadith/_layout.tsx`, expo-router creates an implicit nested Stack for child routes (`folder/[id]`, `create-folder`, `shared/[token]`). That implicit Stack uses default options — `headerShown: true` with the raw route path as the title string — producing `my-hadith/folder/[id]` visible in the device nav bar.
+
+**Files changed (1):**
+- `app/my-hadith/_layout.tsx` — CREATED (new file)
+  - `<Stack screenOptions={{ headerShown: false }} />` — disables the native Stack header for all children under `my-hadith/`. Each child uses its own `<ScreenHeader>` component for the visual header.
+
+**Verification**: `npx tsc --noEmit` → EXIT:0.
+
+**Lesson**: In expo-router, setting `headerShown: false` on a parent segment in `_layout.tsx` does NOT propagate to nested sub-segments that lack their own `_layout.tsx`. Always create `_layout.tsx` files in every directory that has dynamic routes (`[id]`) to explicitly control header visibility.
