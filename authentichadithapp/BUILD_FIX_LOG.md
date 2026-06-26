@@ -4505,6 +4505,46 @@ offer third-party social login must include Sign In with Apple). Missing from `a
 **Forbidden files**: Not touched. `lib/auth/AuthProvider.tsx`, `lib/supabase/client.ts`, all
 `.env` files, `eas.json`, `package-lock.json` dependency pinning — all byte-identical.
 
-**Next gate**: Supabase Apple provider must be configured in dashboard (Task #48) with Apple
-Services ID, Key ID, and private key — required for `signInWithIdToken` to exchange tokens.
-EAS Build 78 to be triggered after commit + KP authorization.
+**Supabase Apple Provider** (completed 2026-06-25): Apple provider enabled in Supabase dashboard
+(project `nqklipakrfuwebkdnhwg` → Auth → Providers → Apple → Enabled). Client ID set to
+`com.byred.authentichadith` (bundle ID — sufficient for native iOS `signInWithIdToken` flow;
+no .p8 secret key needed for native mobile, only for web OAuth flow).
+
+**EAS Build 78** (ID: e3759d24) ERRORED — provisioning profile lacked `com.apple.developer.applesignin`
+entitlement. Same pattern as Build 72 (Push Notifications). Fix: enable SIWA in Apple Developer Portal.
+
+**EAS Build 80** triggered after Apple Developer Portal fix. See FIX-122.
+
+---
+
+### [FIX-122] — Sign In with Apple: Apple Developer Portal Capability + Build 80
+**Date**: 2026-06-25 PT · Cowork session
+**Pattern category**: Build — Missing Entitlement / Apple Developer Portal (same as FIX-072 Push Notifications)
+
+**Root Cause**:
+EAS Build 78 ERRORED with:
+```
+Provisioning profile doesn't support the Sign in with Apple capability.
+Provisioning profile doesn't include the com.apple.developer.applesignin entitlement.
+```
+The `expo-apple-authentication` config plugin correctly adds the entitlement to the app target,
+but EAS cannot include an entitlement in the provisioning profile unless the capability is first
+enabled on the App ID in the Apple Developer Portal. This is the same pattern as Build 72
+(Push Notifications) → Build 73.
+
+**Fix Applied**:
+1. Apple Developer Portal → Certificates, Identifiers & Profiles → Identifiers → `com.byred.authentichadith`
+   (ID: CK87WRJH86) → Capabilities → Sign In with Apple (APPLE_ID_AUTH) → checked ✅ → Confirmed → Saved
+2. EAS auto-regenerated provisioning profile (Developer Portal ID: RL2RYR793P, updated "4 seconds ago")
+3. Triggered EAS Build 80 (build number auto-incremented 79→80)
+
+**Verification**:
+- Apple Developer Portal redirected to `/identifiers/list` after save = confirmed
+- EAS output: `Updated [4 seconds ago]` on provisioning profile fetch = profile regenerated with SIWA entitlement
+- Build number: 80 (auto-incremented by EAS)
+
+**Files Changed**: None (Apple Developer Portal config only — no app code touched)
+
+**Lesson**: Every new entitlement added via an Expo config plugin requires a matching capability
+toggle in Apple Developer Portal BEFORE the EAS build. Pattern: code change → commit → Apple Dev
+Portal capability → EAS build. Failing this order → XCODE_BUILD_ERROR on entitlement mismatch.
