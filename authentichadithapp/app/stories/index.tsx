@@ -525,13 +525,13 @@ const styles = StyleSheet.create({
   companionNameRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.xs, flexWrap: 'wrap' },
   companionName: { fontSize: FONT_SIZES.sm, fontWeight: '600', fontFamily: FONT_FAMILY.bodySemiBold },
   statusIcon: { fontSize: FONT_SIZES.sm },
-  companionArabic: { fontSize: FONT_SIZES.xs },
+  companionArabic: { fontSize: FONT_SIZES.xs, fontFamily: FONT_FAMILY.arabic },
   companionTitle: { fontSize: FONT_SIZES.xs, fontWeight: '500', fontFamily: FONT_FAMILY.bodyMedium, marginTop: 2 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: SPACING.xs, flexWrap: 'wrap' },
-  metaText: { fontSize: 10 },
+  metaText: { fontSize: 10, fontFamily: FONT_FAMILY.body },
   tagsRow: { flexDirection: 'row', gap: SPACING.xs, marginTop: SPACING.xs, flexWrap: 'wrap' },
   tag: { paddingHorizontal: SPACING.sm, paddingVertical: 2, borderRadius: BORDER_RADIUS.full },
-  tagText: { fontSize: 10 },
+  tagText: { fontSize: 10, fontFamily: FONT_FAMILY.body },
   chevron: { fontSize: 22, flexShrink: 0 },
 
   // Prophet card

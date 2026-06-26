@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { SPACING, FONT_SIZES , getColors } from '@/lib/styles/colors';
+import { FONT_FAMILY } from '@/constants/theme';
 import { useTheme } from '@/lib/theme/ThemeProvider';
 import { supabase } from '@/lib/supabase/client';
 import Constants from 'expo-constants';
@@ -153,15 +154,18 @@ const styles = StyleSheet.create({
   },
   warningTitle: {
     fontSize: FONT_SIZES.md,
+    fontFamily: FONT_FAMILY.heading,
     fontWeight: '700',
     marginBottom: SPACING.sm,
   },
   warningText: {
     fontSize: FONT_SIZES.sm,
+    fontFamily: FONT_FAMILY.body,
     lineHeight: 22,
   },
   confirmLabel: {
     fontSize: FONT_SIZES.sm,
+    fontFamily: FONT_FAMILY.body,
     marginBottom: SPACING.sm,
   },
   confirmKeyword: {
@@ -183,6 +187,7 @@ const styles = StyleSheet.create({
   },
   deleteButtonText: {
     fontSize: FONT_SIZES.base,
+    fontFamily: FONT_FAMILY.heading,
     fontWeight: '700',
   },
 });

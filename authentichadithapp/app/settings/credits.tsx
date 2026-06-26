@@ -128,12 +128,13 @@ const styles = StyleSheet.create({
   collectionMeta: { fontFamily: FONT_FAMILY.body, fontSize: FONT_SIZES.sm, marginTop: 2 },
   cardFootnote: {
     fontSize: FONT_SIZES.xs,
+    fontFamily: FONT_FAMILY.body,
     fontStyle: 'italic',
     marginTop: SPACING.sm,
   },
-  placeholderText: { fontSize: FONT_SIZES.base, fontWeight: '600', marginBottom: SPACING.xs },
-  placeholderHint: { fontSize: FONT_SIZES.sm, lineHeight: 20 },
+  placeholderText: { fontSize: FONT_SIZES.base, fontFamily: FONT_FAMILY.bodySemiBold, fontWeight: '600', marginBottom: SPACING.xs },
+  placeholderHint: { fontSize: FONT_SIZES.sm, fontFamily: FONT_FAMILY.body, lineHeight: 20 },
   link: { textDecorationLine: 'underline' },
-  bodyText: { fontSize: FONT_SIZES.base, lineHeight: 22 },
-  bodyFootnote: { fontSize: FONT_SIZES.xs, fontStyle: 'italic', marginTop: SPACING.sm },
+  bodyText: { fontSize: FONT_SIZES.base, fontFamily: FONT_FAMILY.body, lineHeight: 22 },
+  bodyFootnote: { fontSize: FONT_SIZES.xs, fontFamily: FONT_FAMILY.body, fontStyle: 'italic', marginTop: SPACING.sm },
 });

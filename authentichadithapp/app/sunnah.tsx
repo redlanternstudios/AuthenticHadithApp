@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
+import { FONT_FAMILY } from '@/constants/theme'
 import { useTheme } from '@/lib/theme/ThemeProvider'
 import {
   FALLBACK_SUNNAH_CATEGORIES,
@@ -335,9 +336,10 @@ const styles = StyleSheet.create({
   categoryInfo: { flex: 1 },
   categoryName: {
     fontSize: FONT_SIZES.md,
+    fontFamily: FONT_FAMILY.bodySemiBold,
     fontWeight: '600',
   },
-  categoryCount: { fontSize: FONT_SIZES.sm },
+  categoryCount: { fontSize: FONT_SIZES.sm, fontFamily: FONT_FAMILY.body },
   chevron: {
     fontSize: 24,
     transform: [{ rotate: '0deg' }],

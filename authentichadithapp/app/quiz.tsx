@@ -343,8 +343,8 @@ const styles = StyleSheet.create({
   startSubtitle: { fontSize: FONT_SIZES.base, fontFamily: FONT_FAMILY.body, textAlign: 'center', paddingHorizontal: SPACING.lg },
   infoCard: { width: '100%', marginVertical: SPACING.md },
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: SPACING.sm },
-  infoLabel: { fontSize: FONT_SIZES.base },
-  infoValue: { fontSize: FONT_SIZES.base, fontWeight: '600' },
+  infoLabel: { fontSize: FONT_SIZES.base, fontFamily: FONT_FAMILY.body },
+  infoValue: { fontSize: FONT_SIZES.base, fontFamily: FONT_FAMILY.bodySemiBold, fontWeight: '600' },
   // Quiz
   quizHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: SPACING.sm },
   questionCount: { fontSize: FONT_SIZES.md, fontWeight: '600', fontFamily: FONT_FAMILY.bodySemiBold },

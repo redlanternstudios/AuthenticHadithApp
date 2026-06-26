@@ -9,31 +9,36 @@
 
 **Status**: 🟢 No active errors
 
-**Current state**: Build 85 (v1.1.0, build 85) SUBMITTED to TestFlight 2026-06-26. Contains FIX-124 (ErrorBoundary crash fix — useContext safe pattern replaces useTheme hook above ThemeProvider) + FIX-123 (dark mode, auth cache, a11y, API safety) + all prior fixes. Rule 034 all 3 probes GREEN. Awaiting KP Rule 040 device QA on physical iPhone before Submit for Review.
+**Current state**: Build 89 (v1.1.0, build 89) IN PROGRESS on EAS — 2026-06-25. Contains FIX-124 through FIX-129 (SwarmClaw CTP audit — 9 crash/UX fixes + SIWA profiles upsert) + all prior fixes through Build 85. FIX-130 (Rule 042 font parity sweep — 29 violations across 10 files, TSC EXIT:0, 2026-06-26) in working tree, not yet committed. Rule 034 re-probe required on Build 89 before Submit for Review.
 
-**FIX-124 (critical — Build 82 crash):** ErrorBoundary fallback called `useTheme()` which throws when above ThemeProvider. Fixed by exporting `ThemeContext` and using `useContext(ThemeContext) ?? false` in the fallback — safe when context is absent. OPEN-BUGS gate hardcoded to prevent recurrence.
+**Build 89 (current — in progress):**
+- EAS Build ID: `03606269-c0c9-485a-82c4-d237b0e38023`
+- Build URL: `https://expo.dev/accounts/redlantern/projects/authentichadithapp/builds/03606269-c0c9-485a-82c4-d237b0e38023`
+- App Version: 1.1.0, Build Number: 89
+- Commit: `df97fa6` (branch `fix/repair-batch-2026-06-25`)
+- tsc: exit 0 | OPEN_BUGS: all CLOSED
 
-**FIX-123 repairs:** SaveHadithModal dark mode, PaywallScreen + CustomerCenterScreen dark mode, bookmarks font constants (P4), auth cache clear on signout, a11y accessibilityLabels, API safety (AbortController + timeout).
+**Build 89 fixes over Build 85:**
+- FIX-124: CRASH-001 — identityToken null guard (app/auth/login.tsx)
+- FIX-125: CRASH-002 — user!.id guard before auth hydration (create-folder)
+- FIX-126: CRASH-003 — quiz empty question bank guard
+- FIX-127: CRASH-004 — quiz fire-and-forget .catch()
+- FIX-128: PremiumGate dark mode COLORS violation
+- FIX-129: +not-found.tsx generic copy
+- P0: Profile guest flicker authLoading guard
+- P0: folder/[id] missing error state
+- P0: Home screen orphaned header when isError
+- SIWA-GAP-001: profiles upsert after SIWA success (idempotent)
 
-**Build 85 receipts**:
-- EAS Build ID: `add4a81e-f6c9-4b30-8950-b20f8ed64e0e`
-- App Version: 1.1.0, Build Number: 85
-- Commit: `15ca210` (HEAD of `fix/repair-batch-2026-06-25`)
-- Distribution cert: `18C72B87D58A8D6CB6E00020B9E1D9BD` (valid until May 2027)
-- Provisioning profile: RL2RYR793P (active, with SIWA entitlement)
+**Previous Build 85 (superseded):**
+- EAS Build ID: `add4a81e-f6c9-4b30-8950-b20f8ed64e0e` | Build Number: 85
 - EAS Submission ID: `650eece6-f17d-41bf-9d67-8ad4d32399c6`
-- TestFlight status: SUBMITTED ✅ — "binary successfully uploaded to App Store Connect"
-- TestFlight URL: `appstoreconnect.apple.com/apps/6764673665/testflight/ios`
-- OPEN_BUGS gate: all bugs CLOSED (BUG-123, BUG-124) — gate passed clean
+- TestFlight status: SUBMITTED ✅
 
-**Previous Build 82 receipts (superseded — crashed on launch)**:
+**Previous Build 82 (superseded — crashed on launch):**
 - EAS Build ID: `9cb04ca6-586a-4260-a85e-aa030292f3aa` | Build Number: 82
-- EAS Submission ID: `3d9787f4-de64-4eb1-8644-f62a887e77f7` | Crash: FIX-124 (ErrorBoundary above ThemeProvider)
 
-**Previous Build 77 receipts (superseded by Build 80)**:
-- EAS Build ID: `4947bf11-5c46-4d3d-af37-31905a1dfab4` · Build Number: 77 · Commit: `d18a515`
-
-**Remaining gate**: Rule 040 — KP device QA on physical iPhone (8-item checklist + dark mode check) required before "Submit for Review" in ASC. Content Integrity items below remain open governance decisions (not code bugs).
+**Remaining gate**: Once Build 89 finishes — (1) eas submit with specific Build ID, (2) Rule 034 live probes (reviewer login + RC premium + API), (3) Rule 040 KP device QA on physical iPhone (8-item checklist). Submit for Review = KP's finger in ASC only, never automated.
 
 ---
 

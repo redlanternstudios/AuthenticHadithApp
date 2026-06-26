@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Platform, Linking } from 'react-native';
 import { Stack } from 'expo-router';
 import { SPACING, FONT_SIZES , getColors } from '@/lib/styles/colors';
+import { FONT_FAMILY } from '@/constants/theme';
 import { useTheme } from '@/lib/theme/ThemeProvider';
 import {
   getOfferings,
@@ -346,9 +347,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: SPACING.lg,
   },
-  statusLabel: { fontSize: FONT_SIZES.sm, marginBottom: 4 },
-  statusTier: { fontSize: FONT_SIZES.xxl, fontWeight: '700' },
-  statusExpiry: { fontSize: FONT_SIZES.sm, marginTop: 4 },
+  statusLabel: { fontSize: FONT_SIZES.sm, fontFamily: FONT_FAMILY.body, marginBottom: 4 },
+  statusTier: { fontSize: FONT_SIZES.xxl, fontFamily: FONT_FAMILY.heading, fontWeight: '700' },
+  statusExpiry: { fontSize: FONT_SIZES.sm, fontFamily: FONT_FAMILY.body, marginTop: 4 },
   packages: { gap: SPACING.sm },
   packageCard: {
     padding: SPACING.md,
@@ -356,11 +357,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: SPACING.sm,
   },
-  packageTitle: { fontSize: FONT_SIZES.md, fontWeight: '600', marginBottom: 4 },
-  packagePrice: { fontSize: FONT_SIZES.lg, fontWeight: '700', marginBottom: 4 },
-  packageDesc: { fontSize: FONT_SIZES.sm },
+  packageTitle: { fontSize: FONT_SIZES.md, fontFamily: FONT_FAMILY.bodySemiBold, fontWeight: '600', marginBottom: 4 },
+  packagePrice: { fontSize: FONT_SIZES.lg, fontFamily: FONT_FAMILY.heading, fontWeight: '700', marginBottom: 4 },
+  packageDesc: { fontSize: FONT_SIZES.sm, fontFamily: FONT_FAMILY.body },
   fallback: { alignItems: 'center', paddingVertical: 40 },
-  fallbackText: { fontSize: FONT_SIZES.sm, textAlign: 'center' },
+  fallbackText: { fontSize: FONT_SIZES.sm, fontFamily: FONT_FAMILY.body, textAlign: 'center' },
   restoreButton: {
     marginTop: SPACING.lg,
     padding: SPACING.md,
@@ -368,9 +369,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
   },
-  restoreText: { fontSize: FONT_SIZES.base, fontWeight: '600' },
+  restoreText: { fontSize: FONT_SIZES.base, fontFamily: FONT_FAMILY.bodySemiBold, fontWeight: '600' },
   legalText: {
     fontSize: 11,
+    fontFamily: FONT_FAMILY.body,
     lineHeight: 16,
     textAlign: 'center',
     marginTop: SPACING.md,
@@ -385,11 +387,13 @@ const styles = StyleSheet.create({
   },
   legalLink: {
     fontSize: 12,
+    fontFamily: FONT_FAMILY.bodySemiBold,
     fontWeight: '600',
     textDecorationLine: 'underline',
   },
   legalLinkSep: {
     fontSize: 12,
+    fontFamily: FONT_FAMILY.body,
   },
 });
 

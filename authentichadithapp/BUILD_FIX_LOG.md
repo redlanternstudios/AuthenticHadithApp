@@ -4760,3 +4760,38 @@ exported for cross-provider access. Auth guards must be hard (null check + throw
 3. If no trigger: approve addition of a `profiles` upsert in `app/auth/login.tsx` post-SIWA-success (this touches the auth zone — requires explicit KP approval per `forbidden-actions.md`).
 
 **Pattern Category**: Auth / Data integrity
+
+---
+
+### [FIX-130] — Rule 042 font parity sweep: 10 files, 29 violations patched (Apple Store readiness pass)
+**Date**: 2026-06-26
+**Session**: SwarmClaw CTP Apple Store Readiness Audit
+**Pattern Category**: FONT_PARITY / APPSTORE_COMPLIANCE / SYSTEM_RULES_042
+
+**Root cause**: Rule 042 (every `StyleSheet.create()` block with `fontSize` must include `fontFamily`) was missing from a subset of inline and multi-line style objects across 10 screens. The violation grep pattern `{ fontSize:` without `fontFamily` on the same line identified 405+ raw hits; after false-positive analysis (multi-line objects with fontFamily on adjacent lines, emoji/icon fontSize-only entries) 29 real text-rendering violations were confirmed. All 29 were in screens visible to App Store reviewers.
+
+**Files changed (10):**
+- `app/settings/subscription.tsx` — 11 violations (statusLabel, statusTier, statusExpiry, packageTitle, packagePrice, packageDesc, fallbackText, restoreText, legalText, legalLink, legalLinkSep)
+- `app/settings/language.tsx` — 5 violations (headerTitle, headerSubtitle, langNative, langEnglish, infoText)
+- `app/settings/credits.tsx` — 5 violations (cardFootnote, placeholderText, placeholderHint, bodyText, bodyFootnote)
+- `app/settings/delete-account.tsx` — 4 violations (warningTitle, warningText, confirmLabel, deleteButtonText)
+- `app/sunnah.tsx` — 2 violations (categoryName, categoryCount)
+- `app/quiz.tsx` — 2 violations (infoLabel, infoValue)
+- `app/stories/index.tsx` — 3 violations (companionArabic→FONT_FAMILY.arabic, metaText, tagText)
+- `app/stories/prophet/[slug].tsx` — 2 violations (partLabelAr→arabic, partTitleAr→arabic)
+- `app/stories/companion/[slug].tsx` — 1 violation (partTitleAr→arabic)
+- `app/onboarding.tsx` — 3 violations (progressCheck→heading, checkboxCheck→heading, skipText→body)
+
+**Arabic text handling**: `FONT_FAMILY.arabic = undefined` (falls back to system serif by design). Assigning `fontFamily: FONT_FAMILY.arabic` satisfies Rule 042 structurally while preserving the intended system-serif Arabic rendering.
+
+**Skipped (intentional, not violations)**: All emoji display (`fontSize` only, no text content) — emojis, chevron glyphs, flag characters, icon characters. Confirmed by style name patterns (emoji, chevron, flag, icon, checkmark/crossmark in quiz, badge).
+
+**False positives resolved**: `app/settings/index.tsx`, `notifications.tsx`, `sync.tsx`, `privacy.tsx`, `appearance.tsx`, `about.tsx`, `learn/lesson/[lessonId].tsx`, all `app/(tabs)/` screens, `app/my-hadith/` — fontFamily was present in multi-line objects on adjacent lines.
+
+**Verification**:
+- Final scan receipt: `grep -rn "{ fontSize:" app/ --include="*.tsx" | grep -v "fontFamily"` — 16 remaining hits, ALL emoji/icon displays. Zero text-content violations. EXIT:0.
+- TSC receipt: `npx tsc --noEmit` → EXIT:0, 0 errors.
+
+**Status**: **Verified** — scan clean + TSC clean. Code in working tree, not yet committed. Requires EAS Build for on-device confirmation per Rule 040.
+
+**Lesson**: Rule 042 grep `grep -n "{ fontSize:" | grep -v "fontFamily:"` catches inline single-line objects but produces false positives for multi-line objects where fontFamily is on an adjacent line. Always read the actual style object context around each flagged line before counting it as a violation. Icon/emoji `fontSize` entries (no text rendered) are structurally exempt — add them to a skip list, don't "fix" them.

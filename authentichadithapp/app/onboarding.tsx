@@ -451,7 +451,7 @@ const styles = StyleSheet.create({
     width: 24, height: 24, borderRadius: 12,
     alignItems: 'center', justifyContent: 'center',
   },
-  progressCheck: { fontSize: 14, fontWeight: '700' },
+  progressCheck: { fontSize: 14, fontFamily: FONT_FAMILY.heading, fontWeight: '700' },
   progressLine: { width: 40, height: 2 },
   stepLabel: { fontFamily: FONT_FAMILY.body, fontSize: FONT_SIZES.sm, textAlign: 'center', marginBottom: SPACING.xl },
   stepContent: { marginBottom: SPACING.xl },
@@ -501,7 +501,7 @@ const styles = StyleSheet.create({
     width: 20, height: 20, borderRadius: 4, borderWidth: 2,
     alignItems: 'center', justifyContent: 'center',
   },
-  checkboxCheck: { fontSize: 12, fontWeight: '700' },
+  checkboxCheck: { fontSize: 12, fontFamily: FONT_FAMILY.heading, fontWeight: '700' },
   collectionName: { fontFamily: FONT_FAMILY.bodySemiBold, fontSize: FONT_SIZES.base, fontWeight: '500' },
   collectionCount: { fontFamily: FONT_FAMILY.body, fontSize: FONT_SIZES.xs },
   levelToggle: {
@@ -529,5 +529,5 @@ const styles = StyleSheet.create({
     paddingTop: SPACING.lg, borderTopWidth: 1,
   },
   navRowRTL: { flexDirection: 'row-reverse' },
-  skipText: { fontSize: FONT_SIZES.base },
+  skipText: { fontSize: FONT_SIZES.base, fontFamily: FONT_FAMILY.body },
 })

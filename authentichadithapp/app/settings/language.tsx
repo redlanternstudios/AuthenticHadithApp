@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/lib/theme/ThemeProvider'
 import { useLanguage } from '@/lib/i18n/LanguageProvider'
 import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
+import { FONT_FAMILY } from '@/constants/theme'
 import { SettingsSection } from '@/components/settings/SettingsSection'
 
 const LANGUAGES = [
@@ -134,11 +135,13 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: FONT_SIZES.xxl,
+    fontFamily: FONT_FAMILY.heading,
     fontWeight: '700',
     marginBottom: SPACING.xs,
   },
   headerSubtitle: {
     fontSize: FONT_SIZES.base,
+    fontFamily: FONT_FAMILY.body,
     lineHeight: 22,
   },
   textRTL: {
@@ -174,11 +177,13 @@ const styles = StyleSheet.create({
   },
   langNative: {
     fontSize: FONT_SIZES.md,
+    fontFamily: FONT_FAMILY.bodySemiBold,
     fontWeight: '600',
     marginBottom: 2,
   },
   langEnglish: {
     fontSize: FONT_SIZES.sm,
+    fontFamily: FONT_FAMILY.body,
   },
   langCheck: {
     marginLeft: 'auto',
@@ -209,6 +214,7 @@ const styles = StyleSheet.create({
   infoText: {
     flex: 1,
     fontSize: FONT_SIZES.sm,
+    fontFamily: FONT_FAMILY.body,
     lineHeight: 20,
   },
 })

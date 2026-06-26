@@ -637,10 +637,10 @@ const styles = StyleSheet.create({
   partHeader: { marginBottom: SPACING.lg },
   partLabelRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, marginBottom: SPACING.xs, flexWrap: 'wrap' },
   partLabel: { fontFamily: FONT_FAMILY.heading, fontSize: FONT_SIZES.xs, fontWeight: '700', letterSpacing: 1.2 },
-  partLabelAr: { fontSize: FONT_SIZES.xs },
+  partLabelAr: { fontSize: FONT_SIZES.xs, fontFamily: FONT_FAMILY.arabic },
   checkmark: { fontFamily: FONT_FAMILY.body, fontSize: FONT_SIZES.sm, fontWeight: '700' },
   partTitle: { fontFamily: FONT_FAMILY.heading, fontSize: FONT_SIZES.xxl, fontWeight: '700', lineHeight: 32, marginBottom: SPACING.xs },
-  partTitleAr: { fontSize: FONT_SIZES.lg, textAlign: 'right', marginBottom: SPACING.xs },
+  partTitleAr: { fontSize: FONT_SIZES.lg, fontFamily: FONT_FAMILY.arabic, textAlign: 'right', marginBottom: SPACING.xs },
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, marginTop: SPACING.xs },
   metaBadge: { fontFamily: FONT_FAMILY.body, fontSize: FONT_SIZES.xs },
 
