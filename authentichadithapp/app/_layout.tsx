@@ -65,10 +65,12 @@ function PushTokenSync() {
       if (!token) return
       // Upsert the token — intentionally fire-and-forget. A failure here is
       // non-fatal: the user still has full local notification support.
+      // FIX-115 B1: use .upsert() not .update() — .update() silently affects
+      // 0 rows if the profiles row doesn't exist yet (race condition on first
+      // login). upsert with onConflict:'user_id' handles both create and update.
       await supabase
         .from('profiles')
-        .update({ expo_push_token: token })
-        .eq('user_id', user.id)
+        .upsert({ user_id: user.id, expo_push_token: token }, { onConflict: 'user_id' })
         .then(({ error }) => {
           if (error) {
             __DEV__ && console.warn('[PushTokenSync] Failed to upsert token:', error.message)
@@ -131,28 +133,26 @@ function NavigationGate() {
     const inOnboarding = segments[0] === 'onboarding'
     const inPaywall = segments[0] === 'paywall'
 
-    // SCREENSHOT-BYPASS (TEMP — REVERT BEFORE COMMIT): auth + onboarding redirects
-    // disabled so public content screens can be captured on the simulator.
-    // if (!user) {
-    //   // No session — send to signup
-    //   if (!inAuth && !inShared) router.replace('/auth/signup')
-    //   return
-    // }
+    // FIX-115 B4: SCREENSHOT-BYPASS reverted — all three gates restored for
+    // production. These were commented out temporarily during App Store screenshot
+    // capture and MUST be active before submission (per approval-gates.md).
+    if (!user) {
+      // No session — send to signup
+      if (!inAuth && !inShared) router.replace('/auth/signup')
+      return
+    }
 
-    // if (!onboarded) {
-    //   // Logged in but hasn't completed onboarding
-    //   if (!inOnboarding) router.replace('/onboarding')
-    //   return
-    // }
+    if (!onboarded) {
+      // Logged in but hasn't completed onboarding
+      if (!inOnboarding) router.replace('/onboarding')
+      return
+    }
 
-    // SCREENSHOT-BYPASS (TEMP — REVERT BEFORE COMMIT): paywall redirect disabled so
-    // App Store screenshots can be captured on the simulator where RevenueCat cannot
-    // resolve entitlements. Restore with: git checkout app/_layout.tsx
-    // if (!isPro) {
-    //   // Onboarded but no active subscription
-    //   if (!inPaywall) router.replace('/paywall')
-    //   return
-    // }
+    if (!isPro) {
+      // Onboarded but no active subscription
+      if (!inPaywall) router.replace('/paywall')
+      return
+    }
 
     // All gates passed — stay on (tabs), no redirect needed
   }, [authLoading, rcLoading, onboarded, user, isPro, segments, router])

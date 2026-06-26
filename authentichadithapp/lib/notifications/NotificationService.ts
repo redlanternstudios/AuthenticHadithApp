@@ -122,7 +122,11 @@ export async function registerForPushNotifications(): Promise<string | null> {
   }
 
   try {
-    const tokenData = await Notifications.getExpoPushTokenAsync()
+    // FIX-115 B2: pass projectId explicitly — required in Expo SDK 50+ to avoid
+    // deprecation warnings and potential silent failures in production builds.
+    const tokenData = await Notifications.getExpoPushTokenAsync({
+      projectId: '66afcbbf-55c3-48fb-9bf1-29efc52d09eb',
+    })
     return tokenData.data
   } catch (err) {
     __DEV__ && console.warn('[Notifications] getExpoPushTokenAsync failed:', err)
