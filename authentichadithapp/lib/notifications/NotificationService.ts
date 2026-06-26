@@ -157,10 +157,10 @@ export async function scheduleStreakReminder(hour: number, minute: number): Prom
       sound: false,
     },
     trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
       hour,
       minute,
-      repeats: true,
-    } as Notifications.NotificationTriggerInput,
+    },
   })
 
   await AsyncStorage.setItem(NOTIF_KEYS.STREAK_NOTIF_ID, id)
@@ -204,8 +204,9 @@ export async function scheduleLessonReminder(lessonTitle: string): Promise<void>
       sound: false,
     },
     trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
       date: fireDate,
-    } as Notifications.NotificationTriggerInput,
+    },
   })
 
   await AsyncStorage.setItem(NOTIF_KEYS.LESSON_NOTIF_ID, id)

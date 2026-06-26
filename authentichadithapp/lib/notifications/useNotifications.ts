@@ -15,8 +15,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Linking } from 'react-native'
 import * as Notifications from 'expo-notifications'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useRouter } from 'expo-router'
 import {
+  NOTIF_KEYS,
   getPermissionStatus,
   requestPermission,
   getStreakReminderEnabled,
@@ -147,6 +149,15 @@ export function useNotifications(): NotificationState {
       const { hour, minute } = reminderTime
       await setStreakReminderEnabled(enabled, hour, minute)
       setStreakEnabledState(enabled)
+    } catch (err) {
+      // Scheduling failed — revert AsyncStorage so persisted state stays consistent
+      // with the UI toggle (which stays at its prior position because setStreakEnabledState
+      // was never called).
+      await AsyncStorage.setItem(
+        NOTIF_KEYS.STREAK_REMINDER_ENABLED,
+        enabled ? 'false' : 'true',
+      ).catch(() => {})
+      __DEV__ && console.warn('[useNotifications] toggleStreak failed:', err)
     } finally {
       setIsUpdating(false)
     }
