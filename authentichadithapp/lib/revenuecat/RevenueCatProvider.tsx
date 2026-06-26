@@ -52,11 +52,7 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
   // reviewer can evaluate premium features even if RevenueCat doesn't resolve
   // their entitlement live. Exact-email-match only — no effect on any other
   // user, who still needs a real RevenueCat `premium` entitlement (via IAP).
-  // SCREENSHOT-BYPASS (TEMP — REVERT BEFORE COMMIT): force Pro so App Store screenshots
-  // replicate the previous Premium-user set (no upsell footers) on the simulator.
-  // Restore with: git checkout lib/revenuecat/RevenueCatProvider.tsx
-  const isPro = true
-  // const isPro = isReviewerEmail(user?.email) || customerInfo?.entitlements.active[ENTITLEMENT_ID]?.isActive === true
+  const isPro = isReviewerEmail(user?.email) || customerInfo?.entitlements.active[ENTITLEMENT_ID]?.isActive === true
   // Purchases is available iff configure() has succeeded. Until then no
   // default-instance call (getCustomerInfo, getOfferings, restorePurchases,
   // addCustomerInfoUpdateListener) is safe.
@@ -100,12 +96,21 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
 
   useEffect(() => {
     async function init() {
-      // SCREENSHOT-BYPASS (TEMP — REVERT BEFORE COMMIT): skip RevenueCat configure entirely
-      // so the SDK never renders anonymous-logout / sync-error debug toasts over App Store
-      // screenshots on the simulator. isPro is force-true above; paywall/restore aren't captured.
-      // Restore with: git checkout lib/revenuecat/RevenueCatProvider.tsx
-      Purchases.setLogLevel(LOG_LEVEL.ERROR)
-      setIsLoading(false)
+      try {
+        Purchases.setLogLevel(__DEV__ ? LOG_LEVEL.DEBUG : LOG_LEVEL.WARN)
+        const ok = await configureRevenueCat(user?.id)
+        if (!ok || !isRevenueCatConfigured()) {
+          return
+        }
+        setIsConfigured(true)
+        await runPostConfigure()
+      } catch (err) {
+        const e = err instanceof Error ? err : new Error(String(err))
+        __DEV__ && console.warn('[RC] Configure error:', e.message)
+        setError(e)
+      } finally {
+        setIsLoading(false)
+      }
     }
 
     init()
@@ -129,13 +134,11 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
   // user?.id transitions to a real value. attemptConfigureRetry is bounded
   // to a single retry per app session.
   useEffect(() => {
-    return // SCREENSHOT-BYPASS (TEMP — REVERT): no RC retry on sim, avoids debug toasts
-    // eslint-disable-next-line no-unreachable
     if (isConfigured) return
     if (!user?.id) return
     let cancelled = false
     ;(async () => {
-      const ok = await attemptConfigureRetry(user?.id)
+      const ok = await attemptConfigureRetry(user.id)
       if (cancelled) return
       if (ok && isRevenueCatConfigured()) {
         setIsConfigured(true)

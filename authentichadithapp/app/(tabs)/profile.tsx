@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { usePremiumStatus } from '@/hooks/usePremiumStatus';
 import { useRevenueCatSubscription } from '@/hooks/useRevenueCatSubscription';
+import { useRevenueCat } from '@/lib/revenuecat/RevenueCatProvider';
 import { PaywallScreen } from '@/components/premium/PaywallScreen';
 import { CustomerCenterScreen } from '@/components/premium/CustomerCenterScreen';
 import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS, LAYOUT } from '@/lib/styles/colors';
@@ -67,10 +68,22 @@ export default function ProfileScreen() {
   const { contentTop, contentBottom, pagePadding, maxContentWidth } = useDeviceLayout();
   const { isPremium } = usePremiumStatus();
   const { restorePurchases, expirationDate, productIdentifier } = useRevenueCatSubscription();
+  const { purchasesAvailable } = useRevenueCat();
   const [showPaywall, setShowPaywall] = React.useState(false);
   const [showCustomerCenter, setShowCustomerCenter] = React.useState(false);
   const [restoring, setRestoring] = React.useState(false);
   const [isSigningOut, setIsSigningOut] = React.useState(false);
+
+  const openCustomerCenter = () => {
+    if (!purchasesAvailable) {
+      Alert.alert(
+        'Subscription Management Unavailable',
+        'Could not connect to the App Store. Please check your connection and try again.'
+      )
+      return
+    }
+    setShowCustomerCenter(true)
+  }
 
   const handleSignOut = async () => {
     if (isSigningOut) return;
@@ -106,7 +119,11 @@ export default function ProfileScreen() {
     return (
       <View style={[styles.guestRoot, { backgroundColor: colors.background }]}>
         <View style={[styles.guestInner, { paddingTop: contentTop, paddingHorizontal: pagePadding }]}>
-          <View style={[styles.avatarCircle, { backgroundColor: colors.emeraldMid + '22' }]}>
+          <View
+            style={[styles.avatarCircle, { backgroundColor: colors.emeraldMid + '22' }]}
+            accessible
+            accessibilityLabel="Guest user avatar"
+          >
             <Ionicons name="person-outline" size={36} color={colors.emeraldMid} />
           </View>
           <Text style={[styles.guestTitle, { color: colors.bronzeText }]}>Welcome</Text>
@@ -139,7 +156,11 @@ export default function ProfileScreen() {
       {/* Identity card */}
       <Card variant="elevated" style={styles.identityCard}>
         <View style={styles.identityRow}>
-          <View style={[styles.avatarCircle, { backgroundColor: colors.emeraldMid + '22' }]}>
+          <View
+            style={[styles.avatarCircle, { backgroundColor: colors.emeraldMid + '22' }]}
+            accessible
+            accessibilityLabel={`User avatar — ${initials}`}
+          >
             <Text style={[styles.avatarInitials, { color: colors.emeraldMid }]}>{initials}</Text>
           </View>
           <View style={styles.identityText}>
@@ -174,7 +195,7 @@ export default function ProfileScreen() {
             icon="checkmark-circle"
             label={productIdentifier || 'Pro Plan'}
             tint={colors.emeraldMid}
-            onPress={() => setShowCustomerCenter(true)}
+            onPress={openCustomerCenter}
           />
           {expirationDate && (
             <SettingsRow
@@ -191,13 +212,13 @@ export default function ProfileScreen() {
                   ? 'Lifetime ♾️'
                   : new Date(expirationDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
               }
-              onPress={() => setShowCustomerCenter(true)}
+              onPress={openCustomerCenter}
             />
           )}
           <SettingsRow
             icon="settings-outline"
             label="Manage Subscription"
-            onPress={() => setShowCustomerCenter(true)}
+            onPress={openCustomerCenter}
           />
         </Card>
       )}
@@ -264,6 +285,8 @@ export default function ProfileScreen() {
         ]}
         onPress={handleSignOut}
         disabled={isSigningOut}
+        accessibilityRole="button"
+        accessibilityLabel="Sign out of your account"
       >
         <Ionicons name="log-out-outline" size={18} color={colors.error} />
         <Text style={[styles.signOutText, { color: colors.error }]}>Sign Out</Text>

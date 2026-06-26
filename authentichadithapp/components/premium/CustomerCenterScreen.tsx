@@ -3,6 +3,7 @@ import { View, StyleSheet } from 'react-native'
 import RevenueCatUI from 'react-native-purchases-ui'
 import { getColors } from '../../lib/styles/colors'
 import { useTheme } from '../../lib/theme/ThemeProvider'
+import { ErrorBoundary } from '../common/ErrorBoundary'
 
 interface CustomerCenterScreenProps {
   onDismiss?: () => void
@@ -18,9 +19,11 @@ export function CustomerCenterScreen({ onDismiss }: CustomerCenterScreenProps) {
   const colors = getColors(isDark)
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <RevenueCatUI.CustomerCenterView
-        onDismiss={onDismiss}
-      />
+      <ErrorBoundary>
+        <RevenueCatUI.CustomerCenterView
+          onDismiss={onDismiss}
+        />
+      </ErrorBoundary>
     </View>
   )
 }

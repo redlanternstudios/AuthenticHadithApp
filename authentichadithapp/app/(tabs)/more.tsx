@@ -72,9 +72,35 @@ const SECTIONS: { title: string; items: MoreItem[] }[] = [
       {
         icon: '👤',
         title: 'Profile',
-        description: 'Settings, subscription, bookmarks, account',
+        description: 'Subscription, bookmarks, and account details',
         route: '/(tabs)/profile',
         accessibilityLabel: 'Open Profile',
+      },
+    ],
+  },
+  {
+    title: 'SETTINGS',
+    items: [
+      {
+        icon: '⚙️',
+        title: 'Settings',
+        description: 'Language, appearance, notifications, and privacy',
+        route: '/settings',
+        accessibilityLabel: 'Open Settings',
+      },
+      {
+        icon: '🔔',
+        title: 'Notifications',
+        description: 'Manage daily hadith reminders',
+        route: '/settings/notifications',
+        accessibilityLabel: 'Open Notification Settings',
+      },
+      {
+        icon: '🎨',
+        title: 'Appearance',
+        description: 'Dark mode and display preferences',
+        route: '/settings/appearance',
+        accessibilityLabel: 'Open Appearance Settings',
       },
     ],
   },

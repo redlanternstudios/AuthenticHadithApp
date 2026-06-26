@@ -20,6 +20,19 @@
 
 ---
 
+## BUG-125 | CLOSED
+- **Spotted:** 2026-06-25. Build 83 crashed whenever user tapped subscription/manage button.
+- **Root cause:** Three SCREENSHOT-BYPASS lines left active in `lib/revenuecat/RevenueCatProvider.tsx`:
+  (1) `isPro = true` hardcoded → every user appeared premium → Profile showed "Manage Subscription"
+  (2) `init()` only called `setLogLevel` + `setIsLoading(false)`, never `configureRevenueCat()` → SDK never initialized
+  (3) `return` early-exited the retry `useEffect` → no recovery path.
+  Result: `CustomerCenterScreen` mounted `RevenueCatUI.CustomerCenterView` against an unconfigured RC SDK → crash.
+- **Fix:** Reverted all 3 bypass blocks in `RevenueCatProvider.tsx` to the proper production init.
+  Also: added `purchasesAvailable` guard before opening CustomerCenter modal in `profile.tsx`;
+  wrapped `CustomerCenterView` in `ErrorBoundary`; fixed stale test mock in `error-boundary.test.tsx`.
+- **Receipt:** `grep "isPro = true\|SCREENSHOT-BYPASS" lib/revenuecat/RevenueCatProvider.tsx` = GATE_EXIT:1 (no matches) ·
+  `tsc --noEmit` EXIT:0 · `expo lint` EXIT:0 · `jest` 135/135 · 14/14 suites.
+
 ## BUG-124 | CLOSED
 - **Spotted:** 2026-06-25. Build 82 hard-crashed on launch / on any error.
 - **Root cause:** root `ErrorBoundary` sits above `ThemeProvider` in `_layout.tsx`;

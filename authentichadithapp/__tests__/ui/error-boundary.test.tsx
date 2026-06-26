@@ -6,10 +6,17 @@ import React from 'react';
 import { render } from '@testing-library/react-native';
 import { Text } from 'react-native';
 
-// ThemedErrorFallback calls useTheme(); mock it so the test runs without a real ThemeProvider
-jest.mock('@/lib/theme/ThemeProvider', () => ({
-  useTheme: () => ({ isDark: false, theme: 'light', toggleTheme: jest.fn(), setTheme: jest.fn() }),
-}));
+// ThemedErrorFallback uses useContext(ThemeContext) — mock both the hook and the context
+// so tests run without a real ThemeProvider. ThemeContext must be a real React context
+// object (not undefined) or useContext throws on its $$typeof check.
+jest.mock('@/lib/theme/ThemeProvider', () => {
+  const React = require('react');
+  const ThemeContext = React.createContext({ isDark: false });
+  return {
+    useTheme: () => ({ isDark: false, theme: 'light', toggleTheme: jest.fn(), setTheme: jest.fn() }),
+    ThemeContext,
+  };
+});
 
 describe('ErrorBoundary', () => {
   it('exports ErrorBoundary component', () => {

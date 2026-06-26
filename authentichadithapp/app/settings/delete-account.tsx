@@ -63,8 +63,11 @@ export default function DeleteAccountScreen() {
                 }],
               );
             } catch (err: any) {
-              Alert.alert('Deletion Failed', err.message || 'Something went wrong. Please try again or contact support.');
-              setIsDeleting(false);
+              Alert.alert(
+                'Deletion Failed',
+                err.message || 'Something went wrong. Please try again or contact support.',
+                [{ text: 'OK', onPress: () => setIsDeleting(false) }],
+              );
             }
           },
         },
