@@ -73,6 +73,10 @@ export default function BookmarksScreen() {
           <TouchableOpacity
             style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}
             onPress={() => router.push(`/hadith/${item.hadith_id}`)}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={`Hadith #${item.hadith?.hadith_number} from ${getCollectionDisplayName(item.hadith?.collection_slug, collectionNames) || 'Hadith'}`}
+            accessibilityHint="Opens hadith detail"
           >
             <View style={styles.cardHeader}>
               <Text style={[styles.collection, { color: colors.emeraldMid }]}>{getCollectionDisplayName(item.hadith?.collection_slug, collectionNames) || 'Hadith'}</Text>
@@ -99,10 +103,12 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: FONT_SIZES.lg,
     fontWeight: '600',
+    fontFamily: 'Geist_600SemiBold',
     marginTop: SPACING.md,
   },
   emptySubtext: {
     fontSize: FONT_SIZES.base,
+    fontFamily: 'Geist_400Regular',
     marginTop: SPACING.sm,
     textAlign: 'center',
   },
@@ -129,13 +135,16 @@ const styles = StyleSheet.create({
   collection: {
     fontSize: FONT_SIZES.base,
     fontWeight: '600',
+    fontFamily: 'Geist_600SemiBold',
   },
   hadithNumber: {
     fontSize: FONT_SIZES.xs,
+    fontFamily: 'Geist_400Regular',
     marginBottom: SPACING.sm,
   },
   excerpt: {
     fontSize: FONT_SIZES.base,
+    fontFamily: 'Geist_400Regular',
     lineHeight: 20,
   },
 })

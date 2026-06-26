@@ -301,7 +301,6 @@ function CompanionCard({
   isComplete?: boolean
 }) {
   const themeColor = companion.theme_primary || colors.goldMid
-  const themeSecondary = companion.theme_secondary || themeColor
   const partsCompleted = progress?.partsCompleted?.length ?? 0
   const progressPercent =
     companion.total_parts > 0 ? (partsCompleted / companion.total_parts) * 100 : 0

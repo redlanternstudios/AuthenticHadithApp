@@ -1,7 +1,8 @@
 import React from 'react'
 import { View, Text, StyleSheet } from 'react-native'
 import { Card } from '@/components/ui/Card'
-import { COLORS, SPACING, FONT_SIZES } from '@/lib/styles/colors'
+import { SPACING, FONT_SIZES, getColors } from '@/lib/styles/colors'
+import { useTheme } from '@/lib/theme/ThemeProvider'
 import { FONT_FAMILY } from '@/constants/theme'
 
 interface StreakCounterProps {
@@ -9,7 +10,63 @@ interface StreakCounterProps {
   longestStreak: number
 }
 
+function makeStyles(colors: ReturnType<typeof getColors>) {
+  return StyleSheet.create({
+    card: {
+      marginBottom: SPACING.md,
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    streakSection: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.sm,
+    },
+    flame: {
+      fontSize: 32,
+    },
+    flameActive: {
+      fontSize: 36,
+    },
+    count: {
+      fontSize: FONT_SIZES.xxxl,
+      fontWeight: '700',
+      fontFamily: FONT_FAMILY.heading,
+      color: colors.bronzeText,
+    },
+    countActive: {
+      color: '#E87040',
+    },
+    label: {
+      fontSize: FONT_SIZES.sm,
+      fontFamily: FONT_FAMILY.body,
+      color: colors.mutedText,
+    },
+    divider: {
+      width: 1,
+      height: 40,
+      backgroundColor: colors.border,
+      marginHorizontal: SPACING.md,
+    },
+    bestSection: {
+      alignItems: 'center',
+    },
+    bestCount: {
+      fontSize: FONT_SIZES.xxl,
+      fontWeight: '700',
+      fontFamily: FONT_FAMILY.heading,
+      color: colors.goldMid,
+    },
+  })
+}
+
 export function StreakCounter({ currentStreak, longestStreak }: StreakCounterProps) {
+  const { isDark } = useTheme()
+  const colors = getColors(isDark)
+  const styles = makeStyles(colors)
   const isOnFire = currentStreak >= 3
 
   return (
@@ -35,54 +92,3 @@ export function StreakCounter({ currentStreak, longestStreak }: StreakCounterPro
     </Card>
   )
 }
-
-const styles = StyleSheet.create({
-  card: {
-    marginBottom: SPACING.md,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  streakSection: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-  },
-  flame: {
-    fontSize: 32,
-  },
-  flameActive: {
-    fontSize: 36,
-  },
-  count: {
-    fontSize: FONT_SIZES.xxxl,
-    fontWeight: '700',
-    fontFamily: FONT_FAMILY.heading,
-    color: COLORS.bronzeText,
-  },
-  countActive: {
-    color: '#E87040',
-  },
-  label: {
-    fontSize: FONT_SIZES.sm,
-    fontFamily: FONT_FAMILY.body,
-    color: COLORS.mutedText,
-  },
-  divider: {
-    width: 1,
-    height: 40,
-    backgroundColor: COLORS.border,
-    marginHorizontal: SPACING.md,
-  },
-  bestSection: {
-    alignItems: 'center',
-  },
-  bestCount: {
-    fontSize: FONT_SIZES.xxl,
-    fontWeight: '700',
-    fontFamily: FONT_FAMILY.heading,
-    color: COLORS.goldMid,
-  },
-})

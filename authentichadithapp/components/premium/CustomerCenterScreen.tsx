@@ -1,7 +1,8 @@
 import React from 'react'
 import { View, StyleSheet } from 'react-native'
 import RevenueCatUI from 'react-native-purchases-ui'
-import { COLORS } from '../../lib/styles/colors'
+import { getColors } from '../../lib/styles/colors'
+import { useTheme } from '../../lib/theme/ThemeProvider'
 
 interface CustomerCenterScreenProps {
   onDismiss?: () => void
@@ -13,8 +14,10 @@ interface CustomerCenterScreenProps {
  * Configure Customer Center paths in the RevenueCat Dashboard.
  */
 export function CustomerCenterScreen({ onDismiss }: CustomerCenterScreenProps) {
+  const { isDark } = useTheme()
+  const colors = getColors(isDark)
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <RevenueCatUI.CustomerCenterView
         onDismiss={onDismiss}
       />
@@ -25,6 +28,5 @@ export function CustomerCenterScreen({ onDismiss }: CustomerCenterScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
 })

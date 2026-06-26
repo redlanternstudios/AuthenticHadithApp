@@ -1,7 +1,7 @@
 import React from 'react'
 import { View, StyleSheet, ViewProps } from 'react-native'
 import { useTheme } from '@/lib/theme/ThemeProvider'
-import { getColors, BORDER_RADIUS, SPACING, SHADOWS } from '@/lib/styles/colors'
+import { getColors, BORDER_RADIUS, SHADOWS } from '@/lib/styles/colors'
 
 interface CardProps extends ViewProps {
   children: React.ReactNode

@@ -141,7 +141,7 @@ export default function TodayScreen() {
       __DEV__ && console.warn('[Today] share failed:', error)
       Alert.alert('Share Failed', 'Could not open the share sheet. Please try again.')
     }
-  }, [dailyHadith, user])
+  }, [dailyHadith, user, collectionNames])
 
   const handleSave = useCallback(() => {
     if (!dailyHadith || !user) return

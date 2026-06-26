@@ -1,7 +1,8 @@
 import React from 'react'
 import { View, StyleSheet } from 'react-native'
 import RevenueCatUI from 'react-native-purchases-ui'
-import { COLORS } from '../../lib/styles/colors'
+import { getColors } from '../../lib/styles/colors'
+import { useTheme } from '../../lib/theme/ThemeProvider'
 import { useRevenueCat } from '../../lib/revenuecat/RevenueCatProvider'
 
 interface PaywallScreenProps {
@@ -16,8 +17,10 @@ interface PaywallScreenProps {
  */
 export function PaywallScreen({ onDismiss, onPurchaseCompleted, onRestoreCompleted }: PaywallScreenProps) {
   const { refreshCustomerInfo } = useRevenueCat()
+  const { isDark } = useTheme()
+  const colors = getColors(isDark)
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <RevenueCatUI.Paywall
         onDismiss={onDismiss}
         onPurchaseCompleted={() => {
@@ -51,6 +54,5 @@ export function PaywallGate({ children }: { children: React.ReactNode }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
 })

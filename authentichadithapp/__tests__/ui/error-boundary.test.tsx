@@ -6,6 +6,11 @@ import React from 'react';
 import { render } from '@testing-library/react-native';
 import { Text } from 'react-native';
 
+// ThemedErrorFallback calls useTheme(); mock it so the test runs without a real ThemeProvider
+jest.mock('@/lib/theme/ThemeProvider', () => ({
+  useTheme: () => ({ isDark: false, theme: 'light', toggleTheme: jest.fn(), setTheme: jest.fn() }),
+}));
+
 describe('ErrorBoundary', () => {
   it('exports ErrorBoundary component', () => {
     const { ErrorBoundary } = require('@/components/common/ErrorBoundary');

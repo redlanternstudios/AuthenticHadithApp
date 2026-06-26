@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -23,7 +23,6 @@ import { FONT_FAMILY } from '@/constants/theme';
 import { useTheme } from '@/lib/theme/ThemeProvider';
 import { Hadith } from '@/types/hadith';
 import { useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { filterVisibleCollections, HIDDEN_COLLECTION_FILTER } from '@/lib/hadith/visibleCollections';
 import { QueryErrorBanner } from '@/components/common/QueryErrorBanner';
 
@@ -33,7 +32,6 @@ export default function SearchScreen() {
   const router = useRouter();
   const { isDark } = useTheme();
   const colors = getColors(isDark);
-  const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const [gradeFilter, setGradeFilter] = useState<string>('All');
   const [collectionFilter, setCollectionFilter] = useState<string | null>(null);
@@ -51,13 +49,6 @@ export default function SearchScreen() {
       return filterVisibleCollections(data as { name_en: string; slug: string }[]);
     },
   });
-
-  const activeFilterCount = useMemo(() => {
-    let count = 0;
-    if (gradeFilter !== 'All') count++;
-    if (collectionFilter) count++;
-    return count;
-  }, [gradeFilter, collectionFilter]);
 
   const { data: hadiths = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['search-hadiths', debouncedQuery, gradeFilter, collectionFilter],

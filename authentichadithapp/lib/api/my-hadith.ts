@@ -179,18 +179,22 @@ export async function getFolderByShareToken(token: string) {
 
 // Comments
 export async function addComment(savedHadithId: string, comment: string) {
-  const { data: user } = await supabase.auth.getUser()
-  
+  const { data: authData, error: authError } = await supabase.auth.getUser()
+
+  if (authError || !authData.user) {
+    throw new Error('Authentication required')
+  }
+
   const { data, error } = await supabase
     .from('folder_comments')
     .insert({
       saved_hadith_id: savedHadithId,
-      user_id: user.user?.id,
+      user_id: authData.user.id,
       comment
     })
     .select()
     .single()
-  
+
   if (error) throw error
   return data
 }

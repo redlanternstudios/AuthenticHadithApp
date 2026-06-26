@@ -10,7 +10,6 @@ import {
   Linking,
 } from 'react-native'
 import { Stack, useRouter } from 'expo-router'
-import AsyncStorage from '@react-native-async-storage/async-storage'
 import { PurchasesPackage } from 'react-native-purchases'
 import { purchasePackage as safePurchasePackage } from '../lib/purchases/revenuecat'
 import { useTheme } from '@/lib/theme/ThemeProvider'
@@ -96,6 +95,7 @@ export default function PaywallScreen() {
       const annual = getAnnualPackage(packages)
       setSelectedPackage(annual ?? packages[0])
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [packages])
 
   // ─── Purchase ───────────────────────────────────────────────────────────────

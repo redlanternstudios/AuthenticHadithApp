@@ -1,6 +1,7 @@
 import React from 'react'
 import { View, Text, StyleSheet } from 'react-native'
-import { COLORS, SPACING, FONT_SIZES } from '../../lib/styles/colors'
+import { SPACING, FONT_SIZES, getColors } from '../../lib/styles/colors'
+import { useTheme } from '../../lib/theme/ThemeProvider'
 import { FONT_FAMILY } from '../../constants/theme'
 
 interface ErrorBoundaryProps {
@@ -10,6 +11,65 @@ interface ErrorBoundaryProps {
 interface ErrorBoundaryState {
   hasError: boolean
   error?: Error
+}
+
+function ThemedErrorFallback({ error }: { error?: Error }) {
+  const { isDark } = useTheme()
+  const colors = getColors(isDark)
+  const styles = makeStyles(colors)
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.emoji}>⚠️</Text>
+      <Text style={styles.title}>Something went wrong</Text>
+      <Text style={styles.message}>
+        {"We're sorry for the inconvenience. Please try restarting the app."}
+      </Text>
+      {__DEV__ && error && (
+        <Text style={styles.error}>{error.toString()}</Text>
+      )}
+    </View>
+  )
+}
+
+function makeStyles(colors: ReturnType<typeof getColors>) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: SPACING.xl,
+      backgroundColor: colors.background,
+    },
+    emoji: {
+      fontSize: 64,
+      marginBottom: SPACING.lg,
+    },
+    title: {
+      fontFamily: FONT_FAMILY.heading,
+      fontSize: FONT_SIZES.xxl,
+      fontWeight: '700',
+      color: colors.bronzeText,
+      marginBottom: SPACING.md,
+      textAlign: 'center',
+    },
+    message: {
+      fontFamily: FONT_FAMILY.body,
+      fontSize: FONT_SIZES.base,
+      color: colors.mutedText,
+      textAlign: 'center',
+      marginBottom: SPACING.lg,
+    },
+    error: {
+      fontSize: FONT_SIZES.sm,
+      color: colors.error,
+      fontFamily: 'monospace',
+      padding: SPACING.md,
+      backgroundColor: colors.card,
+      borderRadius: 8,
+      marginTop: SPACING.md,
+    },
+  })
 }
 
 export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
@@ -28,58 +88,9 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
   render() {
     if (this.state.hasError) {
-      return (
-        <View style={styles.container}>
-          <Text style={styles.emoji}>⚠️</Text>
-          <Text style={styles.title}>Something went wrong</Text>
-          <Text style={styles.message}>
-            {"We're sorry for the inconvenience. Please try restarting the app."}
-          </Text>
-          {__DEV__ && this.state.error && (
-            <Text style={styles.error}>{this.state.error.toString()}</Text>
-          )}
-        </View>
-      )
+      return <ThemedErrorFallback error={this.state.error} />
     }
 
     return this.props.children
   }
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: SPACING.xl,
-    backgroundColor: COLORS.background,
-  },
-  emoji: {
-    fontSize: 64,
-    marginBottom: SPACING.lg,
-  },
-  title: {
-    fontFamily: FONT_FAMILY.heading,
-    fontSize: FONT_SIZES.xxl,
-    fontWeight: '700',
-    color: COLORS.bronzeText,
-    marginBottom: SPACING.md,
-    textAlign: 'center',
-  },
-  message: {
-    fontFamily: FONT_FAMILY.body,
-    fontSize: FONT_SIZES.base,
-    color: COLORS.mutedText,
-    textAlign: 'center',
-    marginBottom: SPACING.lg,
-  },
-  error: {
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.error,
-    fontFamily: 'monospace',
-    padding: SPACING.md,
-    backgroundColor: COLORS.card,
-    borderRadius: 8,
-    marginTop: SPACING.md,
-  },
-})

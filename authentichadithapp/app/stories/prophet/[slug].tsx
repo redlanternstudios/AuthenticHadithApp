@@ -35,8 +35,8 @@ import {
   toggleStoryBookmark,
   getStoryPartProgress,
   StoryPartProgress,
+  markComplete as svcMarkComplete,
 } from '@/lib/progress/progressService'
-import { markComplete as svcMarkComplete } from '@/lib/progress/progressService'
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -204,7 +204,6 @@ export default function ProphetStoryScreen() {
   const parts = storyParts || []
   const totalParts = prophet?.total_parts ?? parts.length
   const themeColor = prophet?.theme_primary ?? colors.emeraldMid
-  const themeSecondary = prophet?.theme_secondary ?? themeColor
   const progressPercent = totalParts > 0 ? (currentPart / totalParts) * 100 : 0
   const partsCompleted = partProgress?.partsCompleted ?? []
   const isCurrentPartCompleted = partsCompleted.includes(currentPart)

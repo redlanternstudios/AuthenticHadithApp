@@ -3,6 +3,7 @@ import { Alert } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { Session, User } from '@supabase/supabase-js'
 import { supabase } from '../supabase/client'
+import { queryClient } from '../providers/react-query-provider'
 
 interface AuthContextType {
   session: Session | null
@@ -49,6 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
+        queryClient.clear()               // clear private user cache immediately
         AsyncStorage.removeItem('onboarded')
         if (hadSessionRef.current) {
           Alert.alert('Session Expired', 'Please sign in again.')

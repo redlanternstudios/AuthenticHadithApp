@@ -24,7 +24,6 @@ import {
   Pressable,
   Share,
   ActivityIndicator,
-  FlatList,
 } from 'react-native'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
@@ -40,8 +39,8 @@ import {
   toggleStoryBookmark,
   getStoryPartProgress,
   StoryPartProgress,
+  markComplete as svcMarkComplete,
 } from '@/lib/progress/progressService'
-import { markComplete as svcMarkComplete } from '@/lib/progress/progressService'
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -306,7 +305,6 @@ export default function CompanionStoryScreen() {
 
   // ── derived ──────────────────────────────────────────────────────
   const themeColor = companion?.theme_primary ?? colors.goldMid
-  const themeSecondary = companion?.theme_secondary ?? themeColor
   const progressPercent = totalParts > 0
     ? (currentPart / totalParts) * 100
     : 0

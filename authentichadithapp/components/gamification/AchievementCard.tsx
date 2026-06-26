@@ -1,7 +1,8 @@
 import React from 'react'
 import { View, Text, StyleSheet } from 'react-native'
 import { Card } from '@/components/ui/Card'
-import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
+import { SPACING, FONT_SIZES, BORDER_RADIUS, getColors } from '@/lib/styles/colors'
+import { useTheme } from '@/lib/theme/ThemeProvider'
 import { Achievement, AchievementTier } from '@/types/gamification'
 import { FONT_FAMILY } from '@/constants/theme'
 
@@ -26,7 +27,83 @@ interface AchievementCardProps {
   unlockedAt?: string
 }
 
+function makeStyles(colors: ReturnType<typeof getColors>) {
+  return StyleSheet.create({
+    card: {
+      alignItems: 'center',
+      padding: SPACING.md,
+      width: '48%',
+      marginBottom: SPACING.md,
+    },
+    locked: {
+      opacity: 0.5,
+    },
+    iconContainer: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      borderWidth: 2,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: SPACING.sm,
+      backgroundColor: colors.background,
+    },
+    icon: {
+      fontSize: 24,
+    },
+    name: {
+      fontSize: FONT_SIZES.base,
+      fontWeight: '700',
+      fontFamily: FONT_FAMILY.heading,
+      color: colors.bronzeText,
+      textAlign: 'center',
+      marginBottom: SPACING.xs,
+    },
+    description: {
+      fontSize: FONT_SIZES.xs,
+      fontFamily: FONT_FAMILY.body,
+      color: colors.mutedText,
+      textAlign: 'center',
+      marginBottom: SPACING.sm,
+      lineHeight: 16,
+    },
+    lockedText: {
+      color: colors.mutedText,
+    },
+    footer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.sm,
+    },
+    tierBadge: {
+      paddingHorizontal: SPACING.sm,
+      paddingVertical: 2,
+      borderRadius: BORDER_RADIUS.sm,
+    },
+    tierText: {
+      fontSize: FONT_SIZES.xs,
+      fontWeight: '600',
+      fontFamily: FONT_FAMILY.bodySemiBold,
+    },
+    xpText: {
+      fontSize: FONT_SIZES.xs,
+      fontFamily: FONT_FAMILY.bodySemiBold,
+      color: colors.goldMid,
+      fontWeight: '600',
+    },
+    unlockedText: {
+      fontSize: FONT_SIZES.xs,
+      fontFamily: FONT_FAMILY.body,
+      color: colors.success,
+      marginTop: SPACING.xs,
+    },
+  })
+}
+
 export function AchievementCard({ achievement, isUnlocked, unlockedAt }: AchievementCardProps) {
+  const { isDark } = useTheme()
+  const colors = getColors(isDark)
+  const styles = makeStyles(colors)
   const tierColor = TIER_COLORS[achievement.tier]
 
   return (
@@ -60,74 +137,3 @@ export function AchievementCard({ achievement, isUnlocked, unlockedAt }: Achieve
     </Card>
   )
 }
-
-const styles = StyleSheet.create({
-  card: {
-    alignItems: 'center',
-    padding: SPACING.md,
-    width: '48%',
-    marginBottom: SPACING.md,
-  },
-  locked: {
-    opacity: 0.5,
-  },
-  iconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: SPACING.sm,
-    backgroundColor: COLORS.background,
-  },
-  icon: {
-    fontSize: 24,
-  },
-  name: {
-    fontSize: FONT_SIZES.base,
-    fontWeight: '700',
-    fontFamily: FONT_FAMILY.heading,
-    color: COLORS.bronzeText,
-    textAlign: 'center',
-    marginBottom: SPACING.xs,
-  },
-  description: {
-    fontSize: FONT_SIZES.xs,
-    fontFamily: FONT_FAMILY.body,
-    color: COLORS.mutedText,
-    textAlign: 'center',
-    marginBottom: SPACING.sm,
-    lineHeight: 16,
-  },
-  lockedText: {
-    color: COLORS.mutedText,
-  },
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-  },
-  tierBadge: {
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: 2,
-    borderRadius: BORDER_RADIUS.sm,
-  },
-  tierText: {
-    fontSize: FONT_SIZES.xs,
-    fontWeight: '600',
-    fontFamily: FONT_FAMILY.bodySemiBold,
-  },
-  xpText: {
-    fontSize: FONT_SIZES.xs,
-    fontFamily: FONT_FAMILY.bodySemiBold,
-    color: COLORS.goldMid,
-    fontWeight: '600',
-  },
-  unlockedText: {
-    fontSize: FONT_SIZES.xs,
-    fontFamily: FONT_FAMILY.body,
-    color: COLORS.success,
-    marginTop: SPACING.xs,
-  },
-})
