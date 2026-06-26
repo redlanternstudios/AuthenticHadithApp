@@ -26,14 +26,41 @@ export default function ReflectionsScreen() {
     queryKey: ['reflections', user?.id],
     queryFn: async () => {
       if (!user) return []
-      const { data } = await supabase
+      // FIX-121: Two-query merge per Golden Rule #1 / FIX-041-FOLLOW-UP.
+      // saved_hadiths.hadith_id has NO FK to hadiths.id in production, so the
+      // PostgREST embed hadith:hadiths(...) returned PGRST200 and hadith data
+      // was always null, leaving reflection cards showing no hadith reference.
+      const { data: savedRows, error } = await supabase
         .from('saved_hadiths')
-        .select('id, notes, created_at, hadith:hadiths(id, english_text, collection_slug, hadith_number)')
+        .select('id, notes, created_at, hadith_id')
         .eq('user_id', user.id)
         .not('notes', 'is', null)
         .order('created_at', { ascending: false })
         .limit(50)
-      return data || []
+
+      if (error) {
+        __DEV__ && console.error('[Reflections] saved_hadiths fetch failed:', error)
+        return []
+      }
+
+      if (!savedRows || savedRows.length === 0) return []
+
+      const hadithIds = Array.from(
+        new Set(savedRows.map(r => r.hadith_id).filter((id): id is string => !!id))
+      )
+
+      if (hadithIds.length === 0) return savedRows
+
+      const { data: hadithRows } = await supabase
+        .from('hadiths')
+        .select('id, english_text, collection_slug, hadith_number')
+        .in('id', hadithIds)
+
+      const hadithById = new Map((hadithRows ?? []).map(h => [h.id, h]))
+      return savedRows.map(row => ({
+        ...row,
+        hadith: hadithById.get(row.hadith_id) ?? null,
+      }))
     },
     enabled: !!user,
   })

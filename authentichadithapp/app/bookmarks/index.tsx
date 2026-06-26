@@ -5,6 +5,7 @@ import { useBookmarks } from '@/hooks/use-bookmarks'
 import { useAuth } from '@/lib/auth/AuthProvider'
 import { useTheme } from '@/lib/theme/ThemeProvider'
 import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
+import { FONT_FAMILY } from '@/constants/theme'
 import { Ionicons } from '@expo/vector-icons'
 import {
   getCollectionDisplayName,
@@ -103,12 +104,12 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: FONT_SIZES.lg,
     fontWeight: '600',
-    fontFamily: 'Geist_600SemiBold',
+    fontFamily: FONT_FAMILY.bodySemiBold,
     marginTop: SPACING.md,
   },
   emptySubtext: {
     fontSize: FONT_SIZES.base,
-    fontFamily: 'Geist_400Regular',
+    fontFamily: FONT_FAMILY.body,
     marginTop: SPACING.sm,
     textAlign: 'center',
   },
@@ -135,16 +136,16 @@ const styles = StyleSheet.create({
   collection: {
     fontSize: FONT_SIZES.base,
     fontWeight: '600',
-    fontFamily: 'Geist_600SemiBold',
+    fontFamily: FONT_FAMILY.bodySemiBold,
   },
   hadithNumber: {
     fontSize: FONT_SIZES.xs,
-    fontFamily: 'Geist_400Regular',
+    fontFamily: FONT_FAMILY.body,
     marginBottom: SPACING.sm,
   },
   excerpt: {
     fontSize: FONT_SIZES.base,
-    fontFamily: 'Geist_400Regular',
+    fontFamily: FONT_FAMILY.body,
     lineHeight: 20,
   },
 })
