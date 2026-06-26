@@ -1,7 +1,10 @@
-import React from 'react'
+import React, { useContext } from 'react'
 import { View, Text, StyleSheet } from 'react-native'
 import { SPACING, FONT_SIZES, getColors } from '../../lib/styles/colors'
-import { useTheme } from '../../lib/theme/ThemeProvider'
+// Use ThemeContext directly (not useTheme hook) so this component is safe when
+// ErrorBoundary sits above ThemeProvider. The hook throws on missing context;
+// useContext returns undefined safely.
+import { ThemeContext } from '../../lib/theme/ThemeProvider'
 import { FONT_FAMILY } from '../../constants/theme'
 
 interface ErrorBoundaryProps {
@@ -14,7 +17,8 @@ interface ErrorBoundaryState {
 }
 
 function ThemedErrorFallback({ error }: { error?: Error }) {
-  const { isDark } = useTheme()
+  const themeCtx = useContext(ThemeContext)
+  const isDark = themeCtx?.isDark ?? false
   const colors = getColors(isDark)
   const styles = makeStyles(colors)
 

@@ -8,7 +8,9 @@ interface ThemeContextType {
   setTheme: (theme: ThemeMode) => void;
 }
 
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+// Exported so ErrorBoundary can safely read context without throwing when it
+// sits above ThemeProvider in the tree (the root error boundary case).
+export const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 interface ThemeProviderProps {
   children: ReactNode;

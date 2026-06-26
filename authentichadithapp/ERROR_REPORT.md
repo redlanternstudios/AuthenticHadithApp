@@ -9,22 +9,20 @@
 
 **Status**: 🟢 No active errors
 
-**Current state**: Build 80 (v1.1.0, build 80) SUBMITTED to TestFlight. Contains FIX-116 (Sign In with Apple), FIX-119 (bookmark save), FIX-121 (push token schema), FIX-122 (SIWA Apple Developer Portal capability). Rule 034 all 3 probes GREEN (2026-06-25). Awaiting KP Rule 040 device QA on physical iPhone before Submit for Review.
+**Current state**: Build 82 (v1.1.0, build 82) SUBMITTED to TestFlight 2026-06-25. Contains FIX-123 (dark mode, auth cache, a11y, API safety) + all prior fixes (FIX-116/119/121/122). Rule 034 all 3 probes GREEN. Awaiting KP Rule 040 device QA on physical iPhone before Submit for Review.
 
-**SwarmClaw audit (2026-06-25):** 3 Medium bugs must be fixed before Rule 040 passes cleanly:
-- Problem 2: SaveHadithModal dark mode broken (components/my-hadith/SaveHadithModal.tsx — static COLORS)
-- Problem 3: PaywallScreen + CustomerCenterScreen dark mode broken (components/premium/ — static COLORS)
-- Problem 1 (KP decision): queryClient.clear() on signout (lib/auth/AuthProvider.tsx — forbidden zone, one-line fix)
+**FIX-123 repairs (all in build 82):** SaveHadithModal dark mode, PaywallScreen + CustomerCenterScreen dark mode, bookmarks font constants (P4), auth cache clear on signout, a11y accessibilityLabels, API safety (AbortController + timeout).
 
-**Build 80 receipts**:
-- EAS Build ID: `a1d564e0-66b7-478d-be4a-63b6fde812d9`
-- App Version: 1.1.0, Build Number: 80
-- Commit: `7ed62cd1` on `main`
-- Provisioning profile: RL2RYR793P (with SIWA entitlement)
-- EAS Submission ID: `e3e075fd-b2a8-48e2-bce5-7d20faa3437c`
-- TestFlight status: SUBMITTED ✅
+**Build 82 receipts**:
+- EAS Build ID: `9cb04ca6-586a-4260-a85e-aa030292f3aa`
+- App Version: 1.1.0, Build Number: 82
+- Commit: `212d1cf` on `fix/repair-batch-2026-06-25`
+- Distribution cert: `18C72B87D58A8D6CB6E00020B9E1D9BD` (valid until May 2027)
+- Provisioning profile: RL2RYR793P (active, with SIWA entitlement)
+- EAS Submission ID: `3d9787f4-de64-4eb1-8644-f62a887e77f7`
+- TestFlight status: SUBMITTED ✅ — "binary successfully uploaded to App Store Connect"
 - TestFlight URL: `appstoreconnect.apple.com/apps/6764673665/testflight/ios`
-- `npx tsc --noEmit` → EXIT:0 (last confirmed on Build 80 EAS build machine)
+- `npx tsc --noEmit` → EXIT:0 | expo-doctor 18/18 | lint exit 0 | 135/135 tests
 
 **Previous Build 77 receipts (superseded by Build 80)**:
 - EAS Build ID: `4947bf11-5c46-4d3d-af37-31905a1dfab4` · Build Number: 77 · Commit: `d18a515`
