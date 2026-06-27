@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/Card'
 import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors'
 import { useTheme } from '@/lib/theme/ThemeProvider'
 import { trackActivity } from '@/lib/gamification/track-activity'
+import { saveHadithToFolder } from '@/lib/api/my-hadith'
 import { QueryErrorBanner } from '@/components/common/QueryErrorBanner'
 import { FONT_FAMILY } from '@/constants/theme'
 import { getDailySeed } from '@/lib/hadith/dailySeed'
@@ -101,20 +102,32 @@ export default function ReflectionsScreen() {
 
       if (!hadith) return
 
-      await supabase.from('saved_hadiths').upsert({
-        user_id: user.id,
-        hadith_id: hadith.id,
-        notes: newReflection.trim(),
-      })
+      // FIX-138: route the reflection note through the canonical hardened write
+      // path. The prior inline upsert had NO onConflict, so for any hadith the
+      // user had already saved it hit the (user_id, hadith_id) unique constraint
+      // and threw 23505 — and the error was never captured, so the mutation
+      // "succeeded" while nothing was written. saveHadithToFolder upserts with
+      // onConflict:'user_id,hadith_id' and now relies on the saved_hadiths UPDATE
+      // RLS policy added in migration 1000.
+      await saveHadithToFolder(user.id, hadith.id, undefined, newReflection.trim())
 
-      trackActivity(user.id, 'note')
+      // Activity/XP tracking is best-effort and must never fail the save.
+      try {
+        await trackActivity(user.id, 'note')
+      } catch (e) {
+        __DEV__ && console.warn('[Reflections] trackActivity failed (non-fatal):', e)
+      }
     },
     onSuccess: () => {
       setNewReflection('')
       queryClient.invalidateQueries({ queryKey: ['reflections'] })
     },
-    onError: () => {
-      Alert.alert('Error', 'Could not save reflection.')
+    onError: (error) => {
+      __DEV__ && console.error('[Reflections] save reflection failed:', error)
+      Alert.alert(
+        'Could not save reflection',
+        error instanceof Error ? error.message : 'Please try again.'
+      )
     },
   })
 

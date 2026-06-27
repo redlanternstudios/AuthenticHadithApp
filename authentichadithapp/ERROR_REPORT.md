@@ -7,9 +7,22 @@
 
 ## CURRENT ERROR
 
-**Status**: 🟢 No active errors
+**Status**: 🟡 ACTIVE — code fixed, production DB fix PENDING (BUG-138)
 
-**Current state (2026-06-26)**: CTP precision sweep COMPLETE. FIX-130 through FIX-137 all committed on branch `fix/repair-batch-2026-06-25`. Pushed to GitHub. Awaiting KP authorization for next EAS build. Rule 034 re-probe required before Submit for Review (reviewer login + RC premium + backend API).
+**FIX-138 (2026-06-26)**: Hadiths wouldn't save to a folder. Root cause = production nq
+`saved_hadiths` is missing the UPDATE RLS policy (had INSERT/SELECT/DELETE only); the
+upsert-conflict→UPDATE path was silently RLS-denied so `folder_id` stayed NULL. Code side
+FIXED + committed (migration `1000-saved-hadiths-canonical-rls.sql`, `app/reflections.tsx`,
+`lib/gamification/track-activity.ts`). **Pending:** migration 1000 must RUN against nq
+(routed to Cowork — the session's Supabase MCP only reaches project lwklog…, not nq).
+Resets to 🟢 when Cowork returns the nq verification (rowsecurity=true, unique constraint
+present, 4 DML policies) AND the device round-trip passes. Tracked: `OPEN_BUGS.md` BUG-138,
+full audit `ENTERPRISE_AUDIT_2026-06-26.md`.
+
+Receipts this session: `npx tsc --noEmit` EXIT:0 · `npx expo lint` EXIT:0 ·
+`npx expo-doctor` 18/18 · backend `POST .../api/mobile-chat` HTTP 200.
+
+**Prior state (2026-06-26)**: CTP precision sweep COMPLETE. FIX-130 through FIX-137 all committed on branch `fix/repair-batch-2026-06-25`. Pushed to GitHub. Awaiting KP authorization for next EAS build. Rule 034 re-probe required before Submit for Review (reviewer login + RC premium + backend API).
 
 **Committed fix batch (HEAD on fix/repair-batch-2026-06-25):**
 - FIX-134: `app/reflections.tsx` — KeyboardAvoidingView wrapping ScrollView (multiline textarea)

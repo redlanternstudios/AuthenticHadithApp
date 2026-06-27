@@ -1188,3 +1188,34 @@ grep -n "fontSize:" src/**/*.tsx | grep -v "fontFamily:"
 **Applies to all future Red Lantern / By Red apps.** Any screen that gates content behind a purchase prompt is excluded from ASC screenshots by default.
 
 **Root cause reference**: KP directive 2026-06-24 — "Paywall can not be listed on Apple list ensure that is hardcoded." Source: session following FIX-108. Apple Guideline 2.3.7.
+
+---
+
+## Rule 044: Every User-Writable Table Needs All Four CRUD RLS Policies — and SQL Fixes Live in Migrations, Not Docs
+
+Derived from FIX-138 (2026-06-26): hadiths wouldn't save to a folder because production
+`saved_hadiths` had the `(user_id, hadith_id)` unique constraint but was MISSING the UPDATE
+RLS policy. INSERT worked (so a fresh save looked fine), but every upsert-conflict→UPDATE
+path (saving an already-bookmarked hadith into a folder, editing notes) was silently denied
+by RLS with no error the user could see. The fix had existed for weeks as a loose
+`docs/RLS_SAVED_HADITHS_FIX.sql` that was never promoted to a migration and never run.
+
+**The rule (non-negotiable):**
+1. **Four policies, always.** Any table the app writes to (`saved_hadiths`, `hadith_folders`,
+   `*_reading_progress`, `user_stats`, `user_streaks`, `profiles`, `folder_comments`, …) must
+   carry an explicit RLS policy for EACH verb the app uses — SELECT, INSERT, **UPDATE**,
+   DELETE. A missing UPDATE policy is the silent killer: `.upsert()` is INSERT-or-UPDATE, so a
+   missing UPDATE policy breaks every second-write while the first write deceives you into
+   thinking it works. When you add `.upsert()`/`.update()` against a table, verify its UPDATE
+   policy exists.
+2. **Migrations are the source of truth, not docs.** Any schema/RLS/constraint fix must be a
+   numbered file in `supabase/migrations/` that is idempotent and ends with verification
+   SELECTs (rowsecurity, constraints, `pg_policies`). A `docs/*.sql` file is NOT a shipped fix
+   — it rots unrun. If you find one, promote it (see `1000-saved-hadiths-canonical-rls.sql`).
+3. **Production verification is the receipt.** The MCP/tooling in a given session may not reach
+   the production project (`nqklipakrfuwebkdnhwg`). "Migration written" ≠ "migration applied."
+   A DB fix is Unknown until the verification SELECTs run against nq and the output is captured
+   (route to Cowork / KP if the session can't reach nq). Never claim a DB fix shipped on the
+   migration file alone.
+
+**Pattern category**: SUPABASE / RLS / SCHEMA-CODE-DRIFT. Reference: BUILD_FIX_LOG FIX-138.

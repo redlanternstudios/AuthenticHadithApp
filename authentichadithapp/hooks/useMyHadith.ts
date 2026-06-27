@@ -76,6 +76,11 @@ export function useSaveHadith() {
       queryClient.invalidateQueries({ queryKey: ['bookmark', variables.hadithId, user?.id] })
       queryClient.invalidateQueries({ queryKey: ['bookmarks', user?.id] })
       queryClient.invalidateQueries({ queryKey: ['folders', user?.id] })
+      // FIX-138: also invalidate the folder-hadiths list so a hadith saved while
+      // the folder screen is already open appears immediately. Previously this key
+      // (used by useFolderHadiths) was never invalidated, so a save into the
+      // currently-open folder did not refresh — looked like "it didn't save."
+      queryClient.invalidateQueries({ queryKey: ['folder-hadiths'] })
     }
   })
 }

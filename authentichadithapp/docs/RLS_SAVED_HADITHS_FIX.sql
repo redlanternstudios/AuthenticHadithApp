@@ -1,4 +1,11 @@
 -- ============================================================
+-- ⚠️ SUPERSEDED (2026-06-26, FIX-138): This loose doc is NO LONGER the source of
+-- truth. The canonical, idempotent fix (RLS + the one-folder unique constraint +
+-- verification) now lives as a numbered migration:
+--     supabase/migrations/1000-saved-hadiths-canonical-rls.sql
+-- Run THAT against nqklipakrfuwebkdnhwg. This file is kept for history only.
+-- ============================================================
+--
 -- saved_hadiths RLS Fix
 -- Run this in the Supabase dashboard SQL editor for project nqklipakrfuwebkdnhwg
 -- Safe to run even if RLS is already on (fully idempotent)

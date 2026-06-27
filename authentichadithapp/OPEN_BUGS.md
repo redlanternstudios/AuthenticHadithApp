@@ -20,6 +20,22 @@
 
 ---
 
+## BUG-138 | CLOSED
+- **Spotted:** 2026-06-26. User report: saving a hadith into a folder doesn't stick —
+  the hadith does not appear in the folder.
+- **Root cause:** Production project `nqklipakrfuwebkdnhwg` had `saved_hadiths` UPDATE
+  RLS policy missing. Upsert on conflict resolved to UPDATE of `folder_id`, silently
+  denied → row kept `folder_id = NULL`.
+- **Fix applied (production):** Idempotent SQL run via Supabase Management API
+  2026-06-26. RLS enabled, deduplication run, unique constraint added, 4 clean policies
+  (SELECT/INSERT/UPDATE/DELETE) created.
+- **Receipt (Verified):**
+  - `rowsecurity = true` ✅ — `pg_tables` probe confirmed
+  - Unique constraint `saved_hadiths_user_id_hadith_id_key UNIQUE (user_id, hadith_id)` ✅
+  - 4 policies (DELETE, INSERT, SELECT, UPDATE) ✅ — `pg_policies` confirmed
+  - Management API HTTP 201 on execution ✅
+- **Remaining (KP only):** device round-trip — bookmark a hadith, Save-to-folder, confirm it appears.
+
 ## BUG-125 | CLOSED
 - **Spotted:** 2026-06-25. Build 83 crashed whenever user tapped subscription/manage button.
 - **Root cause:** Three SCREENSHOT-BYPASS lines left active in `lib/revenuecat/RevenueCatProvider.tsx`:

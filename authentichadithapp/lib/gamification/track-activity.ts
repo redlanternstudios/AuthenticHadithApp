@@ -23,44 +23,52 @@ const XP_REWARDS: Record<ActivityType, number> = {
   sunnah_practice: 10,
 }
 
+// FIX-138: trackActivity is a best-effort gamification side-effect. It must
+// NEVER throw — a failed XP/streak write can't be allowed to break the primary
+// user action (saving a hadith, completing a lesson, writing a reflection).
+// The whole body is guarded so every call site is safe without its own try/catch.
 export async function trackActivity(userId: string, activityType: ActivityType): Promise<void> {
-  const column = STAT_COLUMN_MAP[activityType]
-  const xpReward = XP_REWARDS[activityType]
-  if (!column) return
-
-  // Use maybeSingle() — single() throws PGRST116 when zero rows match. The
-  // first time a user does anything, no user_stats row exists yet; that
-  // should be a normal code path, not an exception.
-  const { data: existing } = await supabase
-    .from('user_stats')
-    .select('*')
-    .eq('user_id', userId)
-    .maybeSingle()
-
-  if (existing) {
-    await supabase
-      .from('user_stats')
-      .update({
-        [column]: (existing[column] || 0) + 1,
-        xp: (existing.xp || 0) + xpReward,
-      })
-      .eq('user_id', userId)
-  } else {
-    await supabase
-      .from('user_stats')
-      .insert({
-        user_id: userId,
-        [column]: 1,
-        xp: xpReward,
-      })
-  }
-
-  // Update streak — wrapped so a streak failure doesn't bubble up and tank
-  // the rest of trackActivity (or the calling completion flow).
   try {
-    await updateStreak(userId)
+    const column = STAT_COLUMN_MAP[activityType]
+    const xpReward = XP_REWARDS[activityType]
+    if (!column) return
+
+    // Use maybeSingle() — single() throws PGRST116 when zero rows match. The
+    // first time a user does anything, no user_stats row exists yet; that
+    // should be a normal code path, not an exception.
+    const { data: existing } = await supabase
+      .from('user_stats')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    if (existing) {
+      await supabase
+        .from('user_stats')
+        .update({
+          [column]: (existing[column] || 0) + 1,
+          xp: (existing.xp || 0) + xpReward,
+        })
+        .eq('user_id', userId)
+    } else {
+      await supabase
+        .from('user_stats')
+        .insert({
+          user_id: userId,
+          [column]: 1,
+          xp: xpReward,
+        })
+    }
+
+    // Update streak — wrapped so a streak failure doesn't bubble up and tank
+    // the rest of trackActivity (or the calling completion flow).
+    try {
+      await updateStreak(userId)
+    } catch (err) {
+      __DEV__ && console.warn('[trackActivity] updateStreak failed (non-fatal):', err)
+    }
   } catch (err) {
-    __DEV__ && console.warn('[trackActivity] updateStreak failed (non-fatal):', err)
+    __DEV__ && console.warn('[trackActivity] failed (non-fatal):', err)
   }
 }
 
