@@ -319,24 +319,21 @@ export default function HadithDetailScreen() {
         {tags && tags.length > 0 && (
           <View style={styles.tagsRow}>
             {tags.map(tag => (
-              <Pressable
+              <View
                 key={tag.id}
-                style={({ pressed }) => [
+                style={[
                   styles.tagChip,
                   {
                     backgroundColor: colors.emeraldMid + '14',
                     borderColor: colors.emeraldMid + '30',
                   },
-                  pressed && { opacity: 0.7 },
                 ]}
-                onPress={() => router.push(`/topics/${tag.slug}`)}
-                accessibilityLabel={`View ${tag.name_en} topic`}
-                accessibilityRole="button"
+                accessibilityLabel={tag.name_en}
               >
                 <Text style={[styles.tagChipText, { color: colors.emeraldMid }]}>
                   {tag.name_en}
                 </Text>
-              </Pressable>
+              </View>
             ))}
           </View>
         )}

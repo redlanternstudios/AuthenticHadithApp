@@ -57,13 +57,6 @@ const SECTIONS: { title: string; items: MoreItem[] }[] = [
         route: '/(tabs)/learn',
         accessibilityLabel: 'Open Learn screen',
       },
-      {
-        icon: '🏷️',
-        title: 'Topics',
-        description: 'Browse by theme and subject',
-        route: '/topics',
-        accessibilityLabel: 'Open Topics',
-      },
     ],
   },
   {

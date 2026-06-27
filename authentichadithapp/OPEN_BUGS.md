@@ -193,6 +193,12 @@
 
 ---
 
+## BUG-163 | CLOSED
+- **Spotted:** 2026-06-27 — KP device test on build 101. Topics screen shows tags with inflated usage_counts (e.g. "Prayer: 5,796 hadiths") but tapping into any topic shows near-zero hadiths. Root data: `hadith_tags` join table has only 88 rows total despite tags showing thousands.
+- **Root cause:** `usage_count` column on `tags` table is a stale denormalized cache; the actual `hadith_tags` join table (which the detail screen queries) has not been backfilled. Topics LIST looked populated (stale count) but detail pages returned 0–3 hadiths — broken reviewer experience.
+- **Fix:** (1) `app/(tabs)/more.tsx` — removed "Topics" entry from SECTIONS array so the screen is no longer reachable from the More tab. (2) `app/hadith/[id].tsx` line 320 — changed tag chips from `Pressable` (navigating to `/topics/${tag.slug}`) to `View` (non-tappable labels). Topic detail pages are still routed but no UI surface leads there until `hadith_tags` is backfilled.
+- **Receipt:** TSC_EXIT:0 after both edits. `grep -n "route: '/topics'" app/(tabs)/more.tsx` = no match. `grep -n "router.push.*topics" app/hadith/\[id\].tsx` = no match.
+
 ## How to add a bug (do this the MOMENT one is spotted)
 ```
 ## BUG-162 | CLOSED
