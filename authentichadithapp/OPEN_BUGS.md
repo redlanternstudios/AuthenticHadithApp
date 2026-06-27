@@ -100,6 +100,66 @@
 - **Fix:** Added all three props.
 - **Receipt:** `tsc --noEmit` EXIT:0 · `npm test` 135/135.
 
+## BUG-145 | CLOSED
+- **Spotted:** 2026-06-26. `today.tsx` daily hadith queryFn and `progress.tsx` stats queryFn used `{ data }` destructuring without checking Supabase error object — service errors silently dropped, `isError` never fired even though `QueryErrorBanner` was wired in the render.
+- **Fix:** Destructure `error` from both Supabase calls and `throw` on error. `today.tsx` countQuery + rowQuery; `progress.tsx` user_stats query.
+- **Receipt:** `tsc --noEmit` EXIT:0 · `npm test` 135/135.
+
+## BUG-146 | CLOSED
+- **Spotted:** 2026-06-26 (workflow audit PAY-001). RevenueCat configure failure locked ALL paying subscribers to the paywall — `customerInfo` stayed null, `isPro=false`, NavigationGate redirected every user to /paywall. No cached entitlement fallback.
+- **Fix:** Added `AsyncStorage` cache in `RevenueCatProvider.tsx` — writes `isPro` to `@ah/rc_entitlement_active` on every successful `getCustomerInfo` and on every listener push. Reads cache on configure failure (both the `!ok` path and the thrown-error path). `isPro` computed as `reviewer || liveIsPro || (!isConfigured && !isLoading && cachedIsPro)`.
+- **Receipt:** `tsc --noEmit` EXIT:0 · `npm test` 135/135.
+
+## BUG-147 | CLOSED
+- **Spotted:** 2026-06-26 (workflow audit PAY-002). `profile.tsx` restorePurchases always showed 'Restore Complete' regardless of whether entitlement was active. Return value discarded.
+- **Fix:** Capture returned `CustomerInfo`, check `entitlements.active` — show 'No Active Subscription' if empty.
+- **Receipt:** `tsc --noEmit` EXIT:0 · `npm test` 135/135.
+
+## BUG-148 | CLOSED
+- **Spotted:** 2026-06-26 (workflow audit QIZ-001). Free-tier '1 quiz per day' limit was cosmetic text only — no enforcement. `startQuiz` had no daily count check.
+- **Fix:** Added `useQuery` for `quiz_attempts` count today; disabled Start Quiz button and updated copy when `dailyLimitReached` for free users.
+- **Receipt:** `tsc --noEmit` EXIT:0 · `npm test` 135/135.
+
+## BUG-149 | CLOSED
+- **Spotted:** 2026-06-26 (workflow audit MH-001). Every folder card showed '0 hadiths'. `getUserFolders` selects `saved_hadiths(count)` via PostgREST which returns `[{count:N}]`, but code cast directly to `HadithFolder[]` where `saved_hadiths_count` was always undefined.
+- **Fix:** Map rows in `getUserFolders` to extract `saved_hadiths_count = row.saved_hadiths?.[0]?.count ?? 0` before cast.
+- **Receipt:** `tsc --noEmit` EXIT:0 · `npm test` 135/135.
+
+## BUG-150 | CLOSED
+- **Spotted:** 2026-06-26 (workflow audit MH-002). Share button generated a new token on every double-tap. After `generateShareToken` wrote token to DB, React Query cache was never invalidated — `folder?.share_token` was still null in stale cache.
+- **Fix:** After `generateShareToken`, call `queryClient.invalidateQueries({ queryKey: ['folder', id] })`.
+- **Receipt:** `tsc --noEmit` EXIT:0 · `npm test` 135/135.
+
+## BUG-151 | CLOSED
+- **Spotted:** 2026-06-26 (workflow audit CD-002). `app/book/[id].tsx` — empty-state guard at line 64 (`hadiths.length === 0`) fired before `isError` check. `QueryErrorBanner` at line 91 was dead code on error because early return was hit first.
+- **Fix:** Added explicit `isError` escape before the empty-state guard to return `QueryErrorBanner` on error.
+- **Receipt:** `tsc --noEmit` EXIT:0 · `npm test` 135/135.
+
+## BUG-152 | CLOSED
+- **Spotted:** 2026-06-26 (workflow audit CD-003). `app/topics/[slug].tsx` — both tag and hadiths queries had no `isError` tracking. Tag failure showed dead-end 'Topic not found' with no retry. Hadiths failure showed empty list silently.
+- **Fix:** Added `isError: tagError, refetch: refetchTag` to tag query; `isError: hadithsError, refetch: refetchHadiths` to hadiths query; `QueryErrorBanner` imported; tag error state returns banner; hadiths error renders banner above `HadithList`.
+- **Receipt:** `tsc --noEmit` EXIT:0 · `npm test` 135/135.
+
+## BUG-153 | CLOSED
+- **Spotted:** 2026-06-26 (workflow audit CD-004). `app/chapter/[id].tsx` — `parentBook` query had no `isError` tracking. parentBook failure left `hadiths` query permanently disabled (`enabled: !!parentBook`) and screen showed empty `HadithList` forever.
+- **Fix:** Added `isError: parentBookError, refetch: refetchParentBook` to parentBook query; `isError: hadithsError, refetch: refetchHadiths` to hadiths query; parentBook error renders banner before main view; hadiths error renders banner inside main view.
+- **Receipt:** `tsc --noEmit` EXIT:0 · `npm test` 135/135.
+
+## BUG-154 | CLOSED
+- **Spotted:** 2026-06-26 (workflow audit LRN-003). `app/learn/lesson/[lessonId].tsx` queryFn caught Supabase error and returned `null` instead of throwing — React Query never entered error state. Null check then showed 'Lesson not found' on transient network failure with no retry.
+- **Fix:** Changed `return null` to `throw error` in the error path. Added `isError, refetch` destructuring. Added `isError` guard before the `!lesson` check to show `QueryErrorBanner` with retry.
+- **Receipt:** `tsc --noEmit` EXIT:0 · `npm test` 135/135.
+
+## BUG-155 | CLOSED
+- **Spotted:** 2026-06-26 (workflow audit KBD-003). `app/auth/forgot-password.tsx` missing `KeyboardAvoidingView`. Email Input missing `returnKeyType="go"` and `onSubmitEditing={handleReset}`.
+- **Fix:** Wrapped outer `<View>` in `<KeyboardAvoidingView behavior="padding">`. Added `autoCorrect={false}`, `returnKeyType="go"`, `onSubmitEditing={handleReset}` to email Input.
+- **Receipt:** `tsc --noEmit` EXIT:0 · `npm test` 135/135.
+
+## BUG-156 | CLOSED
+- **Spotted:** 2026-06-26 (workflow audit A11Y). `app/(tabs)/assistant.tsx` send button (icon-only `TouchableOpacity` with `Ionicons`) missing `accessibilityLabel` and `accessibilityRole`.
+- **Fix:** Added `accessibilityLabel="Send message"` and `accessibilityRole="button"`.
+- **Receipt:** `tsc --noEmit` EXIT:0 · `npm test` 135/135.
+
 ---
 
 ## How to add a bug (do this the MOMENT one is spotted)
