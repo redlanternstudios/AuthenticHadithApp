@@ -160,6 +160,16 @@
 - **Fix:** Added `accessibilityLabel="Send message"` and `accessibilityRole="button"`.
 - **Receipt:** `tsc --noEmit` EXIT:0 · `npm test` 135/135.
 
+## BUG-157 | CLOSED
+- **Spotted:** 2026-06-26 (workflow audit A11Y-001). `app/hadith/[id].tsx` bookmark `TouchableOpacity` in `headerRight` missing `accessibilityLabel` and `accessibilityRole`. Icon-only button was invisible to VoiceOver — users relying on screen readers could not bookmark a hadith.
+- **Fix:** Added `accessibilityLabel={isBookmarked ? 'Remove bookmark' : 'Bookmark this hadith'}`, `accessibilityRole="button"`, and `accessibilityState={{ checked: isBookmarked }}` to the bookmark `TouchableOpacity`.
+- **Receipt:** `tsc --noEmit` EXIT:0 · `npm test` 135/135.
+
+## BUG-158 | CLOSED
+- **Spotted:** 2026-06-26 (workflow audit STR-003). `lib/progress/progressService.ts` `loadPartProgress()` read only AsyncStorage with no Supabase fallback. On a new device / fresh install, AsyncStorage is empty → `getStoryPartProgress()` returns null for everything, wiping a user's story reading position.
+- **Fix:** Added `hydratePartProgressFromSupabase()` — fetches `sahaba_reading_progress` and `prophet_reading_progress` for the authed user when AsyncStorage is empty, pre-populates the in-memory cache, and persists to AsyncStorage. Local cache is always authoritative (remote entries only written when no local entry exists for that entity). Called once from `loadPartProgress()` on the no-raw path.
+- **Receipt:** `tsc --noEmit` EXIT:0 · `npm test` 135/135.
+
 ---
 
 ## How to add a bug (do this the MOMENT one is spotted)

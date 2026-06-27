@@ -115,6 +115,8 @@ async function loadPartProgress(): Promise<Record<string, StoryPartProgress>> {
     const raw = await AsyncStorage.getItem(PART_PROGRESS_KEY)
     if (!raw) {
       partProgressCache = {}
+      // No local data (new device / fresh install) — pull from Supabase
+      await hydratePartProgressFromSupabase()
       return partProgressCache
     }
     const parsed = JSON.parse(raw)
@@ -126,6 +128,80 @@ async function loadPartProgress(): Promise<Record<string, StoryPartProgress>> {
   } catch {
     partProgressCache = {}
     return partProgressCache
+  }
+}
+
+/**
+ * On new-device / fresh-install, AsyncStorage has no local part-progress.
+ * Pull sahaba_reading_progress + prophet_reading_progress from Supabase and
+ * pre-populate the cache so the user's reading position is restored.
+ * Local cache is always authoritative — remote entries are only written when
+ * no local entry exists for that entity.
+ */
+async function hydratePartProgressFromSupabase(): Promise<void> {
+  try {
+    const { supabase } = await import('@/lib/supabase/client')
+    const { data: sessionData } = await supabase.auth.getSession()
+    const userId = sessionData?.session?.user?.id
+    if (!userId) return
+
+    const [sahabaResult, prophetResult] = await Promise.all([
+      supabase
+        .from('sahaba_reading_progress')
+        .select(
+          'sahabi_id, current_part, parts_completed, is_completed, is_bookmarked, total_time_spent_seconds, last_read_at'
+        )
+        .eq('user_id', userId),
+      supabase
+        .from('prophet_reading_progress')
+        .select(
+          'prophet_id, current_part, parts_completed, is_completed, is_bookmarked, total_time_spent_seconds, last_read_at'
+        )
+        .eq('user_id', userId),
+    ])
+
+    const store = partProgressCache ?? {}
+    let changed = false
+
+    const mapRow = (
+      row: Record<string, unknown>,
+      entityKind: 'sahaba' | 'prophet',
+      idField: string
+    ): void => {
+      const entityId = row[idField] as string | undefined
+      if (!entityId) return
+      const key = partKey(entityKind, entityId)
+      if (store[key]) return // local wins — never overwrite existing data
+      store[key] = {
+        entityKind,
+        entityId,
+        currentPart: (row.current_part as number) ?? 1,
+        partsCompleted: (row.parts_completed as number[]) ?? [],
+        isCompleted: (row.is_completed as boolean) ?? false,
+        isBookmarked: (row.is_bookmarked as boolean) ?? false,
+        totalTimeSpentSeconds: (row.total_time_spent_seconds as number) ?? 0,
+        lastReadAt: (row.last_read_at as string) ?? new Date().toISOString(),
+      }
+      changed = true
+    }
+
+    for (const row of sahabaResult.data ?? []) {
+      mapRow(row as Record<string, unknown>, 'sahaba', 'sahabi_id')
+    }
+    for (const row of prophetResult.data ?? []) {
+      mapRow(row as Record<string, unknown>, 'prophet', 'prophet_id')
+    }
+
+    if (changed) {
+      partProgressCache = store
+      await persistPartProgress(store)
+    }
+  } catch (err) {
+    __DEV__ &&
+      console.warn(
+        '[progressService] hydratePartProgressFromSupabase failed (non-fatal):',
+        err instanceof Error ? err.message : String(err)
+      )
   }
 }
 

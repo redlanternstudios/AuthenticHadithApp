@@ -230,6 +230,9 @@ export default function HadithDetailScreen() {
               disabled={isTogglingBookmark || !user}
               style={styles.headerBtn}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityLabel={isBookmarked ? 'Remove bookmark' : 'Bookmark this hadith'}
+              accessibilityRole="button"
+              accessibilityState={{ checked: isBookmarked }}
             >
               <Ionicons
                 name={isBookmarked ? 'bookmark' : 'bookmark-outline'}

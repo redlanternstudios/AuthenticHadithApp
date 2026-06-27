@@ -5211,3 +5211,227 @@ and `clearButtonMode="while-editing"` (iOS system clear button). These are table
 an appropriate `returnKeyType`. These are standard form hygiene.
 
 **Pattern category**: FORM_UX / KEYBOARD_CONFIGURATION
+
+---
+
+### [FIX-145] — today.tsx + progress.tsx: Silent Supabase error swallow in queryFn
+**Date**: 2026-06-26
+**Session**: Claude Sonnet 4.6 (Enterprise Audit 2026-06-26)
+**Severity**: High — users saw empty/stale UI on DB errors with no retry path
+
+**Problem**: `app/(tabs)/today.tsx` daily-hadith `queryFn` and `app/progress.tsx` user_stats `queryFn` destructured only `{ data }` from Supabase calls. Errors were silently dropped — React Query never entered `isError` state, so `QueryErrorBanner` was dead code.
+
+**Fix Applied**: Both `queryFn` bodies now destructure `error` and throw it. `today.tsx` checks both the count query and the row query errors. `progress.tsx` checks the user_stats error.
+
+**Files Changed**: `app/(tabs)/today.tsx`, `app/progress.tsx`
+
+**Verification**: `npx tsc --noEmit` EXIT:0 · `npm test --runInBand` 135/135
+
+**Lesson**: Every Supabase `{ data, error }` destructure MUST also check `error` and throw it in a `queryFn`, or React Query never enters error state.
+
+**Pattern category**: SUPABASE_ERROR_HANDLING / REACT_QUERY
+
+---
+
+### [FIX-146] — RevenueCatProvider.tsx: PAY-001 — Configure failure locks paying users to paywall
+**Date**: 2026-06-26
+**Session**: Claude Sonnet 4.6 (Enterprise Audit 2026-06-26)
+**Severity**: High — paying users redirected to /paywall on transient RC SDK failure
+
+**Fix Applied**: Added AsyncStorage cache (`@ah/rc_entitlement_active`). Writes on every successful `getCustomerInfo` and push listener. Reads on configure failure paths. `isPro` computed as `reviewer || liveIsPro || (!isConfigured && !isLoading && cachedIsPro)`.
+
+**Files Changed**: `lib/revenuecat/RevenueCatProvider.tsx`
+
+**Verification**: `npx tsc --noEmit` EXIT:0 · `npm test --runInBand` 135/135
+
+**Pattern category**: REVENUECAT / PAYMENT_GATE / RESILIENCE
+
+---
+
+### [FIX-147] — profile.tsx: PAY-002 — restorePurchases always showed 'Restore Complete'
+**Date**: 2026-06-26
+**Session**: Claude Sonnet 4.6 (Enterprise Audit 2026-06-26)
+**Severity**: Medium — misleading UX; free users shown success on restore with no subscription
+
+**Fix Applied**: Capture `CustomerInfo` return value. Check `info?.entitlements?.active` — show 'No Active Subscription' if empty.
+
+**Files Changed**: `app/(tabs)/profile.tsx`
+
+**Verification**: `npx tsc --noEmit` EXIT:0 · `npm test --runInBand` 135/135
+
+**Pattern category**: REVENUECAT / PAYMENT_UX
+
+---
+
+### [FIX-148] — quiz.tsx: QIZ-001 — Free-tier daily quiz limit was cosmetic only
+**Date**: 2026-06-26
+**Session**: Claude Sonnet 4.6 (Enterprise Audit 2026-06-26)
+**Severity**: High — free users could take unlimited quizzes, bypassing paywall gating
+
+**Fix Applied**: Added `useQuery` counting `quiz_attempts` for today. `dailyLimitReached = !isPro && todayQuizCount >= 1`. Start Quiz disabled when limit reached.
+
+**Files Changed**: `app/quiz.tsx`
+
+**Verification**: `npx tsc --noEmit` EXIT:0 · `npm test --runInBand` 135/135
+
+**Lesson**: UI-copy limits are not enforcement. Any paywall gate must be backed by a DB query.
+
+**Pattern category**: PAYWALL_ENFORCEMENT / FEATURE_GATING
+
+---
+
+### [FIX-149] — lib/api/my-hadith.ts: MH-001 — Folder hadith counts always 0
+**Date**: 2026-06-26
+**Session**: Claude Sonnet 4.6 (Enterprise Audit 2026-06-26)
+**Severity**: High — every folder card showed '0 hadiths'
+
+**Fix Applied**: Map rows in `getUserFolders` to extract `saved_hadiths_count = row.saved_hadiths?.[0]?.count ?? 0` before cast.
+
+**Files Changed**: `lib/api/my-hadith.ts`
+
+**Verification**: `npx tsc --noEmit` EXIT:0 · `npm test --runInBand` 135/135
+
+**Lesson**: PostgREST aggregate `relation(count)` returns `[{count:N}]`, not a flat field. Always map explicitly.
+
+**Pattern category**: POSTGREST / DATA_MAPPING
+
+---
+
+### [FIX-150] — app/my-hadith/folder/[id].tsx: MH-002 — Share token orphans on double-tap
+**Date**: 2026-06-26
+**Session**: Claude Sonnet 4.6 (Enterprise Audit 2026-06-26)
+**Severity**: Medium — double-tapping Share generated a new DB token every time
+
+**Fix Applied**: After `generateShareToken`, call `queryClient.invalidateQueries({ queryKey: ['folder', id] })`.
+
+**Files Changed**: `app/my-hadith/folder/[id].tsx`
+
+**Verification**: `npx tsc --noEmit` EXIT:0 · `npm test --runInBand` 135/135
+
+**Pattern category**: REACT_QUERY / CACHE_INVALIDATION
+
+---
+
+### [FIX-151] — app/book/[id].tsx: CD-002 — isError dead code behind empty-state guard
+**Date**: 2026-06-26
+**Session**: Claude Sonnet 4.6 (Enterprise Audit 2026-06-26)
+**Severity**: High — empty screen with no retry on DB error
+
+**Fix Applied**: Added explicit `isError` escape before the `hadiths.length === 0` empty-state guard.
+
+**Files Changed**: `app/book/[id].tsx`
+
+**Verification**: `npx tsc --noEmit` EXIT:0 · `npm test --runInBand` 135/135
+
+**Lesson**: Always place `isError` escape BEFORE empty-state guard when data default is `[]`.
+
+**Pattern category**: REACT_QUERY / ERROR_HANDLING / GUARD_ORDER
+
+---
+
+### [FIX-152] — app/topics/[slug].tsx: CD-003 — No error tracking on tag/hadiths queries
+**Date**: 2026-06-26
+**Session**: Claude Sonnet 4.6 (Enterprise Audit 2026-06-26)
+**Severity**: Medium — tag failure showed dead-end; hadiths failure showed empty list silently
+
+**Fix Applied**: Added `isError` + `refetch` to both queries. `QueryErrorBanner` rendered on both error paths.
+
+**Files Changed**: `app/topics/[slug].tsx`
+
+**Verification**: `npx tsc --noEmit` EXIT:0 · `npm test --runInBand` 135/135
+
+**Pattern category**: REACT_QUERY / ERROR_HANDLING
+
+---
+
+### [FIX-153] — app/chapter/[id].tsx: CD-004 — parentBook error leaves screen permanently disabled
+**Date**: 2026-06-26
+**Session**: Claude Sonnet 4.6 (Enterprise Audit 2026-06-26)
+**Severity**: High — `enabled: !!parentBook` permanently disabled hadiths query on parentBook failure
+
+**Fix Applied**: Added `isError` + `refetch` to both queries. Error banners rendered on both paths.
+
+**Files Changed**: `app/chapter/[id].tsx`
+
+**Verification**: `npx tsc --noEmit` EXIT:0 · `npm test --runInBand` 135/135
+
+**Pattern category**: REACT_QUERY / ERROR_HANDLING / DEPENDENT_QUERIES
+
+---
+
+### [FIX-154] — app/learn/lesson/[lessonId].tsx: LRN-003 — queryFn returns null on error
+**Date**: 2026-06-26
+**Session**: Claude Sonnet 4.6 (Enterprise Audit 2026-06-26)
+**Severity**: High — 'Lesson not found' shown on transient network failure with no retry
+
+**Fix Applied**: Changed `return null` to `throw error`. Added `isError` guard before `!lesson` check.
+
+**Files Changed**: `app/learn/lesson/[lessonId].tsx`
+
+**Verification**: `npx tsc --noEmit` EXIT:0 · `npm test --runInBand` 135/135
+
+**Pattern category**: REACT_QUERY / ERROR_HANDLING
+
+---
+
+### [FIX-155] — app/auth/forgot-password.tsx: KBD-003 — Missing KeyboardAvoidingView + returnKeyType
+**Date**: 2026-06-26
+**Session**: Claude Sonnet 4.6 (Enterprise Audit 2026-06-26)
+**Severity**: Medium — keyboard covered Reset button on small iPhones
+
+**Fix Applied**: `<KeyboardAvoidingView behavior="padding">` wrapper. `autoCorrect={false}`, `returnKeyType="go"`, `onSubmitEditing={handleReset}` on email Input.
+
+**Files Changed**: `app/auth/forgot-password.tsx`
+
+**Verification**: `npx tsc --noEmit` EXIT:0 · `npm test --runInBand` 135/135
+
+**Pattern category**: FORM_UX / KEYBOARD_CONFIGURATION
+
+---
+
+### [FIX-156] — app/(tabs)/assistant.tsx: A11Y — Send button missing accessibility attributes
+**Date**: 2026-06-26
+**Session**: Claude Sonnet 4.6 (Enterprise Audit 2026-06-26)
+**Severity**: Low — icon-only send button invisible to VoiceOver
+
+**Fix Applied**: `accessibilityLabel="Send message"` and `accessibilityRole="button"` on send `TouchableOpacity`.
+
+**Files Changed**: `app/(tabs)/assistant.tsx`
+
+**Verification**: `npx tsc --noEmit` EXIT:0 · `npm test --runInBand` 135/135
+
+**Pattern category**: ACCESSIBILITY
+
+---
+
+### [FIX-157] — app/hadith/[id].tsx: A11Y-001 — Bookmark button missing accessibility attributes
+**Date**: 2026-06-26
+**Session**: Claude Sonnet 4.6 (Enterprise Audit 2026-06-26)
+**Severity**: High — icon-only bookmark button invisible to VoiceOver; users relying on screen readers could not bookmark a hadith
+
+**Fix Applied**: Added `accessibilityLabel={isBookmarked ? 'Remove bookmark' : 'Bookmark this hadith'}`, `accessibilityRole="button"`, and `accessibilityState={{ checked: isBookmarked }}` to bookmark `TouchableOpacity` in `headerRight`.
+
+**Files Changed**: `app/hadith/[id].tsx` (~line 228)
+
+**Verification**: `npx tsc --noEmit` EXIT:0 · `npm test --runInBand` 135/135
+
+**Pattern category**: ACCESSIBILITY
+
+---
+
+### [FIX-158] — lib/progress/progressService.ts: STR-003 — No Supabase hydration on new device
+**Date**: 2026-06-26
+**Session**: Claude Sonnet 4.6 (Enterprise Audit 2026-06-26)
+**Severity**: High — new device / fresh install had empty AsyncStorage; user's reading position lost on device switch
+
+**Problem**: `loadPartProgress()` returned empty `{}` when AsyncStorage had no data. No code ever queried `sahaba_reading_progress` or `prophet_reading_progress` on the read path — only on the write path. New device users started all stories from part 1.
+
+**Fix Applied**: Added `hydratePartProgressFromSupabase()` — fetches both reading-progress tables for the authed user in parallel. Pre-populates in-memory cache. Local cache always authoritative (remote entries written only when no local entry exists). Persists to AsyncStorage. Called from `loadPartProgress()` on the no-raw path.
+
+**Files Changed**: `lib/progress/progressService.ts`
+
+**Verification**: `npx tsc --noEmit` EXIT:0 · `npm test --runInBand` 135/135
+
+**Lesson**: Any local-first store that syncs writes to Supabase MUST have a read-hydration path on first load for new devices. Write sync alone is insufficient.
+
+**Pattern category**: LOCAL_FIRST / SUPABASE_HYDRATION / NEW_DEVICE_RESTORE
