@@ -5474,3 +5474,36 @@ an appropriate `returnKeyType`. These are standard form hygiene.
 **Lesson**: Never INSERT into a table from the client side if a Supabase auth hook already handles row creation with a privileged role. The client INSERT is both redundant and dangerous when the table has broken INSERT triggers. The auth trigger (`supabase_auth_admin`) is the right place for guaranteed profile creation; the client should only UPDATE from that point forward.
 
 **Pattern category**: SUPABASE_TRIGGER / AUTH_FLOW / OPTIMISTIC_UPDATE_ROLLBACK
+
+---
+
+## FIX-161 — user_preferences upsert missing onConflict → Setup Error on Step 3 Complete
+
+**Date**: 2026-06-27
+**BUG**: BUG-161
+**Branch**: fix/repair-batch-2026-06-25
+
+**Root cause**: `app/onboarding.tsx` upserted into `user_preferences` without specifying `{ onConflict: 'user_id' }`. PostgREST's default conflict target is the primary key (`id` UUID). Since the payload never includes `id`, there is never a PK conflict — so it always tries a plain INSERT. Any user who already has a row hits the unique constraint `user_preferences_user_id_key` → HTTP 409 → `prefError` is set → Alert shows "Setup Error: Could not save your preferences."
+
+Affected users: anyone who previously completed onboarding (all existing test accounts, the reviewer account `a1433858`). Truly fresh users with no existing row succeeded (INSERT HTTP 201). This masked the bug in early testing.
+
+**Fix**: Added `{ onConflict: 'user_id' }` to the `.upsert()` call at `app/onboarding.tsx:111`.
+
+```js
+.upsert({
+  user_id: user.id,
+  learning_level: data.learningLevel.toLowerCase(),
+  collections_of_interest: data.collections,
+  onboarded: true,
+  safety_agreed_at: new Date().toISOString(),
+}, { onConflict: 'user_id' })   // ← FIX-161: added this
+```
+
+**Verification**: 
+- anon+user-token probe with `?on_conflict=user_id` on reviewer (existing row): HTTP 200 ✅
+- anon+user-token probe for fresh user (no existing row): HTTP 201 ✅
+- `tsc --noEmit` EXIT:0 ✅
+
+**Lesson**: Every Supabase `.upsert()` call that does not include the primary key in the payload MUST specify `{ onConflict: '<unique_column>' }`. Without it, the conflict resolution falls back to the PK and an INSERT is always attempted, silently breaking any second write.
+
+**Pattern category**: SUPABASE / UPSERT / MISSING-CONFLICT-TARGET

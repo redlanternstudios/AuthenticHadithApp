@@ -104,6 +104,10 @@ export default function OnboardingScreen() {
         return
       }
 
+      // FIX-161: must specify onConflict:'user_id' so PostgREST uses
+      // INSERT...ON CONFLICT(user_id) DO UPDATE instead of plain INSERT.
+      // Without it, any user who already has a row hits the unique constraint
+      // (user_preferences_user_id_key) and gets HTTP 409 → "Setup Error".
       const { error: prefError } = await supabase
         .from('user_preferences')
         .upsert({
@@ -112,7 +116,7 @@ export default function OnboardingScreen() {
           collections_of_interest: data.collections,
           onboarded: true,
           safety_agreed_at: new Date().toISOString(),
-        })
+        }, { onConflict: 'user_id' })
 
       if (prefError) {
         Alert.alert('Setup Error', 'Could not save your preferences. Please try again.')

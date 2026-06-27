@@ -185,6 +185,14 @@
 
 ---
 
+## BUG-161 | CLOSED
+- Spotted: 2026-06-27 — "Setup Error / Could not save your preferences" on onboarding Step 3 Complete (build 98 device QA)
+- Root cause: `app/onboarding.tsx` `user_preferences` upsert called `.upsert({...})` without `{ onConflict: 'user_id' }`. PostgREST defaults to `INSERT ON CONFLICT (primary_key)`. Since the payload has no `id` field (PK is a separate UUID), it always tries a plain INSERT. Any user who already has a row hits `user_preferences_user_id_key` unique constraint → HTTP 409 → Setup Error alert.
+- Fix: Added `{ onConflict: 'user_id' }` to the `.upsert()` call in `app/onboarding.tsx` line 111. Probe confirmed: HTTP 200 on existing row with `on_conflict=user_id`, HTTP 201 on fresh row. tsc EXIT:0.
+- Receipt: anon+user-token probe HTTP 200 (existing row upsert) + HTTP 201 (fresh row insert) ✅ tsc EXIT:0
+
+---
+
 ## How to add a bug (do this the MOMENT one is spotted)
 ```
 ## BUG-<id> | OPEN
