@@ -86,16 +86,18 @@ export default function OnboardingScreen() {
 
     setLoading(true)
     try {
-      // Live `profiles` schema: `name` (NOT full_name), `user_id` NOT NULL and is the
-      // key the app reads by. FIX-064 — full_name/missing user_id broke onboarding save.
+      // FIX-159: profiles has a broken BEFORE INSERT trigger that references auth.users
+      // without SECURITY DEFINER — fires on any client INSERT (even service_role) with
+      // "permission denied for table users". The auth trigger (supabase_auth_admin) creates
+      // the row on signup, so by the time the user reaches onboarding the row always exists.
+      // UPDATE never fires the INSERT trigger, so we use update() exclusively here.
       const { error: profileError } = await supabase
         .from('profiles')
-        .upsert({
-          id: user.id,
-          user_id: user.id,
+        .update({
           name: data.name,
           school_of_thought: data.schoolOfThought || null,
-        }, { onConflict: 'user_id' })
+        })
+        .eq('user_id', user.id)
 
       if (profileError) {
         Alert.alert('Setup Error', 'Could not save your profile. Please try again.')

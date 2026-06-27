@@ -170,6 +170,12 @@
 - **Fix:** Added `hydratePartProgressFromSupabase()` — fetches `sahaba_reading_progress` and `prophet_reading_progress` for the authed user when AsyncStorage is empty, pre-populates the in-memory cache, and persists to AsyncStorage. Local cache is always authoritative (remote entries only written when no local entry exists for that entity). Called once from `loadPartProgress()` on the no-raw path.
 - **Receipt:** `tsc --noEmit` EXIT:0 · `npm test` 135/135.
 
+## BUG-159 | CLOSED
+- **Spotted:** 2026-06-26. New-user onboarding completion shows "Setup Error — Could not save your profile." on every fresh account.
+- **Root cause:** `profiles` table has a broken BEFORE INSERT trigger that references `auth.users` without `SECURITY DEFINER`. The trigger fires on any client INSERT (including service_role) with `permission denied for table users` (HTTP 403). The Supabase auth trigger (`supabase_auth_admin`) auto-creates the profile row on signup; onboarding only needs UPDATE, never INSERT.
+- **Fix:** `app/onboarding.tsx` — replaced `supabase.from('profiles').upsert({id, user_id, name, school_of_thought}, {onConflict:'user_id'})` with `supabase.from('profiles').update({name, school_of_thought}).eq('user_id', user.id)`. UPDATE never fires the broken INSERT trigger. Profile row is guaranteed to exist by the time the user reaches onboarding (created by the auth trigger on signup).
+- **Receipt:** `tsc --noEmit` EXIT:0 · `npm test` 135/135 · live probe confirmed: `PATCH /rest/v1/profiles?user_id=eq.{uid}` returns HTTP 204 ✅ · `POST /rest/v1/profiles` returns HTTP 403 (broken trigger, now bypassed) ✅
+
 ---
 
 ## How to add a bug (do this the MOMENT one is spotted)

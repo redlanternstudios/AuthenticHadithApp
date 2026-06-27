@@ -5435,3 +5435,22 @@ an appropriate `returnKeyType`. These are standard form hygiene.
 **Lesson**: Any local-first store that syncs writes to Supabase MUST have a read-hydration path on first load for new devices. Write sync alone is insufficient.
 
 **Pattern category**: LOCAL_FIRST / SUPABASE_HYDRATION / NEW_DEVICE_RESTORE
+
+---
+
+### [FIX-159] — app/onboarding.tsx: BUG-159 — "Setup Error" on new account creation (profiles INSERT trigger broken)
+**Date**: 2026-06-26
+**Session**: Claude Sonnet 4.6 (Post-Build Hotfix 2026-06-26)
+**Severity**: Critical — every brand new user saw "Setup Error: Could not save your profile" and could not complete onboarding
+
+**Problem**: `profiles` table has a BEFORE INSERT trigger that references `auth.users` without `SECURITY DEFINER`. Any INSERT into `profiles` — even with the service_role key — fails with HTTP 403 `"permission denied for table users"`. The Supabase auth trigger (`supabase_auth_admin`) auto-creates the profile row on signup (it runs as a superuser-equivalent role, so it works). The onboarding `handleComplete()` was calling `upsert({id, user_id, name, school_of_thought}, {onConflict:'user_id'})` which translates to `INSERT … ON CONFLICT DO UPDATE` — the INSERT path always fires the broken trigger even when a row already exists (because PostgREST uses INSERT ON CONFLICT, not a conditional UPDATE).
+
+**Fix Applied**: Changed `supabase.from('profiles').upsert(...)` → `supabase.from('profiles').update({name, school_of_thought}).eq('user_id', user.id)`. Pure UPDATE never fires the INSERT trigger. The profile row is guaranteed to exist by the time the user reaches onboarding because the Supabase auth trigger creates it on `auth.users` INSERT.
+
+**Files Changed**: `app/onboarding.tsx`
+
+**Verification**: `npx tsc --noEmit` EXIT:0 · `npm test` 135/135 · live REST probe: `PATCH /rest/v1/profiles?user_id=eq.{uid}` → HTTP 204 ✅ · `POST /rest/v1/profiles` → HTTP 403 (trigger still broken, now fully bypassed) ✅
+
+**Lesson**: Never upsert into a Supabase table that has broken INSERT triggers unless you control the trigger. Use UPDATE when the row is guaranteed to exist (e.g., created by an auth hook on signup). If an INSERT path is truly needed, fix the trigger to use `SECURITY DEFINER` and reference `auth.users` explicitly.
+
+**Pattern category**: SUPABASE_TRIGGER / ONBOARDING / RLS_AND_PERMISSIONS
