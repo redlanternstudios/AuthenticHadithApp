@@ -1219,3 +1219,33 @@ by RLS with no error the user could see. The fix had existed for weeks as a loos
    migration file alone.
 
 **Pattern category**: SUPABASE / RLS / SCHEMA-CODE-DRIFT. Reference: BUILD_FIX_LOG FIX-138.
+
+---
+
+## Rule 045: Never INSERT into `profiles` from Client Code — the Auth Trigger Owns That Row
+
+Derived from BUG-159 (FIX-159, 2026-06-25) AND BUG-160 (FIX-160, 2026-06-26): two
+separate callsites independently tried to INSERT into `profiles` from client-side JS,
+both hit the same broken BEFORE INSERT trigger (`permission denied for table users`),
+and both caused user-visible failures (onboarding "Setup Error" + bookmark disappearing).
+
+**Why it keeps happening**: Developers see `profiles` and assume a new user needs a
+client-side INSERT to create their row. The Supabase `supabase_auth_admin` trigger already
+handles this at the Postgres level (runs as a privileged role, bypasses the broken trigger)
+the instant `auth.users` is written. By the time any client code runs post-signup, the
+`profiles` row ALREADY EXISTS. A client INSERT is therefore always both redundant AND broken.
+
+**The rule (non-negotiable):**
+1. **`profiles` INSERT from client code is permanently banned.** Any callsite that calls
+   `supabase.from('profiles').insert(...)` or `.upsert(...)` from the client (app code,
+   AuthProvider, onboarding, hooks) must be replaced with `.update(...).eq('user_id', uid)`.
+2. **The auth trigger is the source of truth for row creation.** `supabase_auth_admin`
+   creates the `profiles` row on `auth.users` INSERT. Never replicate this in client code.
+3. **`lib/auth/AuthProvider.tsx` is a hard-gate file** (`.claude/rules/forbidden-actions.md`).
+   Any future change to `signUp()` that adds an INSERT into any user-owned table requires
+   explicit KP approval and a diff review. The BUG-160 fix removed the only such INSERT.
+4. **Scan before adding a new user-setup flow.** Any new signup/onboarding path must grep
+   for `.from('profiles').insert\|.from('profiles').upsert` before shipping. If found,
+   replace with `.update()`. Receipt: `git grep -n "from('profiles').insert\|from('profiles').upsert"` must return 0 results.
+
+**Pattern category**: SUPABASE / AUTH-TRIGGER / CLIENT-INSERT-BYPASS. References: BUG-159, BUG-160, BUILD_FIX_LOG FIX-159, FIX-160.
