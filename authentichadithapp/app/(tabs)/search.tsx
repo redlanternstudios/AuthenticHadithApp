@@ -113,6 +113,8 @@ export default function SearchScreen() {
           onChangeText={setSearchQuery}
           autoCapitalize="none"
           autoCorrect={false}
+          returnKeyType="search"
+          clearButtonMode="while-editing"
         />
 
         <View style={styles.chipRow}>

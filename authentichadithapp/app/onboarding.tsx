@@ -223,6 +223,9 @@ export default function OnboardingScreen() {
             onChangeText={(text) => updateData({ name: text })}
             maxLength={50}
             textAlign={isRTL ? 'right' : 'left'}
+            autoCapitalize="words"
+            autoCorrect={false}
+            returnKeyType="done"
           />
 
           {/* School of Thought */}

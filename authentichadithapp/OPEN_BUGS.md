@@ -70,6 +70,36 @@
 - **Receipt:** lint EXIT:0 (0 warnings), tsc EXIT:0, 135/135 tests, expo-doctor 18/18,
   static-COLORS grep CLEAN across all 8 component targets.
 
+## BUG-139 | CLOSED
+- **Spotted:** 2026-06-26 — Enterprise Keyboard Audit. `Input.tsx` exported as plain function component; `ref` prop silently no-op, blocking all focus-chain wiring.
+- **Fix:** Wrapped `Input` with `React.forwardRef<TextInput, InputProps>`. Added `ref` passthrough to underlying `<TextInput>`. Added `displayName = 'Input'`.
+- **Receipt:** `tsc --noEmit` EXIT:0 · `npm test` 135/135.
+
+## BUG-140 | CLOSED
+- **Spotted:** 2026-06-26 — Enterprise Keyboard Audit. `app/auth/login.tsx` bare `<View>` container; keyboard covers Sign In button on small iPhones (SE/mini). No `returnKeyType`, no focus chain, no `autoCorrect={false}`.
+- **Fix:** Outer `<View>` → `<KeyboardAvoidingView behavior="padding">`; email `returnKeyType="next"` + `onSubmitEditing`→focus password; password `ref={passwordRef}` + `returnKeyType="done"` + `onSubmitEditing={handleLogin}`.
+- **Receipt:** `tsc --noEmit` EXIT:0 · `npm test` 135/135.
+
+## BUG-141 | CLOSED
+- **Spotted:** 2026-06-26 — Enterprise Keyboard Audit. `app/auth/signup.tsx` same bare `<View>` pattern; 3-field form (name/email/password) with no focus chain, no `autoCapitalize="words"` on name field.
+- **Fix:** `<KeyboardAvoidingView>`; `emailRef` + `passwordRef`; full name→email→password chain wired with `returnKeyType` + `onSubmitEditing`.
+- **Receipt:** `tsc --noEmit` EXIT:0 · `npm test` 135/135.
+
+## BUG-142 | CLOSED
+- **Spotted:** 2026-06-26 — Enterprise Audit. `app/stories/index.tsx` both `useQuery` calls silently swallowed Supabase errors; `isError` never set; users saw empty screen on network failure with no retry.
+- **Fix:** Added `if (error) throw error` to both `queryFn` bodies; imported `QueryErrorBanner`; rendered it when `isError`.
+- **Receipt:** `tsc --noEmit` EXIT:0 · `npm test` 135/135.
+
+## BUG-143 | CLOSED
+- **Spotted:** 2026-06-26 — Enterprise Audit. `app/(tabs)/search.tsx` search Input missing `returnKeyType="search"` and `clearButtonMode="while-editing"`.
+- **Fix:** Added both props to the search `<Input>`.
+- **Receipt:** `tsc --noEmit` EXIT:0 · `npm test` 135/135.
+
+## BUG-144 | CLOSED
+- **Spotted:** 2026-06-26 — Enterprise Audit. `app/onboarding.tsx` name `TextInput` missing `autoCapitalize="words"`, `autoCorrect={false}`, `returnKeyType="done"`.
+- **Fix:** Added all three props.
+- **Receipt:** `tsc --noEmit` EXIT:0 · `npm test` 135/135.
+
 ---
 
 ## How to add a bug (do this the MOMENT one is spotted)

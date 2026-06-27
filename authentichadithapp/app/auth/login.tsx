@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, Text, Alert } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { StyleSheet, View, Text, Alert, KeyboardAvoidingView, Platform, TextInput } from 'react-native';
 import { useRouter, Link, Stack } from 'expo-router';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import { Input } from '@/components/ui/Input';
@@ -19,6 +19,7 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const passwordRef = useRef<TextInput>(null);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -97,7 +98,10 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       {/* FIX-086: Hardcode header title to prevent raw route string display */}
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
@@ -113,13 +117,20 @@ export default function LoginScreen() {
           onChangeText={setEmail}
           keyboardType="email-address"
           autoCapitalize="none"
+          autoCorrect={false}
+          returnKeyType="next"
+          onSubmitEditing={() => passwordRef.current?.focus()}
         />
         <Input
+          ref={passwordRef}
           label="Password"
           placeholder="••••••••"
           value={password}
           onChangeText={setPassword}
           secureTextEntry
+          autoCorrect={false}
+          returnKeyType="done"
+          onSubmitEditing={handleLogin}
         />
 
         <Button
@@ -155,7 +166,7 @@ export default function LoginScreen() {
           <Text style={[styles.footerLink, { color: colors.emeraldMid }]}>Sign up</Text>
         </Link>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

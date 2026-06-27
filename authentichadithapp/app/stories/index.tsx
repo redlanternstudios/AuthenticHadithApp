@@ -27,6 +27,7 @@ import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colo
 import { useTheme } from '@/lib/theme/ThemeProvider'
 import { getStoryPartProgress, StoryPartProgress } from '@/lib/progress/progressService'
 import { FONT_FAMILY } from '@/constants/theme'
+import { QueryErrorBanner } from '@/components/common/QueryErrorBanner'
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -72,25 +73,27 @@ export default function StoriesScreen() {
   const [progressLoading, setProgressLoading] = useState(true)
 
   // ── data fetching (display_order sort — B#7) ─────────────────────
-  const { data: prophets, isLoading: prophetsLoading } = useQuery({
+  const { data: prophets, isLoading: prophetsLoading, isError: prophetsError, refetch: refetchProphets } = useQuery({
     queryKey: ['prophets-list'],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('prophets')
         .select('*')
         .eq('is_published', true)
         .order('display_order', { ascending: true })
+      if (error) throw error
       return (data || []) as ProphetRow[]
     },
   })
 
-  const { data: companions, isLoading: companionsLoading } = useQuery({
+  const { data: companions, isLoading: companionsLoading, isError: companionsError, refetch: refetchCompanions } = useQuery({
     queryKey: ['sahaba-list'],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('sahaba')
         .select('*')
         .order('display_order', { ascending: true })
+      if (error) throw error
       return (data || []) as SahabiRow[]
     },
   })
@@ -120,6 +123,7 @@ export default function StoriesScreen() {
   }, [companions])
 
   const isLoading = prophetsLoading || companionsLoading || progressLoading
+  const isError = prophetsError || companionsError
 
   if (isLoading) {
     return (
@@ -148,6 +152,8 @@ export default function StoriesScreen() {
       contentContainerStyle={styles.content}
     >
       <Stack.Screen options={{ title: 'Stories', headerShown: true }} />
+
+      {isError && <QueryErrorBanner onRetry={refetchCompanions} />}
 
       {/* Page title */}
       <Text style={[styles.title, { color: colors.bronzeText }]}>Stories</Text>

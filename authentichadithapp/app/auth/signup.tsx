@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, Text, Alert } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { StyleSheet, View, Text, Alert, KeyboardAvoidingView, Platform, TextInput } from 'react-native';
 import { useRouter, Link, Stack } from 'expo-router';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import { Input } from '@/components/ui/Input';
@@ -17,6 +17,8 @@ export default function SignupScreen() {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
 
   const handleSignup = async () => {
     if (!email || !password) {
@@ -42,7 +44,10 @@ export default function SignupScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       {/* FIX-086: Hardcode header title to prevent raw route string display */}
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
@@ -56,21 +61,33 @@ export default function SignupScreen() {
           placeholder="Your name"
           value={fullName}
           onChangeText={setFullName}
+          autoCapitalize="words"
+          autoCorrect={false}
+          returnKeyType="next"
+          onSubmitEditing={() => emailRef.current?.focus()}
         />
         <Input
+          ref={emailRef}
           label="Email"
           placeholder="your@email.com"
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
           autoCapitalize="none"
+          autoCorrect={false}
+          returnKeyType="next"
+          onSubmitEditing={() => passwordRef.current?.focus()}
         />
         <Input
+          ref={passwordRef}
           label="Password"
           placeholder="••••••••"
           value={password}
           onChangeText={setPassword}
           secureTextEntry
+          autoCorrect={false}
+          returnKeyType="done"
+          onSubmitEditing={handleSignup}
         />
 
         <Button
@@ -86,7 +103,7 @@ export default function SignupScreen() {
           <Text style={[styles.footerLink, { color: colors.emeraldMid }]}>Sign in</Text>
         </Link>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

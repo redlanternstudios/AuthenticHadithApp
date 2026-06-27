@@ -5050,3 +5050,164 @@ the Supabase Management API (`/v1/projects/{ref}/database/query`) with the dashb
 auth token, accessible from an authenticated browser session via `fetch()`.
 
 **Pattern category**: SUPABASE_RLS_INCOMPLETE / PRODUCTION_MIGRATION_DELIVERY
+
+---
+
+### [FIX-139] — Input.tsx: Add React.forwardRef so ref prop works on Input component
+**Date**: 2026-06-26
+**Session**: Claude Sonnet 4.6 (Enterprise Audit 2026-06-26)
+**Severity**: Low — no crash, but blocked focus-chain wiring on all auth screens
+
+**Problem**: `components/ui/Input.tsx` exported `Input` as a plain function component.
+Passing `ref` to `<Input>` was silently ignored (React doesn't forward refs on plain
+components), so `passwordRef.current?.focus()` would always be `null`. This blocked
+implementing email→password keyboard focus chains on login and signup.
+
+**Fix Applied**: Wrapped `Input` with `React.forwardRef<TextInput, InputProps>` and
+passed `ref` down to the underlying `<TextInput>`. Added `Input.displayName = 'Input'`
+for React DevTools clarity. All existing `{...props}` passthrough unchanged.
+
+**Files Changed**: `components/ui/Input.tsx` (lines 11–43)
+
+**Verification**: `npx tsc --noEmit` EXIT:0 · `npm test --runInBand` 135/135
+
+**Lesson**: Any shared Input/TextInput wrapper used in keyboard focus chains MUST use
+`React.forwardRef`. Without it, ref-based `.focus()` calls are no-ops and the UX
+polish of keyboard navigation can't be delivered.
+
+**Pattern category**: REACT_NATIVE_REF_FORWARDING
+
+---
+
+### [FIX-140] — login.tsx: KeyboardAvoidingView + email→password focus chain
+**Date**: 2026-06-26
+**Session**: Claude Sonnet 4.6 (Enterprise Audit 2026-06-26)
+**Severity**: Medium — on small iPhones (SE, mini), keyboard covered the Sign In button;
+no next/done keyboard actions meant users couldn't submit without tapping
+
+**Problem**: `app/auth/login.tsx` wrapped content in a bare `<View>`, meaning the iOS
+software keyboard could cover the password field and Sign In button on 5.4" and smaller
+screens. Neither Input had `returnKeyType` set, so the keyboard showed a generic Return
+key. `autoCorrect` was missing on both fields (autocorrect pollutes email/password entries).
+
+**Fix Applied**:
+- Changed outer `<View>` → `<KeyboardAvoidingView behavior="padding">` (iOS) / `"height"` (Android)
+- Added `useRef<TextInput>(null)` for `passwordRef`
+- Email `<Input>`: `autoCorrect={false}`, `returnKeyType="next"`, `onSubmitEditing` → focus password
+- Password `<Input>`: `ref={passwordRef}`, `autoCorrect={false}`, `returnKeyType="done"`, `onSubmitEditing={handleLogin}`
+
+**Files Changed**: `app/auth/login.tsx` (imports, state block, JSX form section)
+
+**Verification**: `npx tsc --noEmit` EXIT:0 · `npm test --runInBand` 135/135
+
+**Lesson**: Every auth form must have `KeyboardAvoidingView behavior="padding"` on iOS.
+The submit action (login/signup handler) must be wired to `onSubmitEditing` on the last
+field so users can submit without dismissing the keyboard manually.
+
+**Pattern category**: KEYBOARD_AVOIDANCE / FORM_UX
+
+---
+
+### [FIX-141] — signup.tsx: KeyboardAvoidingView + 3-field name→email→password focus chain
+**Date**: 2026-06-26
+**Session**: Claude Sonnet 4.6 (Enterprise Audit 2026-06-26)
+**Severity**: Medium — same keyboard coverage issue as FIX-140 + no field navigation
+
+**Problem**: `app/auth/signup.tsx` had the same bare `<View>` pattern as login. Additionally,
+the Full Name field was missing `autoCapitalize="words"` (names auto-lowercased) and no
+field had `autoCorrect={false}` (autocorrect mutating email/passwords).
+
+**Fix Applied**:
+- Changed outer `<View>` → `<KeyboardAvoidingView behavior="padding">` (iOS) / `"height"` (Android)
+- Added `emailRef` and `passwordRef` with `useRef<TextInput>(null)`
+- Full Name: `autoCapitalize="words"`, `autoCorrect={false}`, `returnKeyType="next"`, `onSubmitEditing` → focus email
+- Email: `ref={emailRef}`, `autoCorrect={false}`, `returnKeyType="next"`, `onSubmitEditing` → focus password
+- Password: `ref={passwordRef}`, `autoCorrect={false}`, `returnKeyType="done"`, `onSubmitEditing={handleSignup}`
+
+**Files Changed**: `app/auth/signup.tsx` (imports, state block, JSX form section)
+
+**Verification**: `npx tsc --noEmit` EXIT:0 · `npm test --runInBand` 135/135
+
+**Lesson**: Multi-field forms must wire a complete focus chain. Without it, each Return
+key tap dismisses the keyboard entirely and the user has to tap each next field manually.
+
+**Pattern category**: KEYBOARD_AVOIDANCE / FORM_UX
+
+---
+
+### [FIX-142] — stories/index.tsx: Silent error swallow on prophets + companions queries
+**Date**: 2026-06-26
+**Session**: Claude Sonnet 4.6 (Enterprise Audit 2026-06-26)
+**Severity**: Medium — network failure shows empty list with no feedback; user thinks there are no stories
+
+**Problem**: Both `useQuery` calls in `app/stories/index.tsx` (prophets and companions) had no
+`if (error) throw error` in the `queryFn`, meaning Supabase errors were silently dropped and
+`isError` was never set to `true`. `QueryErrorBanner` was never rendered, leaving users staring
+at an empty screen with no retry option.
+
+**Fix Applied**:
+- Added `if (error) throw error` to both `queryFn` bodies
+- Added `isError: prophetsError` and `isError: companionsError` destructuring
+- Computed `const isError = prophetsError || companionsError`
+- Imported `QueryErrorBanner` and rendered it above the title when `isError` is truthy
+- Added `refetch: refetchCompanions` (used in `onRetry`)
+
+**Files Changed**: `app/stories/index.tsx`
+
+**Verification**: `npx tsc --noEmit` EXIT:0 · `npm test --runInBand` 135/135
+
+**Lesson**: Every `useQuery` queryFn that reads from Supabase must have `if (error) throw error`
+so React Query's `isError` state fires correctly. A queryFn that catches and swallows a Supabase
+error produces an empty-array result that is indistinguishable from "no data".
+
+**Pattern category**: REACT_QUERY_ERROR_HANDLING
+
+---
+
+### [FIX-143] — search.tsx: Missing returnKeyType + clearButtonMode on search Input
+**Date**: 2026-06-26
+**Session**: Claude Sonnet 4.6 (Enterprise Audit 2026-06-26)
+**Severity**: Low — usability gap; users couldn't use the Search keyboard action or clear text
+
+**Problem**: The search `<Input>` in `app/(tabs)/search.tsx` was missing:
+- `returnKeyType="search"` — keyboard showed generic Return instead of the blue Search key
+- `clearButtonMode="while-editing"` — no one-tap X button to clear search; user had to manually backspace
+
+**Fix Applied**:
+```tsx
+returnKeyType="search"
+clearButtonMode="while-editing"
+```
+Added to the search Input on lines 110–118.
+
+**Files Changed**: `app/(tabs)/search.tsx`
+
+**Verification**: `npx tsc --noEmit` EXIT:0 · `npm test --runInBand` 135/135
+
+**Lesson**: Search inputs always need `returnKeyType="search"` (native blue Search key)
+and `clearButtonMode="while-editing"` (iOS system clear button). These are table stakes.
+
+**Pattern category**: FORM_UX / KEYBOARD_CONFIGURATION
+
+---
+
+### [FIX-144] — onboarding.tsx: Missing autoCapitalize + autoCorrect + returnKeyType on name field
+**Date**: 2026-06-26
+**Session**: Claude Sonnet 4.6 (Enterprise Audit 2026-06-26)
+**Severity**: Low — usability gap; names were auto-lowercased and autocorrect mutated them
+
+**Problem**: The name `TextInput` in `app/onboarding.tsx` was missing:
+- `autoCapitalize="words"` — first name not auto-capitalized
+- `autoCorrect={false}` — autocorrect mutating proper names
+- `returnKeyType="done"` — generic Return key instead of Done
+
+**Fix Applied**: Added all three props to the TextInput.
+
+**Files Changed**: `app/onboarding.tsx` (name field, ~line 218)
+
+**Verification**: `npx tsc --noEmit` EXIT:0 · `npm test --runInBand` 135/135
+
+**Lesson**: Name fields always need `autoCapitalize="words"`, `autoCorrect={false}`, and
+an appropriate `returnKeyType`. These are standard form hygiene.
+
+**Pattern category**: FORM_UX / KEYBOARD_CONFIGURATION

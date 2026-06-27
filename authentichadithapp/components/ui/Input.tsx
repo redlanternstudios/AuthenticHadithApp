@@ -8,34 +8,39 @@ interface InputProps extends TextInputProps {
   error?: string
 }
 
-export function Input({ label, error, style, ...props }: InputProps) {
-  const { isDark } = useTheme()
-  const colors = getColors(isDark)
+export const Input = React.forwardRef<TextInput, InputProps>(
+  ({ label, error, style, ...props }, ref) => {
+    const { isDark } = useTheme()
+    const colors = getColors(isDark)
 
-  return (
-    <View style={styles.container}>
-      {label && (
-        <Text style={[styles.label, { color: colors.bronzeText }]}>{label}</Text>
-      )}
-      <TextInput
-        style={[
-          styles.input,
-          {
-            backgroundColor: isDark ? colors.card : colors.white,
-            borderColor: error ? colors.error : colors.border,
-            color: colors.bronzeText,
-          },
-          style,
-        ]}
-        placeholderTextColor={colors.mutedText}
-        {...props}
-      />
-      {error && (
-        <Text style={[styles.error, { color: colors.error }]}>{error}</Text>
-      )}
-    </View>
-  )
-}
+    return (
+      <View style={styles.container}>
+        {label && (
+          <Text style={[styles.label, { color: colors.bronzeText }]}>{label}</Text>
+        )}
+        <TextInput
+          ref={ref}
+          style={[
+            styles.input,
+            {
+              backgroundColor: isDark ? colors.card : colors.white,
+              borderColor: error ? colors.error : colors.border,
+              color: colors.bronzeText,
+            },
+            style,
+          ]}
+          placeholderTextColor={colors.mutedText}
+          {...props}
+        />
+        {error && (
+          <Text style={[styles.error, { color: colors.error }]}>{error}</Text>
+        )}
+      </View>
+    )
+  }
+)
+
+Input.displayName = 'Input'
 
 const styles = StyleSheet.create({
   container: {
