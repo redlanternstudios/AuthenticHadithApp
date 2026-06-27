@@ -87,7 +87,8 @@ export default function TodayScreen() {
       if (HIDDEN_COLLECTION_FILTER) {
         countQuery = countQuery.not('collection_slug', 'in', HIDDEN_COLLECTION_FILTER)
       }
-      const { count } = await countQuery
+      const { count, error: countError } = await countQuery
+      if (countError) throw countError
       if (!count) return null
 
       const offset = seed % count
@@ -103,7 +104,8 @@ export default function TodayScreen() {
       // Bug 1 fix: ORDER BY id ensures deterministic row ordering regardless of
       // PostgREST's default undefined order. Without this, the same offset
       // returns a different row on every cold launch.
-      const { data } = await rowQuery.order('id', { ascending: true }).range(offset, offset).single()
+      const { data, error: rowError } = await rowQuery.order('id', { ascending: true }).range(offset, offset).single()
+      if (rowError) throw rowError
       return data as Hadith | null
     },
   })
