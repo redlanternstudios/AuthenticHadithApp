@@ -195,6 +195,12 @@
 
 ## How to add a bug (do this the MOMENT one is spotted)
 ```
+## BUG-162 | CLOSED
+- **Spotted:** 2026-06-27 — Progression correlation audit. `app/sunnah.tsx` had no completion button; `markComplete('sunnah_practice', ...)` and `trackActivity('sunnah_practice')` never called from any screen. Badges `first_sunnah` and `sunnah_5` could never unlock; Achievements Sunnah stat permanently 0. Secondary: `daily_hadith` type never marked in today screen; `read_hadith` never tracked in hadith detail screen.
+- **Root cause:** Sunnah screen was read-only (information display only). No UI affordance for a user to record a practice. Today and hadith detail screens lacked the matching `markComplete`/`trackActivity` calls.
+- **Fix:** (1) `app/sunnah.tsx` — added "Mark as Practiced" button to Today's Sunnah card and to each practice item in accordion lists; wired `svcMarkComplete('sunnah_practice', id)` + `trackActivity(userId, 'sunnah_practice')`; local state with `subscribe()` reactive reload. (2) `app/(tabs)/today.tsx` — added `useEffect` on `dailyHadith.id` load: `svcMarkComplete('daily_hadith', id)` + `trackActivity(userId, 'read_hadith')`. (3) `app/hadith/[id].tsx` — added `useEffect` on `hadith.id` load: `trackActivity(userId, 'read_hadith')`. All calls are fire-and-forget / non-fatal.
+- **Receipt:** `tsc --noEmit` TSC_EXIT:0 after all three file changes. Logic proof: `svcMarkComplete` is idempotent via AsyncStorage key dedup; `trackActivity` is wrapped in try/catch per FIX-138 pattern.
+
 ## BUG-<id> | OPEN
 - Spotted: <date> — <what/where>
 - Root cause: <why>

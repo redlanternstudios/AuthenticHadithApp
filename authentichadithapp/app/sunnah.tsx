@@ -1,8 +1,9 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useCallback, useEffect } from 'react'
 import { StyleSheet, View, ScrollView, Text, Pressable } from 'react-native'
 import { Stack } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
+import { useAuth } from '@/lib/auth/AuthProvider'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
 import { FONT_FAMILY } from '@/constants/theme'
@@ -12,6 +13,12 @@ import {
   FALLBACK_SUNNAH_PRACTICES,
 } from '@/lib/sunnah/sunnahFallbackData'
 import { QueryErrorBanner } from '@/components/common/QueryErrorBanner'
+import {
+  markComplete as svcMarkComplete,
+  getCompleted,
+  subscribe,
+} from '@/lib/progress/progressService'
+import { trackActivity } from '@/lib/gamification/track-activity'
 
 interface SunnahCategory {
   id: string
@@ -71,8 +78,45 @@ function getDayOfYear(): number {
 export default function SunnahScreen() {
   const { isDark } = useTheme()
   const colors = getColors(isDark)
+  const { user } = useAuth()
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null)
+  const [practicedIds, setPracticedIds] = useState<Set<string>>(new Set())
   const dayOfYear = useMemo(() => getDayOfYear(), [])
+
+  // Load previously completed sunnah practices from local store and stay reactive.
+  useEffect(() => {
+    let cancelled = false
+    const refresh = async () => {
+      try {
+        const records = await getCompleted('sunnah_practice')
+        if (!cancelled) setPracticedIds(new Set(records.map((r) => r.id)))
+      } catch {
+        // non-fatal — local store failure never blocks the screen
+      }
+    }
+    refresh()
+    const unsub = subscribe(refresh)
+    return () => {
+      cancelled = true
+      unsub()
+    }
+  }, [])
+
+  const handlePractice = useCallback(
+    async (practiceId: string) => {
+      if (practicedIds.has(practiceId)) return // idempotent
+      setPracticedIds((prev) => new Set([...prev, practiceId]))
+      await svcMarkComplete('sunnah_practice', practiceId)
+      if (user) {
+        try {
+          await trackActivity(user.id, 'sunnah_practice')
+        } catch {
+          // non-fatal — XP write never blocks the primary action
+        }
+      }
+    },
+    [practicedIds, user]
+  )
 
   const { data: dbCategories, isLoading: categoriesLoading, isError: categoriesError, refetch: refetchCategories } = useQuery({
     queryKey: ['sunnah-categories'],
@@ -171,6 +215,28 @@ export default function SunnahScreen() {
           {todaysPractice.hadith_ref ? (
             <Text style={[styles.todayRef, { color: colors.emeraldMid }]}>{todaysPractice.hadith_ref}</Text>
           ) : null}
+          <Pressable
+            style={[
+              styles.practiceBtn,
+              practicedIds.has(todaysPractice.id)
+                ? { backgroundColor: colors.emeraldMid + '20', borderColor: colors.emeraldMid }
+                : { backgroundColor: colors.goldMid + '20', borderColor: colors.goldMid },
+            ]}
+            onPress={() => handlePractice(todaysPractice.id)}
+            accessibilityRole="button"
+            accessibilityLabel={
+              practicedIds.has(todaysPractice.id) ? 'Practiced today' : 'Mark as practiced'
+            }
+          >
+            <Text
+              style={[
+                styles.practiceBtnText,
+                { color: practicedIds.has(todaysPractice.id) ? colors.emeraldMid : colors.goldMid },
+              ]}
+            >
+              {practicedIds.has(todaysPractice.id) ? '✓ Practiced Today' : '🤲 Mark as Practiced'}
+            </Text>
+          </Pressable>
         </View>
       )}
 
@@ -214,26 +280,49 @@ export default function SunnahScreen() {
 
             {isExpanded && (
               <View style={[styles.practicesList, { borderTopColor: colors.border }]}>
-                {categoryPractices.map((practice) => (
-                  <View key={practice.id} style={styles.practiceItem}>
-                    <View style={[styles.practiceDot, { backgroundColor: colors.goldMid }]} />
-                    <View style={styles.practiceContent}>
-                      <Text style={[styles.practiceTitle, { color: colors.bronzeText }]}>
-                        {practice.title}
-                      </Text>
-                      {practice.description ? (
-                        <Text style={[styles.practiceDescription, { color: colors.mutedText }]}>
-                          {practice.description}
+                {categoryPractices.map((practice) => {
+                  const practiced = practicedIds.has(practice.id)
+                  return (
+                    <View key={practice.id} style={styles.practiceItem}>
+                      <View style={[styles.practiceDot, { backgroundColor: practiced ? colors.emeraldMid : colors.goldMid }]} />
+                      <View style={styles.practiceContent}>
+                        <Text style={[styles.practiceTitle, { color: colors.bronzeText }]}>
+                          {practice.title}
                         </Text>
-                      ) : null}
-                      {practice.hadith_ref ? (
-                        <Text style={[styles.practiceRef, { color: colors.emeraldMid }]}>
-                          {practice.hadith_ref}
-                        </Text>
-                      ) : null}
+                        {practice.description ? (
+                          <Text style={[styles.practiceDescription, { color: colors.mutedText }]}>
+                            {practice.description}
+                          </Text>
+                        ) : null}
+                        {practice.hadith_ref ? (
+                          <Text style={[styles.practiceRef, { color: colors.emeraldMid }]}>
+                            {practice.hadith_ref}
+                          </Text>
+                        ) : null}
+                        <Pressable
+                          style={[
+                            styles.practiceBtnSmall,
+                            practiced
+                              ? { backgroundColor: colors.emeraldMid + '15', borderColor: colors.emeraldMid }
+                              : { backgroundColor: colors.goldMid + '15', borderColor: colors.goldMid },
+                          ]}
+                          onPress={() => handlePractice(practice.id)}
+                          accessibilityRole="button"
+                          accessibilityLabel={practiced ? 'Practiced' : 'Mark as practiced'}
+                        >
+                          <Text
+                            style={[
+                              styles.practiceBtnSmallText,
+                              { color: practiced ? colors.emeraldMid : colors.goldMid },
+                            ]}
+                          >
+                            {practiced ? '✓ Practiced' : 'Mark as Practiced'}
+                          </Text>
+                        </Pressable>
+                      </View>
                     </View>
-                  </View>
-                ))}
+                  )
+                })}
                 {categoryPractices.length === 0 && (
                   <Text style={[styles.emptyPractices, { color: colors.mutedText }]}>
                     No practices in this category yet.
@@ -392,5 +481,33 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: FONT_SIZES.base,
     textAlign: 'center',
+  },
+
+  // Practice completion buttons
+  practiceBtn: {
+    marginTop: SPACING.md,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  practiceBtnText: {
+    fontSize: FONT_SIZES.sm,
+    fontFamily: FONT_FAMILY.bodySemiBold,
+    fontWeight: '600',
+  },
+  practiceBtnSmall: {
+    marginTop: SPACING.sm,
+    paddingVertical: 4,
+    paddingHorizontal: SPACING.sm,
+    borderRadius: BORDER_RADIUS.sm,
+    borderWidth: 1,
+    alignSelf: 'flex-start',
+  },
+  practiceBtnSmallText: {
+    fontSize: FONT_SIZES.xs,
+    fontFamily: FONT_FAMILY.bodySemiBold,
+    fontWeight: '600',
   },
 })

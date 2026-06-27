@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useState, useEffect } from 'react'
 import {
   StyleSheet,
   View,
@@ -23,6 +23,7 @@ import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colo
 import { FONT_FAMILY } from '@/constants/theme'
 import { useDeviceLayout } from '@/lib/hooks/use-device-layout'
 import { trackActivity } from '@/lib/gamification/track-activity'
+import { markComplete as svcMarkComplete } from '@/lib/progress/progressService'
 import { Hadith } from '@/types/hadith'
 import { getCollectionDisplayName, useCollectionDisplayNames } from '@/lib/hadith/collectionDisplayName'
 import { HIDDEN_COLLECTION_FILTER } from '@/lib/hadith/visibleCollections'
@@ -152,6 +153,17 @@ export default function TodayScreen() {
     // hadith orphaned and never visible in any My Hadith folder view.
     setShowSaveModal(true)
   }, [dailyHadith, user])
+
+  // Mark daily hadith read when it loads — feeds the badge system (daily_hadith type)
+  // and the Supabase XP counter (read_hadith). Both are fire-and-forget; neither
+  // blocks the screen render. Idempotent on the local side via progressService.
+  useEffect(() => {
+    if (!dailyHadith) return
+    void svcMarkComplete('daily_hadith', dailyHadith.id)
+    if (user) {
+      void trackActivity(user.id, 'read_hadith').catch(() => { /* non-fatal */ })
+    }
+  }, [dailyHadith?.id, user?.id])
 
   if (isLoading) return <LoadingSpinner />
 

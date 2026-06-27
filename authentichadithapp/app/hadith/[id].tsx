@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   ScrollView,
   View,
@@ -26,6 +26,7 @@ import {
   useCollectionDisplayNames,
 } from '@/lib/hadith/collectionDisplayName'
 import { isHiddenCollection } from '@/lib/hadith/visibleCollections'
+import { trackActivity } from '@/lib/gamification/track-activity'
 
 // Key Teaching panel gating. The `enriched_hadiths` table holds optional
 // per-hadith insight rows whose authorial provenance has not been documented
@@ -53,6 +54,12 @@ export default function HadithDetailScreen() {
 
   const [showSaveModal, setShowSaveModal] = useState(false)
   const [summary, setSummary] = useState<string | null>(null)
+
+  // Track hadith view for XP/stats — fire-and-forget, never blocks render.
+  useEffect(() => {
+    if (!hadith || !user) return
+    void trackActivity(user.id, 'read_hadith').catch(() => { /* non-fatal */ })
+  }, [hadith?.id, user?.id])
   const [summaryError, setSummaryError] = useState<string | null>(null)
   const [isSummarizing, setIsSummarizing] = useState(false)
   const [languageMode, setLanguageMode] = useState<LanguageMode>('both')
