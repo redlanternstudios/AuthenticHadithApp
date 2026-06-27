@@ -102,8 +102,13 @@ export default function ProfileScreen() {
   const handleRestore = async () => {
     setRestoring(true);
     try {
-      await restorePurchases();
-      Alert.alert('Restore Complete', 'Your purchases have been restored.');
+      const info = await restorePurchases();
+      const hasActive = info?.entitlements?.active && Object.keys(info.entitlements.active).length > 0;
+      if (hasActive) {
+        Alert.alert('Restore Complete', 'Your subscription has been restored.');
+      } else {
+        Alert.alert('No Active Subscription', 'No active subscription was found for this Apple ID. If you believe this is an error, please contact support.');
+      }
     } catch (error: any) {
       Alert.alert('Restore Failed', error.message || 'Could not restore purchases.');
     } finally {

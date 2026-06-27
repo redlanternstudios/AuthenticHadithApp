@@ -37,6 +37,24 @@ export default function QuizScreen() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const answerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Daily quiz limit enforcement for free users
+  const todayISO = new Date().toISOString().slice(0, 10) // YYYY-MM-DD
+  const { data: todayQuizCount = 0 } = useQuery({
+    queryKey: ['quiz-attempts-today', user?.id, todayISO],
+    queryFn: async () => {
+      if (!user) return 0
+      const { count, error } = await supabase
+        .from('quiz_attempts')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gte('created_at', `${todayISO}T00:00:00.000Z`)
+      if (error) return 0
+      return count ?? 0
+    },
+    enabled: !!user && !isPro,
+  })
+  const dailyLimitReached = !isPro && todayQuizCount >= 1
+
   const { data: hadiths, isLoading, isError, refetch } = useQuery({
     queryKey: ['quiz-hadiths'],
     queryFn: async () => {
@@ -218,11 +236,13 @@ export default function QuizScreen() {
             variant="primary"
             size="large"
             onPress={startQuiz}
-            disabled={quizMode === 'general' && (!hadiths || hadiths.length === 0)}
+            disabled={(quizMode === 'general' && (!hadiths || hadiths.length === 0)) || dailyLimitReached}
           />
           {!isPro && (
             <Text style={[styles.limitNote, { color: colors.mutedText }]}>
-              Free: 1 quiz per day ·{' '}
+              {dailyLimitReached
+                ? 'Daily quiz used — come back tomorrow or '
+                : 'Free: 1 quiz per day · '}
               <Text style={[styles.limitUpgrade, { color: colors.goldMid }]} onPress={() => router.push('/paywall')}>
                 Upgrade for unlimited
               </Text>

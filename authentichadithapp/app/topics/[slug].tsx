@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { HadithList } from '@/components/hadith/HadithList'
+import { QueryErrorBanner } from '@/components/common/QueryErrorBanner'
 import { Hadith } from '@/types/hadith'
 import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors'
 import { useTheme } from '@/lib/theme/ThemeProvider'
@@ -16,7 +17,7 @@ export default function TopicHadithsScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>()
   const router = useRouter()
 
-  const { data: tag, isLoading: tagLoading } = useQuery({
+  const { data: tag, isLoading: tagLoading, isError: tagError, refetch: refetchTag } = useQuery({
     queryKey: ['tag', slug],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -30,7 +31,7 @@ export default function TopicHadithsScreen() {
     enabled: !!slug,
   })
 
-  const { data: hadiths, isLoading: hadithsLoading } = useQuery({
+  const { data: hadiths, isLoading: hadithsLoading, isError: hadithsError, refetch: refetchHadiths } = useQuery({
     queryKey: ['topic-hadiths', tag?.id],
     queryFn: async () => {
       // Step 1: get hadith_ids from hadith_tags
@@ -64,6 +65,15 @@ export default function TopicHadithsScreen() {
     return <LoadingSpinner />
   }
 
+  if (tagError) {
+    return (
+      <View style={[styles.errorContainer, { backgroundColor: colors.background }]}>
+        <Stack.Screen options={{ title: 'Topic', headerShown: true }} />
+        <QueryErrorBanner onRetry={refetchTag} />
+      </View>
+    )
+  }
+
   if (!tag) {
     return (
       <View style={[styles.errorContainer, { backgroundColor: colors.background }]}>
@@ -90,6 +100,7 @@ export default function TopicHadithsScreen() {
         </Text>
       </View>
 
+      {hadithsError && <QueryErrorBanner onRetry={refetchHadiths} />}
       <HadithList
         hadiths={hadiths || []}
         isLoading={hadithsLoading}

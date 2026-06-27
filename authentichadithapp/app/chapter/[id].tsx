@@ -41,7 +41,7 @@ export default function ChapterDetailScreen() {
   })
 
   // Get the parent book to resolve collection + book_number for hadiths
-  const { data: parentBook } = useQuery({
+  const { data: parentBook, isError: parentBookError, refetch: refetchParentBook } = useQuery({
     queryKey: ['chapter-parent-book', chapter?.book_id],
     queryFn: async () => {
       const { data: book, error: bookErr } = await supabase
@@ -71,7 +71,7 @@ export default function ChapterDetailScreen() {
   // PostgREST's default limit and is well above any single book's hadith count
   // (largest seen: ~260 in Bukhari book 10). The previous .limit(100) cap was
   // truncating content for larger books.
-  const { data: hadiths, isLoading: hadithsLoading } = useQuery({
+  const { data: hadiths, isLoading: hadithsLoading, isError: hadithsError, refetch: refetchHadiths } = useQuery({
     queryKey: ['chapter-hadiths', parentBook?.collectionSlug, parentBook?.bookNumber],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -100,6 +100,15 @@ export default function ChapterDetailScreen() {
     )
   }
 
+  if (parentBookError) {
+    return (
+      <View style={[styles.errorContainer, { backgroundColor: colors.background }]}>
+        <Stack.Screen options={{ title: `Chapter ${chapter.number}`, headerShown: true }} />
+        <QueryErrorBanner onRetry={refetchParentBook} />
+      </View>
+    )
+  }
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen
@@ -109,6 +118,7 @@ export default function ChapterDetailScreen() {
         }}
       />
       {chapterError && <QueryErrorBanner onRetry={refetchChapter} />}
+      {hadithsError && <QueryErrorBanner onRetry={refetchHadiths} />}
 
       <View style={styles.header}>
         <Text style={[styles.chapterLabel, { color: colors.emeraldMid }]}>Chapter {chapter.number}</Text>

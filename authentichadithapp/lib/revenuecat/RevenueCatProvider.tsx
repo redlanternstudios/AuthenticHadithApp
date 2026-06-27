@@ -1,6 +1,9 @@
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react'
 import Purchases, { CustomerInfo, PurchasesOffering, LOG_LEVEL } from 'react-native-purchases'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { ENTITLEMENT_ID, isReviewerEmail } from './config'
+
+const RC_ENTITLEMENT_CACHE_KEY = '@ah/rc_entitlement_active'
 import {
   configureRevenueCat,
   isRevenueCatConfigured,
@@ -47,12 +50,16 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [isConfigured, setIsConfigured] = useState(false)
   const [error, setError] = useState<Error | null>(null)
+  const [cachedIsPro, setCachedIsPro] = useState(false)
 
   // Apple reviewer bypass: the exact demo account is always premium so the
   // reviewer can evaluate premium features even if RevenueCat doesn't resolve
   // their entitlement live. Exact-email-match only — no effect on any other
   // user, who still needs a real RevenueCat `premium` entitlement (via IAP).
-  const isPro = isReviewerEmail(user?.email) || customerInfo?.entitlements.active[ENTITLEMENT_ID]?.isActive === true
+  // On configure failure, fall back to the AsyncStorage-cached entitlement so
+  // paying users are not locked to the paywall during transient SDK failures.
+  const liveIsPro = customerInfo?.entitlements.active[ENTITLEMENT_ID]?.isActive === true
+  const isPro = isReviewerEmail(user?.email) || liveIsPro || (!isConfigured && !isLoading && cachedIsPro)
   // Purchases is available iff configure() has succeeded. Until then no
   // default-instance call (getCustomerInfo, getOfferings, restorePurchases,
   // addCustomerInfoUpdateListener) is safe.
@@ -69,6 +76,9 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
     try {
       const info = await Purchases.getCustomerInfo()
       setCustomerInfo(info)
+      // Cache entitlement state so configure failures don't lock paying users out
+      const active = info?.entitlements.active[ENTITLEMENT_ID]?.isActive === true
+      AsyncStorage.setItem(RC_ENTITLEMENT_CACHE_KEY, active ? '1' : '0').catch(() => {})
     } catch (err) {
       const e = err as { name?: string; code?: string | number; message?: string }
       __DEV__ && console.warn('[RC] getCustomerInfo failed (non-fatal):', e?.message)
@@ -87,6 +97,9 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
     if (!listenerAttachedRef.current) {
       const listener = (newInfo: CustomerInfo) => {
         setCustomerInfo(newInfo)
+        // Keep cache current on every push update
+        const active = newInfo?.entitlements.active[ENTITLEMENT_ID]?.isActive === true
+        AsyncStorage.setItem(RC_ENTITLEMENT_CACHE_KEY, active ? '1' : '0').catch(() => {})
       }
       Purchases.addCustomerInfoUpdateListener(listener)
       listenerRef.current = listener
@@ -100,6 +113,11 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
         Purchases.setLogLevel(__DEV__ ? LOG_LEVEL.DEBUG : LOG_LEVEL.WARN)
         const ok = await configureRevenueCat(user?.id)
         if (!ok || !isRevenueCatConfigured()) {
+          // Configure failed — read cached entitlement so paying users aren't locked out
+          try {
+            const cached = await AsyncStorage.getItem(RC_ENTITLEMENT_CACHE_KEY)
+            if (cached === '1') setCachedIsPro(true)
+          } catch {}
           return
         }
         setIsConfigured(true)
@@ -108,6 +126,11 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
         const e = err instanceof Error ? err : new Error(String(err))
         __DEV__ && console.warn('[RC] Configure error:', e.message)
         setError(e)
+        // Also read cache on thrown error path
+        try {
+          const cached = await AsyncStorage.getItem(RC_ENTITLEMENT_CACHE_KEY)
+          if (cached === '1') setCachedIsPro(true)
+        } catch {}
       } finally {
         setIsLoading(false)
       }

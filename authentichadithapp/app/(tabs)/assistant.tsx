@@ -310,6 +310,8 @@ function AssistantScreenInner() {
             ]}
             onPress={handleSend}
             disabled={!canSend}
+            accessibilityLabel="Send message"
+            accessibilityRole="button"
           >
             <Ionicons name="send" size={20} color={colors.white} />
           </TouchableOpacity>

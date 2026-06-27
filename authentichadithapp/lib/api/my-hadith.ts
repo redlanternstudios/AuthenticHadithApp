@@ -13,7 +13,11 @@ export async function getUserFolders(userId: string) {
     .order('updated_at', { ascending: false })
   
   if (error) throw error
-  return data as HadithFolder[]
+  // PostgREST returns saved_hadiths as [{count:N}] not saved_hadiths_count — map it.
+  return (data ?? []).map((row: any) => ({
+    ...row,
+    saved_hadiths_count: row.saved_hadiths?.[0]?.count ?? 0,
+  })) as HadithFolder[]
 }
 
 export async function createFolder(folder: Partial<HadithFolder>) {

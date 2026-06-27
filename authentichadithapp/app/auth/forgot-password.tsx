@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, Alert } from 'react-native';
+import { StyleSheet, View, Text, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import { Input } from '@/components/ui/Input';
@@ -37,7 +37,10 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       {/* FIX-086: Hardcode header title to prevent raw route string display */}
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
@@ -55,6 +58,9 @@ export default function ForgotPasswordScreen() {
           onChangeText={setEmail}
           keyboardType="email-address"
           autoCapitalize="none"
+          autoCorrect={false}
+          returnKeyType="go"
+          onSubmitEditing={handleReset}
         />
 
         <Button
@@ -69,7 +75,7 @@ export default function ForgotPasswordScreen() {
           variant="ghost"
         />
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

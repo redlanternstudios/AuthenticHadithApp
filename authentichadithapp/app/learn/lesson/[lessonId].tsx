@@ -16,6 +16,7 @@ import { useAuth } from '@/lib/auth/AuthProvider';
 import { trackActivity } from '@/lib/gamification/track-activity';
 import { supabase } from '@/lib/supabase/client';
 import { scheduleLessonReminder, getLessonReminderEnabled } from '@/lib/notifications';
+import { QueryErrorBanner } from '@/components/common/QueryErrorBanner';
 
 export default function LessonDetailScreen() {
   const params = useLocalSearchParams<{ lessonId: string; pathId?: string }>();
@@ -38,7 +39,7 @@ export default function LessonDetailScreen() {
 
   // V2: lesson content from Supabase `learning_lessons`. content_markdown is
   // rendered as plain text (no markdown lib dependency).
-  const { data: lesson, isLoading } = useQuery({
+  const { data: lesson, isLoading, isError, refetch } = useQuery({
     queryKey: ['lesson', lessonId],
     queryFn: async (): Promise<Lesson | null> => {
       if (!lessonId) return null;
@@ -49,7 +50,7 @@ export default function LessonDetailScreen() {
         .single();
       if (error) {
         __DEV__ && console.error('[Lesson] query failed:', error);
-        return null;
+        throw error;
       }
       if (!data) return null;
       return {
@@ -77,6 +78,15 @@ export default function LessonDetailScreen() {
         <Stack.Screen options={{ title: 'Lesson' }} />
         <LoadingSpinner />
       </>
+    );
+  }
+
+  if (isError) {
+    return (
+      <View style={[styles.notFoundContainer, { backgroundColor: colors.background }]}>
+        <Stack.Screen options={{ title: 'Lesson' }} />
+        <QueryErrorBanner onRetry={refetch} />
+      </View>
     );
   }
 

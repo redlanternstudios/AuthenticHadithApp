@@ -60,6 +60,15 @@ export default function BookDetailScreen() {
     return <LoadingSpinner />
   }
 
+  if (isError) {
+    return (
+      <View style={[styles.emptyContainer, { backgroundColor: colors.background }]}>
+        <Stack.Screen options={{ title, headerShown: true }} />
+        <QueryErrorBanner onRetry={refetch} />
+      </View>
+    )
+  }
+
   // H-3: Not-found / empty guard — renders a safe fallback instead of a blank list
   if (!isLoading && hadiths.length === 0) {
     return (
