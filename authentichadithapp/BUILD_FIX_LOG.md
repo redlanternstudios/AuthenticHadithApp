@@ -5454,3 +5454,23 @@ an appropriate `returnKeyType`. These are standard form hygiene.
 **Lesson**: Never upsert into a Supabase table that has broken INSERT triggers unless you control the trigger. Use UPDATE when the row is guaranteed to exist (e.g., created by an auth hook on signup). If an INSERT path is truly needed, fix the trigger to use `SECURITY DEFINER` and reference `auth.users` explicitly.
 
 **Pattern category**: SUPABASE_TRIGGER / ONBOARDING / RLS_AND_PERMISSIONS
+
+---
+
+## FIX-160 — Signup permission error + bookmark disappearing on new accounts
+
+**Date**: 2026-06-27
+**BUG**: BUG-160
+**Files changed**: `lib/auth/AuthProvider.tsx`
+
+**Root cause**: `AuthProvider.signUp()` called `supabase.from('profiles').insert({id, user_id, name, avatar_url, role})` immediately after `supabase.auth.signUp()`. This client-side INSERT fires the same broken BEFORE INSERT trigger as BUG-159 (references `auth.users` without `SECURITY DEFINER`, returns `permission denied for table users`). The `profileError` was thrown, putting the JS auth state into an inconsistent state: the Supabase session WAS created (`auth.users` row exists, session token issued) but React state had `user` as null post-throw.
+
+**Downstream symptom (bookmark disappearing)**: With `user?.id === null`, `useHadith(id, undefined)` passed `userId = undefined` to the bookmark mutation. `toggleBookmark` fired, hit `if (!userId) throw new Error('User not authenticated')`, which triggered `onError` rollback — reverting the optimistic "saved" state back to `false`. Result: bookmark appeared saved for ~300ms (optimistic update) then immediately disappeared (rollback). Same root cause, two symptoms.
+
+**Fix**: Removed the entire 9-line `profiles.insert()` block from `signUp()` in `lib/auth/AuthProvider.tsx`. The `supabase_auth_admin` trigger (runs as a privileged Postgres role that bypasses the broken BEFORE INSERT trigger) already creates the `profiles` row when `auth.users` is inserted during signup. The user's display name is saved later via the onboarding UPDATE path (FIX-159). Signup now never touches `profiles` directly.
+
+**Verification**: `tsc --noEmit` EXIT:0 · live probe: new test user created via admin API, `PATCH /rest/v1/profiles?user_id=eq.{uid}` HTTP 204 (auth trigger created the row), `saved_hadiths` INSERT HTTP 201 + SELECT HTTP 200 (bookmark fully persists) ✅
+
+**Lesson**: Never INSERT into a table from the client side if a Supabase auth hook already handles row creation with a privileged role. The client INSERT is both redundant and dangerous when the table has broken INSERT triggers. The auth trigger (`supabase_auth_admin`) is the right place for guaranteed profile creation; the client should only UPDATE from that point forward.
+
+**Pattern category**: SUPABASE_TRIGGER / AUTH_FLOW / OPTIMISTIC_UPDATE_ROLLBACK

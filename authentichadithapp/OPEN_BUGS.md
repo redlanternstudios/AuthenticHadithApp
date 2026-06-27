@@ -176,6 +176,13 @@
 - **Fix:** `app/onboarding.tsx` — replaced `supabase.from('profiles').upsert({id, user_id, name, school_of_thought}, {onConflict:'user_id'})` with `supabase.from('profiles').update({name, school_of_thought}).eq('user_id', user.id)`. UPDATE never fires the broken INSERT trigger. Profile row is guaranteed to exist by the time the user reaches onboarding (created by the auth trigger on signup).
 - **Receipt:** `tsc --noEmit` EXIT:0 · `npm test` 135/135 · live probe confirmed: `PATCH /rest/v1/profiles?user_id=eq.{uid}` returns HTTP 204 ✅ · `POST /rest/v1/profiles` returns HTTP 403 (broken trigger, now bypassed) ✅
 
+## BUG-160 | CLOSED
+- **Spotted:** 2026-06-27. Signup shows "permission denied for table users" error and the app glitches forward (session established but auth state inconsistent). Symptom: new-account bookmarks appear saved then disappear immediately.
+- **Root cause (part 1 — signup failure):** `lib/auth/AuthProvider.tsx` `signUp()` called `supabase.from('profiles').insert({...})` after `auth.signUp()`. This client-side INSERT fires the same broken BEFORE INSERT trigger as BUG-159, throwing `profileError`. The throw corrupted React auth state: the Supabase session WAS created (user exists in `auth.users`) but the JS state was inconsistent — `user?.id` briefly null after the throw.
+- **Root cause (part 2 — bookmark disappearing):** With `user?.id` null, `useHadith(id, undefined)` → `toggleBookmark` mutation hit `if (!userId) throw new Error('User not authenticated')` → `onError` rollback reverted the optimistic "saved" state back to false, making the bookmark appear then vanish. Same root as part 1.
+- **Fix:** `lib/auth/AuthProvider.tsx` — removed the 9-line client-side `profiles.insert()` block from `signUp()`. The `supabase_auth_admin` trigger (privileged role, bypasses broken BEFORE INSERT trigger) already creates the profiles row on `auth.users` INSERT. Name is saved later via the onboarding UPDATE (FIX-159). Signup now never touches `profiles` directly.
+- **Receipt:** `tsc --noEmit` EXIT:0 · live probe confirmed: new test user INSERT HTTP 201 + SELECT HTTP 200 (profiles row created by auth trigger) · `profiles` UPDATE HTTP 204 ✅
+
 ---
 
 ## How to add a bug (do this the MOMENT one is spotted)

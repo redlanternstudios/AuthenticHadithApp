@@ -84,21 +84,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
     if (error) throw error
 
-    // Live `profiles` schema (verified 2026-06-09, see SCHEMA_PROFILES.md + Golden Rule #2):
-    // columns are `name` (NOT username/full_name) and `user_id` is NOT NULL.
-    // The app reads/writes a profile by `user_id` (see revenuecat.ts), so it MUST
-    // equal the auth uid. FIX-064 — wrong columns here previously broke all signup.
-    if (data.user) {
-      const { error: profileError } = await supabase.from('profiles').insert({
-        id: data.user.id,
-        user_id: data.user.id,
-        name: fullName?.trim() || email.split('@')[0],
-        avatar_url: null,
-        role: 'user',
-      })
-
-      if (profileError) throw profileError
-    }
+    // FIX-159B: DO NOT INSERT into profiles here. The supabase_auth_admin trigger
+    // creates the profiles row on auth.users INSERT (privileged role, bypasses the
+    // broken BEFORE INSERT trigger on profiles). Any client-side INSERT hits that
+    // broken trigger ("permission denied for table users") and throws, causing the
+    // signup glitch. Name is saved in onboarding via UPDATE (FIX-159).
   }
 
   const signOut = async () => {
