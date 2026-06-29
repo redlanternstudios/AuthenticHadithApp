@@ -41,7 +41,7 @@ export function StepSafety({ data, onUpdate }: StepSafetyProps) {
 
       {/* Heading */}
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-[#1a1f36] mb-2">Safety & Community Guidelines</h2>
+        <h2 className="text-2xl font-bold text-foreground mb-2">Safety & Community Guidelines</h2>
         <p className="text-muted-foreground">
           Authentic Hadith maintains the highest standards of Islamic scholarship and community respect.
         </p>
@@ -50,12 +50,12 @@ export function StepSafety({ data, onUpdate }: StepSafetyProps) {
       {/* Safety Points */}
       <div className="space-y-4">
         {SAFETY_POINTS.map((point, index) => (
-          <div key={index} className="flex gap-4 p-4 rounded-lg bg-[#F8F6F2] border border-[#e5e7eb]">
-            <div className="w-10 h-10 rounded-full bg-white flex-shrink-0 flex items-center justify-center border border-[#C5A059]/30">
+          <div key={index} className="flex gap-4 p-4 rounded-lg bg-muted border border-border">
+            <div className="w-10 h-10 rounded-full bg-card flex-shrink-0 flex items-center justify-center border border-[#C5A059]/30">
               <point.icon className="w-5 h-5 text-[#C5A059]" />
             </div>
             <div>
-              <h3 className="font-medium text-[#1a1f36] mb-1">{point.title}</h3>
+              <h3 className="font-medium text-foreground mb-1">{point.title}</h3>
               <p className="text-sm text-muted-foreground">{point.description}</p>
             </div>
           </div>
@@ -63,7 +63,7 @@ export function StepSafety({ data, onUpdate }: StepSafetyProps) {
       </div>
 
       {/* Agreement Checkboxes */}
-      <div className="space-y-4 pt-4 border-t border-[#e5e7eb]">
+      <div className="space-y-4 pt-4 border-t border-border">
         {/* Safety Guidelines Agreement */}
         <button
           type="button"
@@ -82,7 +82,7 @@ export function StepSafety({ data, onUpdate }: StepSafetyProps) {
               </svg>
             )}
           </div>
-          <span className="text-[15px] text-[#1a1f36]">I understand and agree to the safety guidelines</span>
+          <span className="text-[15px] text-foreground">I understand and agree to the safety guidelines</span>
         </button>
 
         {/* Terms Agreement */}
@@ -103,7 +103,7 @@ export function StepSafety({ data, onUpdate }: StepSafetyProps) {
               </svg>
             )}
           </div>
-          <span className="text-[15px] text-[#1a1f36]">
+          <span className="text-[15px] text-foreground">
             I agree to the{" "}
             <a
               href="/terms"

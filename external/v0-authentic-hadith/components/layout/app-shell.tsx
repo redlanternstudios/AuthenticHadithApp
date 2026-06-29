@@ -3,6 +3,7 @@
 import type { ReactNode } from "react"
 import { usePathname } from "next/navigation"
 import { Sidebar } from "./sidebar"
+import { MobileTopBar } from "./mobile-top-bar"
 import { BottomNavigation } from "@/components/home/bottom-navigation"
 import { cn } from "@/lib/utils"
 
@@ -28,12 +29,15 @@ export function AppShell({ children }: AppShellProps) {
       {/* Desktop Sidebar */}
       <Sidebar />
 
-      {/* Main Content - Shifted right on desktop to account for sidebar */}
+      {/* Mobile Top Bar with back/home buttons */}
+      <MobileTopBar />
+
+      {/* Main Content - Shifted right on desktop (xl+) to account for sidebar */}
       <div
         className={cn(
           "transition-all duration-300",
-          "md:ml-[260px]", // Default sidebar width
-          "pb-20 md:pb-0", // Bottom padding for mobile nav
+          "xl:ml-[260px]", // Default sidebar width on extra large screens
+          "pb-20 xl:pb-0", // Bottom padding for mobile/tablet nav
         )}
       >
         {children}

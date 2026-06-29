@@ -2,12 +2,14 @@
 
 import type React from "react"
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { Input } from "@/components/ui/input"
 import { Eye, EyeOff, Loader2, Mail, Lock, User } from "lucide-react"
 
 type AuthMode = "signin" | "signup" | "forgot"
+
+const OAUTH_ENABLED = process.env.NEXT_PUBLIC_OAUTH_ENABLED === "true"
 
 export function AuthForm() {
   const [mode, setMode] = useState<AuthMode>("signin")
@@ -19,6 +21,9 @@ export function AuthForm() {
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const rawRedirect = searchParams.get("redirect")
+  const redirectTo = rawRedirect ? decodeURIComponent(rawRedirect) : null
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,34 +41,15 @@ export function AuthForm() {
       setLoading(false)
       return
     }
-
-    // Route user based on onboarding and plan selection status
+    // Sign in successful — always go to home.
+    // Onboarding is first-time only, triggered from the sign-up flow.
+    // Any user who can sign in has already onboarded (or is a team account).
     if (data?.user) {
-      const { data: prefs } = await supabase
-        .from("user_preferences")
-        .select("onboarded")
-        .eq("user_id", data.user.id)
-        .single()
-
-      if (prefs?.onboarded) {
-        // Check if they've ever selected a plan (free or paid)
-        const { data: subscription } = await supabase
-          .from("subscriptions")
-          .select("status")
-          .eq("user_id", data.user.id)
-          .single()
-
-        if (subscription) {
-          router.push("/home")
-        } else {
-          // Onboarded but hasn't chosen a plan yet — send to pricing
-          router.push("/pricing")
-        }
-      } else {
-        router.push("/onboarding")
-      }
+      document.cookie = "ah_onboarded=1; path=/; max-age=31536000; SameSite=Lax"
+      document.cookie = "ah_safety_agreed=1; path=/; max-age=31536000; SameSite=Lax"
+      router.push(redirectTo || "/home")
     } else {
-      router.push("/home")
+      router.push(redirectTo || "/home")
     }
     router.refresh()
   }
@@ -93,7 +79,11 @@ export function AuthForm() {
 
     // If email confirmation is disabled in Supabase, the user gets a session immediately
     if (data?.session) {
-      router.push("/onboarding")
+      // Pass the redirect through onboarding so user ends up at pricing after
+      const onboardingUrl = redirectTo
+        ? `/onboarding?redirect=${encodeURIComponent(redirectTo)}`
+        : "/onboarding"
+      router.push(onboardingUrl)
       router.refresh()
       return
     }
@@ -331,7 +321,7 @@ export function AuthForm() {
       </form>
 
       {/* Divider */}
-      {mode !== "forgot" && (
+      {mode !== "forgot" && OAUTH_ENABLED && (
         <div className="relative my-8">
           <div className="gold-divider" />
           <div className="absolute inset-0 flex items-center justify-center">
@@ -342,8 +332,8 @@ export function AuthForm() {
         </div>
       )}
 
-      {/* Social Login Buttons */}
-      {mode !== "forgot" && (
+      {/* Social Login Buttons -- only shown when OAuth providers are configured */}
+      {mode !== "forgot" && OAUTH_ENABLED && (
         <div className="grid grid-cols-2 gap-3">
           <button
             type="button"

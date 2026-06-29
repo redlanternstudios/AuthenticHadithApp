@@ -9,8 +9,11 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { DailyHadithCard } from "@/components/home/daily-hadith-card"
 import { AIAssistantBlock } from "@/components/home/ai-assistant-block"
 
+
 import { ShareBanner } from "@/components/share-banner"
 import { ReminderBanner } from "@/components/home/reminder-banner"
+import { ProUpgradeCTA } from "@/components/usage-banner"
+import { useQuota } from "@/hooks/use-quota"
 import {
   User,
   Search,
@@ -28,6 +31,7 @@ import {
   Users,
   PenLine,
   PlayCircle,
+  Crown,
 } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { getCleanTranslation, getCollectionDisplayName } from "@/lib/hadith-utils"
@@ -35,6 +39,11 @@ import { getCleanTranslation, getCollectionDisplayName } from "@/lib/hadith-util
 interface UserProfile {
   name: string
   avatar_url: string | null
+  school_of_thought?: string | null
+}
+
+interface UserPreferences {
+  learning_level: string
 }
 
 interface Hadith {
@@ -81,6 +90,7 @@ interface FeaturedCollection {
 export default function HomePage() {
   const router = useRouter()
   const carouselRef = useRef<HTMLDivElement>(null)
+  const { quota } = useQuota()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [dailyHadith, setDailyHadith] = useState<Hadith | null>(null)
   const [recentlyViewed, setRecentlyViewed] = useState<RecentHadith[]>([])
@@ -92,6 +102,7 @@ export default function HomePage() {
   const [continueReading, setContinueReading] = useState<ContinueReading[]>([])
   const [totalReadCount, setTotalReadCount] = useState(0)
   const [lastActiveDate, setLastActiveDate] = useState<string | null>(null)
+  const [userPrefs, setUserPrefs] = useState<UserPreferences | null>(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -107,13 +118,21 @@ export default function HomePage() {
         }
 
         if (user) {
-          // Fetch profile
-          const { data: profileData } = await supabase
-            .from("profiles")
-            .select("name, avatar_url")
-            .eq("user_id", user.id)
-            .single()
+          // Fetch profile + preferences in parallel
+          const [{ data: profileData }, { data: prefsData }] = await Promise.all([
+            supabase
+              .from("profiles")
+              .select("name, avatar_url, school_of_thought")
+              .eq("user_id", user.id)
+              .single(),
+            supabase
+              .from("user_preferences")
+              .select("learning_level")
+              .eq("user_id", user.id)
+              .single(),
+          ])
           if (profileData) setProfile(profileData)
+          if (prefsData) setUserPrefs(prefsData)
 
           // Fetch daily hadith from API
           try {
@@ -207,7 +226,7 @@ export default function HomePage() {
           // Fetch continue reading -- last read hadith per collection
           const { data: lastReadData } = await supabase
             .from("reading_progress")
-            .select("hadith_id, collection_id, created_at, collections!collection_id(name_en, slug, total_hadiths)")
+            .select("hadith_id, collection_id, created_at")
             .eq("user_id", user.id)
             .order("created_at", { ascending: false })
             .limit(50)
@@ -215,7 +234,7 @@ export default function HomePage() {
           if (lastReadData && lastReadData.length > 0) {
             // Group by collection, keep the latest per collection
             const byCollection = new Map<string, typeof lastReadData[0]>()
-            let readCountByCollection = new Map<string, number>()
+            const readCountByCollection = new Map<string, number>()
             for (const rp of lastReadData) {
               if (!rp.collection_id) continue
               readCountByCollection.set(rp.collection_id, (readCountByCollection.get(rp.collection_id) || 0) + 1)
@@ -224,10 +243,24 @@ export default function HomePage() {
               }
             }
 
+            // Fetch collection details separately
+            const collectionIds = Array.from(byCollection.keys())
+            const { data: collectionsData } = await supabase
+              .from("collections")
+              .select("id, name_en, slug, total_hadiths")
+              .in("id", collectionIds)
+
+            const collMap = new Map<string, { name_en: string; slug: string; total_hadiths: number }>()
+            if (collectionsData) {
+              for (const c of collectionsData) {
+                collMap.set(c.id, c)
+              }
+            }
+
             // For each latest entry, get the hadith number
             const continueItems: ContinueReading[] = []
             for (const [collId, rp] of byCollection) {
-              const coll = rp.collections as { name_en: string; slug: string; total_hadiths: number } | null
+              const coll = collMap.get(collId)
               if (!coll) continue
               const { data: hData } = await supabase
                 .from("hadiths")
@@ -391,7 +424,11 @@ export default function HomePage() {
             {greeting}, <span className="gold-text">{firstName}</span>
           </h1>
           <p className="text-sm md:text-base text-muted-foreground mb-6">
-            Continue your journey through authentic hadith literature
+            {userPrefs?.learning_level === "beginner"
+              ? "Start your journey through authentic hadith literature"
+              : userPrefs?.learning_level === "advanced"
+                ? "Deepen your study of the prophetic traditions"
+                : "Continue your journey through authentic hadith literature"}
           </p>
 
           {/* Search bar */}
@@ -438,10 +475,49 @@ export default function HomePage() {
             <Sparkles className="w-5 h-5 text-secondary" />
             <h2 className="text-lg font-bold text-foreground">Hadith of the Day</h2>
           </div>
-          <DailyHadithCard hadith={displayHadith} onSave={handleSaveHadith} onShare={handleShareHadith} />
-        </section>
+  <DailyHadithCard hadith={displayHadith} onSave={handleSaveHadith} onShare={handleShareHadith} />
+  </section>
 
-        {/* Continue Reading */}
+  {/* Pro CTA for free users - show more prominently if they've used features */}
+  {quota && !quota.isPremium && (
+    <section className="pb-4">
+      {/* Show enhanced CTA if user has engaged (saved hadiths, used AI, etc.) */}
+      {(quota.usage.saves > 5 || quota.usage.aiToday > 0 || savedCount > 3) ? (
+        <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-[#1B5E43] to-[#2D7A5B] p-5">
+          {/* Decorative pattern */}
+          <div className="absolute inset-0 opacity-10">
+            <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
+              <pattern id="pro-cta-pattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+                <path d="M10 0L20 10L10 20L0 10Z" fill="currentColor" className="text-white" />
+              </pattern>
+              <rect width="100%" height="100%" fill="url(#pro-cta-pattern)" />
+            </svg>
+          </div>
+          <div className="relative flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+              <Sparkles className="w-6 h-6 text-[#E8C77D]" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-base font-bold text-white mb-0.5">{"You're growing in knowledge!"}</h3>
+              <p className="text-xs text-white/80">
+                Unlock unlimited AI, saves, and advanced features with Pro.
+              </p>
+            </div>
+            <button
+              onClick={() => router.push("/pricing")}
+              className="shrink-0 px-4 py-2 rounded-lg bg-gradient-to-r from-[#C5A059] to-[#E8C77D] text-[#2c2416] text-sm font-semibold hover:opacity-90 transition-opacity"
+            >
+              Try Free
+            </button>
+          </div>
+        </div>
+      ) : (
+        <ProUpgradeCTA />
+      )}
+    </section>
+  )}
+  
+  {/* Continue Reading */}
         {continueReading.length > 0 && (
           <section className="pb-6 md:pb-8" aria-label="Continue Reading">
             <div className="flex items-center gap-2 mb-4">
@@ -522,19 +598,19 @@ export default function HomePage() {
                 iconColor: "text-white",
               },
               {
-                icon: PenLine,
-                label: "Reflections",
-                desc: "Your journal",
-                href: "/reflections",
-                gradient: "from-[#7c3aed] to-[#a78bfa]",
+                icon: GraduationCap,
+                label: "Learn",
+                desc: "Guided paths",
+                href: "/learn",
+                gradient: "from-[#1B5E43] to-[#2D7A5B]",
                 iconColor: "text-white",
               },
               {
-                icon: Bot,
-                label: "AI Chat",
-                desc: "Ask anything",
-                href: "/assistant",
-                gradient: "from-[#0369a1] to-[#38bdf8]",
+                icon: Search,
+                label: "Topics",
+                desc: "Browse by tag",
+                href: "/topics",
+                gradient: "from-[#8a6e3a] to-[#C5A059]",
                 iconColor: "text-white",
               },
             ].map((action) => (

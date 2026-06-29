@@ -53,11 +53,11 @@ export function SearchBar() {
       <form onSubmit={handleSubmit}>
         <div
           className={cn(
-            "flex items-center gap-3 px-5 py-3 rounded-full bg-[#F8F6F2] border transition-all",
-            isFocused ? "border-[#C5A059] border-2 w-[400px] lg:w-[600px]" : "border-[#e5e7eb] w-[300px] lg:w-[400px]",
+            "flex items-center gap-3 px-5 py-3 rounded-full bg-background border transition-all",
+            isFocused ? "border-[#C5A059] border-2 w-[400px] lg:w-[600px]" : "border-border w-[300px] lg:w-[400px]",
           )}
         >
-          <Search className="w-5 h-5 text-[#6b7280] shrink-0" />
+          <Search className="w-5 h-5 text-muted-foreground shrink-0" />
           <input
             ref={inputRef}
             type="text"
@@ -66,13 +66,13 @@ export function SearchBar() {
             onFocus={() => setIsFocused(true)}
             onBlur={() => setTimeout(() => setIsFocused(false), 200)}
             placeholder="Search hadiths..."
-            className="flex-1 bg-transparent outline-none text-[#1a1f36] placeholder:text-[#6b7280]"
+            className="flex-1 bg-transparent outline-none text-foreground placeholder:text-muted-foreground"
           />
           {query && (
             <button
               type="button"
               onClick={() => setQuery("")}
-              className="text-[#6b7280] hover:text-[#1a1f36] transition-colors"
+              className="text-muted-foreground hover:text-foreground transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -82,17 +82,17 @@ export function SearchBar() {
 
       {/* Suggestions Dropdown */}
       {isFocused && suggestions.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-lg border border-[#e5e7eb] overflow-hidden z-50 max-h-[300px] overflow-y-auto">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-card rounded-xl shadow-lg border border-border overflow-hidden z-50 max-h-[300px] overflow-y-auto">
           {suggestions.map((suggestion) => (
             <button
               key={suggestion.id}
               onClick={() => handleSuggestionClick(suggestion)}
               className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#fef3c7] transition-colors text-left"
             >
-              <Search className="w-4 h-4 text-[#6b7280]" />
+              <Search className="w-4 h-4 text-muted-foreground" />
               <div>
-                <p className="text-sm text-[#1a1f36]">{suggestion.title}</p>
-                <p className="text-xs text-[#6b7280]">{suggestion.collection}</p>
+                <p className="text-sm text-foreground">{suggestion.title}</p>
+                <p className="text-xs text-muted-foreground">{suggestion.collection}</p>
               </div>
             </button>
           ))}

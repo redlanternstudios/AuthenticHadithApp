@@ -4,9 +4,10 @@ import { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { ChevronLeft, BookOpen } from "lucide-react"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
-import { BottomNavigation } from "@/components/home/bottom-navigation"
+
 import { Breadcrumb } from "@/components/collections/breadcrumb"
 import { ChapterCard } from "@/components/collections/chapter-card"
+import { HadithCardCondensed } from "@/components/collections/hadith-card-condensed"
 
 interface Book {
   id: string
@@ -32,6 +33,16 @@ interface Chapter {
   excerpt?: string
 }
 
+interface Hadith {
+  id: string
+  arabic_text: string
+  english_translation: string
+  grade: "sahih" | "hasan" | "daif"
+  narrator: string
+  hadith_number: number
+  is_saved?: boolean
+}
+
 export default function BookDetailPage() {
   const router = useRouter()
   const params = useParams()
@@ -42,7 +53,12 @@ export default function BookDetailPage() {
   const [book, setBook] = useState<Book | null>(null)
   const [collection, setCollection] = useState<Collection | null>(null)
   const [chapters, setChapters] = useState<Chapter[]>([])
+  const [hadiths, setHadiths] = useState<Hadith[]>([])
   const [loading, setLoading] = useState(true)
+  const [showDirectHadiths, setShowDirectHadiths] = useState(false)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(false)
+  const PAGE_SIZE = 20
 
   useEffect(() => {
     const fetchBook = async () => {
@@ -68,8 +84,41 @@ export default function BookDetailPage() {
           .eq("book_id", bookId)
           .order("sort_order", { ascending: true })
 
-        if (chaptersData) {
-          // Get excerpt from first hadith of each chapter
+        // If there's only 1 chapter (fake chapter from CDN seeding), show hadiths directly
+        if (chaptersData && chaptersData.length <= 1) {
+          setShowDirectHadiths(true)
+
+          // Fetch hadiths for this book directly from the hadiths table —
+          // the single source of truth, keyed by collection_slug + book_number.
+          // (collection_hadiths is unused/empty; this count matches books.total_hadiths.)
+          const { data: hadithsData } = await supabase
+            .from("hadiths")
+            .select("*")
+            .eq("collection_slug", slug)
+            .eq("book_number", bookData.number)
+            .order("hadith_number", { ascending: true })
+            .range(0, PAGE_SIZE - 1)
+
+          if (hadithsData && hadithsData.length > 0) {
+            const hadithIds = hadithsData.map((h) => h.id)
+
+            // Check saved status
+            const { data: { user } } = await supabase.auth.getUser()
+            let savedHadithIds: string[] = []
+            if (user) {
+              const { data: savedData } = await supabase
+                .from("saved_hadiths")
+                .select("hadith_id")
+                .eq("user_id", user.id)
+                .in("hadith_id", hadithIds)
+              savedHadithIds = savedData?.map((s) => s.hadith_id) || []
+            }
+
+            setHadiths(hadithsData.map((h) => ({ ...h, is_saved: savedHadithIds.includes(h.id) })) as Hadith[])
+            setHasMore(hadithsData.length === PAGE_SIZE)
+          }
+        } else if (chaptersData) {
+          // Multiple chapters -- show the chapter list as before
           const chaptersWithExcerpts = await Promise.all(
             chaptersData.map(async (chapter) => {
               const { data: hadithData } = await supabase
@@ -105,6 +154,46 @@ export default function BookDetailPage() {
     fetchBook()
   }, [supabase, bookId])
 
+  const loadMoreHadiths = async () => {
+    const nextPage = page + 1
+    const from = (nextPage - 1) * PAGE_SIZE
+    const to = from + PAGE_SIZE - 1
+
+    if (!book) return
+    const { data: hadithsData } = await supabase
+      .from("hadiths")
+      .select("*")
+      .eq("collection_slug", slug)
+      .eq("book_number", book.number)
+      .order("hadith_number", { ascending: true })
+      .range(from, to)
+
+    if (hadithsData && hadithsData.length > 0) {
+      const hadithIds = hadithsData.map((h) => h.id)
+      const { data: { user } } = await supabase.auth.getUser()
+      let savedHadithIds: string[] = []
+      if (user) {
+        const { data: savedData } = await supabase
+          .from("saved_hadiths")
+          .select("hadith_id")
+          .eq("user_id", user.id)
+          .in("hadith_id", hadithIds)
+        savedHadithIds = savedData?.map((s) => s.hadith_id) || []
+      }
+
+      setHadiths((prev) => [...prev, ...(hadithsData.map((h) => ({ ...h, is_saved: savedHadithIds.includes(h.id) })) as Hadith[])])
+      setHasMore(hadithsData.length === PAGE_SIZE)
+    } else {
+      setHasMore(false)
+    }
+
+    setPage(nextPage)
+  }
+
+  const handleSaveToggle = (hadithId: string, saved: boolean) => {
+    setHadiths((prev) => prev.map((h) => (h.id === hadithId ? { ...h, is_saved: saved } : h)))
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen marble-bg flex items-center justify-center">
@@ -130,17 +219,17 @@ export default function BookDetailPage() {
   return (
     <div className="min-h-screen marble-bg pb-20 md:pb-0">
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-[#e5e7eb] bg-[#F8F6F2]/95 backdrop-blur-sm">
+      <header className="sticky top-0 z-40 border-b border-border bg-muted/95 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center gap-4 mb-2">
             <button
               onClick={() => router.push(`/collections/${slug}`)}
-              className="w-10 h-10 rounded-full bg-[#F8F6F2] border border-[#e5e7eb] flex items-center justify-center hover:border-[#C5A059] transition-colors"
+              className="w-10 h-10 rounded-full bg-muted border border-border flex items-center justify-center hover:border-[#C5A059] transition-colors"
             >
-              <ChevronLeft className="w-5 h-5 text-[#6b7280]" />
+              <ChevronLeft className="w-5 h-5 text-muted-foreground" />
             </button>
             <div className="flex items-center gap-3 md:hidden">
-              <h1 className="text-lg font-semibold text-[#1a1f36] truncate">Book {book.number}</h1>
+              <h1 className="text-lg font-semibold text-foreground truncate">Book {book.number}</h1>
             </div>
           </div>
           <Breadcrumb
@@ -154,42 +243,83 @@ export default function BookDetailPage() {
       </header>
 
       {/* Book Header */}
-      <section className="border-b border-[#e5e7eb]">
+      <section className="border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 md:py-8">
           <span className="text-sm font-bold text-[#C5A059] uppercase tracking-wider mb-2 block">
             Book {book.number}
           </span>
-          <h1 className="text-2xl md:text-3xl font-bold text-[#1a1f36] mb-2" style={{ fontFamily: "Cinzel, serif" }}>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2" style={{ fontFamily: "Cinzel, serif" }}>
             {book.name_en}
           </h1>
           <p className="text-lg text-[#C5A059] mb-4 font-arabic" dir="rtl">
             {book.name_ar}
           </p>
           <p className="text-sm text-muted-foreground">
-            {book.total_hadiths} Hadiths • {book.total_chapters || chapters.length} Chapters
+            {book.total_hadiths} Hadiths{!showDirectHadiths && ` • ${book.total_chapters || chapters.length} Chapters`}
           </p>
         </div>
       </section>
 
-      {/* Chapters List */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-6 md:py-8">
-        <h2 className="text-lg font-bold text-[#1a1f36] mb-4">Chapters</h2>
+      {/* Content: either hadiths directly or chapters list */}
+      <section className="max-w-3xl mx-auto px-4 sm:px-6 py-6 md:py-8">
+        {showDirectHadiths ? (
+          <>
+            <h2 className="text-lg font-bold text-foreground mb-4">
+              Hadiths
+              <span className="text-sm font-normal text-muted-foreground ml-2">
+                ({book.total_hadiths} total)
+              </span>
+            </h2>
 
-        {chapters.length === 0 ? (
-          <div className="text-center py-12">
-            <BookOpen className="w-12 h-12 mx-auto mb-4 text-muted-foreground/40" />
-            <p className="text-muted-foreground">No chapters available yet</p>
-          </div>
+            {hadiths.length === 0 ? (
+              <div className="text-center py-12">
+                <BookOpen className="w-12 h-12 mx-auto mb-4 text-muted-foreground/40" />
+                <p className="text-muted-foreground">No hadiths available yet</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {hadiths.map((hadith, index) => (
+                  <HadithCardCondensed
+                    key={hadith.id}
+                    hadith={hadith}
+                    referenceNumber={index + 1}
+                    collectionName={collection.name_en}
+                    isSaved={hadith.is_saved}
+                    onSaveToggle={handleSaveToggle}
+                  />
+                ))}
+
+                {hasMore && (
+                  <button
+                    onClick={loadMoreHadiths}
+                    className="w-full py-3 rounded-xl border border-[#C5A059] text-[#C5A059] font-semibold text-sm hover:bg-[#C5A059]/5 transition-colors"
+                  >
+                    Load More Hadiths
+                  </button>
+                )}
+              </div>
+            )}
+          </>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {chapters.map((chapter) => (
-              <ChapterCard key={chapter.id} chapter={chapter} collectionSlug={slug} bookId={bookId} />
-            ))}
-          </div>
+          <>
+            <h2 className="text-lg font-bold text-foreground mb-4">Chapters</h2>
+
+            {chapters.length === 0 ? (
+              <div className="text-center py-12">
+                <BookOpen className="w-12 h-12 mx-auto mb-4 text-muted-foreground/40" />
+                <p className="text-muted-foreground">No chapters available yet</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {chapters.map((chapter) => (
+                  <ChapterCard key={chapter.id} chapter={chapter} collectionSlug={slug} bookId={bookId} />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </section>
 
-      <BottomNavigation />
     </div>
   )
 }

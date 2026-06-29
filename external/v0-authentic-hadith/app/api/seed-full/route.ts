@@ -74,6 +74,10 @@ function extractNarrator(text: string): string {
  * Downloads sections from CDN and inserts missing hadiths.
  */
 export async function GET(request: Request) {
+  const adminSecret = request.headers.get("x-admin-secret")
+  if (adminSecret !== process.env.ADMIN_SECRET) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
   const { searchParams } = new URL(request.url)
   const slug = searchParams.get("collection") || ""
   const startSection = Number(searchParams.get("startSection")) || 1
@@ -87,6 +91,10 @@ export async function GET(request: Request) {
  * Downloads sections from CDN and inserts missing hadiths.
  */
 export async function POST(request: Request) {
+  const adminSecret = request.headers.get("x-admin-secret")
+  if (adminSecret !== process.env.ADMIN_SECRET) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
   const body = await request.json()
   const slug = body.collection as string
   const startSection = (body.startSection as number) || 1

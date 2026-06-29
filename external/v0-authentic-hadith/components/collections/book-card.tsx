@@ -28,7 +28,7 @@ export function BookCard({ book, collectionSlug }: BookCardProps) {
         <span className="text-xs font-bold text-[#C5A059] uppercase tracking-wider">Book {book.number}</span>
       </div>
 
-      <h3 className="text-base font-bold text-[#1a1f36] mb-1 line-clamp-2">{book.name_en}</h3>
+      <h3 className="text-base font-bold text-foreground mb-1 line-clamp-2">{book.name_en}</h3>
       <p className="text-sm text-[#C5A059] mb-3 font-arabic" dir="rtl">
         {book.name_ar}
       </p>

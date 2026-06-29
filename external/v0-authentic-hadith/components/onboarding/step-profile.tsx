@@ -72,10 +72,10 @@ export function StepProfile({ data, onUpdate }: StepProfileProps) {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-h-[65vh] overflow-y-auto pr-1 -mr-1">
       {/* Heading */}
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-[#1a1f36] mb-2">{"Welcome! Let's set up your profile"}</h2>
+        <h2 className="text-2xl font-bold text-foreground mb-2">{"Welcome! Let's set up your profile"}</h2>
         <p className="text-muted-foreground">Tell us a bit about yourself to personalize your experience</p>
       </div>
 
@@ -101,7 +101,7 @@ export function StepProfile({ data, onUpdate }: StepProfileProps) {
               </div>
             </>
           ) : (
-            <div className="w-full h-full rounded-full bg-[#F8F6F2] flex items-center justify-center group-hover:bg-[#ebe7e0] transition-colors">
+            <div className="w-full h-full rounded-full bg-muted flex items-center justify-center group-hover:bg-[#ebe7e0] transition-colors">
               <User className="w-12 h-12 text-[#C5A059]" />
               <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center bg-black/20">
                 <Camera className="w-8 h-8 text-white" />
@@ -132,7 +132,7 @@ export function StepProfile({ data, onUpdate }: StepProfileProps) {
 
       {/* Name Input */}
       <div className="space-y-2">
-        <label htmlFor="name" className="text-sm font-medium text-[#2C2416]">
+        <label htmlFor="name" className="text-sm font-medium text-foreground">
           Your Name <span className="text-destructive">*</span>
         </label>
         <div className="relative">
@@ -154,7 +154,7 @@ export function StepProfile({ data, onUpdate }: StepProfileProps) {
 
       {/* School of Thought Dropdown */}
       <div className="space-y-2">
-        <label className="text-sm font-medium text-[#2C2416]">School of Thought (Madhab)</label>
+        <label className="text-sm font-medium text-foreground">School of Thought (Madhab)</label>
         <div className="relative">
           <button
             type="button"
@@ -165,7 +165,7 @@ export function StepProfile({ data, onUpdate }: StepProfileProps) {
               dropdownOpen && "border-[#C5A059] ring-2 ring-[#C5A059]/20",
             )}
           >
-            <span className={data.schoolOfThought ? "text-[#2C2416]" : "text-muted-foreground"}>
+            <span className={data.schoolOfThought ? "text-foreground" : "text-muted-foreground"}>
               {data.schoolOfThought || "Select your school of thought"}
             </span>
             <ChevronDown
@@ -185,11 +185,11 @@ export function StepProfile({ data, onUpdate }: StepProfileProps) {
                   }}
                   className={cn(
                     "w-full px-4 py-3 text-left flex items-center justify-between",
-                    "hover:bg-[#F8F6F2] transition-colors",
-                    data.schoolOfThought === school && "bg-[#F8F6F2]",
+                    "hover:bg-muted transition-colors",
+                    data.schoolOfThought === school && "bg-muted",
                   )}
                 >
-                  <span className="text-[#2C2416]">{school}</span>
+                  <span className="text-foreground">{school}</span>
                   {data.schoolOfThought === school && <Check className="w-4 h-4 text-[#C5A059]" />}
                 </button>
               ))}

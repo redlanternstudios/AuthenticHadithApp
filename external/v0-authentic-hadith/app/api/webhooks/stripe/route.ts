@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server"
-import { stripe } from "@/lib/stripe"
+import { getStripe } from "@/lib/stripe"
 import { getSupabaseAdmin } from "@/lib/supabase/admin"
 import { getTierFromProductId } from "@/lib/products"
 import type Stripe from "stripe"
 
 export async function POST(request: Request) {
+  const stripe = getStripe()
   const body = await request.text()
   const signature = request.headers.get("stripe-signature")
 
@@ -39,11 +40,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ received: true, duplicate: true })
   }
 
-  // Record event
+  // Record event (id is the text PK -- use the Stripe event id)
   await supabase.from("stripe_events").insert({
+    id: event.id,
     stripe_event_id: event.id,
     event_type: event.type,
+    type: event.type,
     payload: event.data.object,
+    processed_at: new Date().toISOString(),
   })
 
   try {
@@ -102,7 +106,7 @@ async function handleCheckoutCompleted(
 
   if (session.mode === "subscription") {
     const subscriptionId = session.subscription as string
-    const sub = await stripe.subscriptions.retrieve(subscriptionId)
+    const sub = await getStripe().subscriptions.retrieve(subscriptionId)
 
     const tier = getTierFromProductId(productId || "")
     const status = sub.status === "trialing" ? "trialing" : "active"
@@ -114,6 +118,7 @@ async function handleCheckoutCompleted(
         stripe_customer_id: customerId,
         stripe_subscription_id: subscriptionId,
         product_id: productId,
+        provider: "stripe",
         status: sub.status,
         current_period_start: new Date(sub.current_period_start * 1000).toISOString(),
         current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
@@ -141,6 +146,7 @@ async function handleCheckoutCompleted(
         stripe_customer_id: customerId,
         stripe_subscription_id: null,
         product_id: productId,
+        provider: "stripe",
         status: "lifetime",
         current_period_start: new Date().toISOString(),
         current_period_end: null,
@@ -227,7 +233,7 @@ async function handleInvoicePaymentSucceeded(
 
   if (!subscriptionId) return
 
-  const sub = await stripe.subscriptions.retrieve(subscriptionId)
+  const sub = await getStripe().subscriptions.retrieve(subscriptionId)
 
   await supabase
     .from("subscriptions")

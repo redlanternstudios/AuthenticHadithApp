@@ -638,6 +638,10 @@ async function seedBook(
 }
 
 export async function POST(request: Request) {
+  const adminSecret = request.headers.get("x-admin-secret")
+  if (adminSecret !== process.env.ADMIN_SECRET) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
   try {
     const body = await request.json()
     const { collection, bookNumber, seedAll } = body

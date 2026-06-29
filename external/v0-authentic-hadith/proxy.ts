@@ -1,95 +1,119 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from "@/lib/supabase/config"
 
-// Routes that do NOT require authentication
-const publicPaths = ["/", "/login", "/pricing", "/checkout/success", "/reset-password"]
-
-// Routes that require authentication
-const protectedPrefixes = ["/home", "/dashboard", "/onboarding", "/profile", "/settings", "/saved", "/collections", "/hadith", "/assistant", "/search", "/learn"]
+const publicPaths = ["/pricing", "/checkout/success", "/reset-password"]
+const publicPrefixes = ["/api", "/auth", "/admin", "/about", "/privacy", "/terms", "/contact", "/my-hadith"]
+const authPages = ["/login"]
+const protectedPrefixes = ["/home", "/dashboard", "/onboarding", "/profile", "/settings", "/saved", "/collections", "/hadith", "/assistant", "/search", "/learn", "/today", "/sunnah", "/stories", "/reflections", "/quiz", "/progress", "/share", "/topics", "/achievements"]
 
 export async function proxy(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
-  })
+  const pathname = request.nextUrl.pathname
 
-  try {
-    const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  // Fast-path: skip auth check entirely for public pages (allows crawlers/bots through)
+  const isPublic =
+    publicPaths.some((p) => pathname === p) ||
+    publicPrefixes.some((prefix) => pathname.startsWith(prefix))
+
+  if (isPublic) {
+    return NextResponse.next({ request })
+  }
+
+  // Root path "/" — check auth and redirect accordingly
+  if (pathname === "/") {
+    let supabaseResponse = NextResponse.next({ request })
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+            supabaseResponse = NextResponse.next({ request })
+            cookiesToSet.forEach(({ name, value, options }) =>
+              supabaseResponse.cookies.set(name, value, options),
+            )
+          },
+        },
+      },
+    )
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const hasOnboarded = request.cookies.get("ah_onboarded")?.value === "1"
+      const hasSafetyAgreed = request.cookies.get("ah_safety_agreed")?.value === "1"
+      const url = request.nextUrl.clone()
+      url.pathname = hasOnboarded && hasSafetyAgreed ? "/home" : "/onboarding"
+      return NextResponse.redirect(url)
+    }
+    // Not logged in — show the public landing page
+    return NextResponse.next({ request })
+  }
+
+  const isAuthPage = authPages.some((p) => pathname === p)
+  const isProtected = protectedPrefixes.some((prefix) => pathname.startsWith(prefix))
+
+  // If the path isn't protected and isn't an auth page, just pass through
+  if (!isProtected && !isAuthPage) {
+    return NextResponse.next({ request })
+  }
+
+  // Only run Supabase auth for protected routes
+  let supabaseResponse = NextResponse.next({ request })
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
       cookies: {
         getAll() {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          for (const { name, value } of cookiesToSet) {
-            request.cookies.set(name, value)
-          }
-          supabaseResponse = NextResponse.next({
-            request,
-          })
-          for (const { name, value, options } of cookiesToSet) {
-            supabaseResponse.cookies.set(name, value, options)
-          }
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value),
+          )
+          supabaseResponse = NextResponse.next({ request })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options),
+          )
         },
       },
-    })
+    },
+  )
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-    const pathname = request.nextUrl.pathname
-    let hasOnboarded = request.cookies.get("qbos_onboarded")?.value === "1"
+  const hasOnboarded = request.cookies.get("ah_onboarded")?.value === "1"
+  const hasSafetyAgreed = request.cookies.get("ah_safety_agreed")?.value === "1"
 
-    // If user is authenticated but cookie is missing, check the database
-    if (user && !hasOnboarded) {
-      const { data: prefs } = await supabase
-        .from("user_preferences")
-        .select("onboarded")
-        .eq("user_id", user.id)
-        .single()
+  // Auth page: redirect logged-in users away from login
+  if (isAuthPage && user) {
+    const url = request.nextUrl.clone()
+    url.pathname = hasOnboarded ? "/home" : "/onboarding"
+    return NextResponse.redirect(url)
+  }
 
-      if (prefs?.onboarded) {
-        hasOnboarded = true
-        // Set the cookie so we don't need to check DB every time
-        supabaseResponse.cookies.set("qbos_onboarded", "1", {
-          path: "/",
-          maxAge: 31536000, // 1 year
-          sameSite: "lax",
-        })
-      }
-    }
+  // Auth page but not logged in: allow through
+  if (isAuthPage) {
+    return supabaseResponse
+  }
 
-    // Check if the current path is public
-    const isPublic = publicPaths.some((p) => pathname === p) ||
-      pathname.startsWith("/api") ||
-      pathname.startsWith("/auth") ||
-      pathname.startsWith("/admin")
+  // Protected page: redirect unauthenticated users to login
+  if (!user) {
+    const url = request.nextUrl.clone()
+    url.pathname = "/login"
+    return NextResponse.redirect(url)
+  }
 
-    // Check if the current path is protected
-    const isProtected = protectedPrefixes.some((prefix) => pathname.startsWith(prefix))
-
-    // Redirect unauthenticated users away from protected routes
-    if (!user && isProtected) {
-      const url = request.nextUrl.clone()
-      url.pathname = "/login"
-      return NextResponse.redirect(url)
-    }
-
-    // Redirect authenticated users away from login page to home
-    if (user && pathname === "/login") {
-      const url = request.nextUrl.clone()
-      url.pathname = hasOnboarded ? "/home" : "/onboarding"
-      return NextResponse.redirect(url)
-    }
-
-    // Redirect to onboarding if authenticated but not onboarded (except public/api/admin paths)
-    if (user && !hasOnboarded && isProtected && pathname !== "/onboarding") {
-      const url = request.nextUrl.clone()
-      url.pathname = "/onboarding"
-      return NextResponse.redirect(url)
-    }
-  } catch (err) {
-    console.error("[v0] Proxy error:", err)
+  // Protected page: redirect to onboarding if safety not agreed or not onboarded
+  if ((!hasOnboarded || !hasSafetyAgreed) && pathname !== "/onboarding") {
+    const url = request.nextUrl.clone()
+    url.pathname = "/onboarding"
+    return NextResponse.redirect(url)
   }
 
   return supabaseResponse

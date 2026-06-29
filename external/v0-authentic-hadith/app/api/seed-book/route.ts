@@ -187,6 +187,10 @@ function parseFromRawHtml(html: string, sunnahSlug: string): { hadiths: ParsedHa
 }
 
 export async function POST(request: Request) {
+  const adminSecret = request.headers.get("x-admin-secret")
+  if (adminSecret !== process.env.ADMIN_SECRET) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
   try {
     const { collection, bookNumber } = await request.json()
     if (!collection || !bookNumber) {
