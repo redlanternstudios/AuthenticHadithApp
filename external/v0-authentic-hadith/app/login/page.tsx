@@ -1,5 +1,7 @@
+import { Suspense } from "react"
 import { AuthForm } from "@/components/auth-form"
 import Image from "next/image"
+import { Loader2 } from "lucide-react"
 
 export default function LoginPage() {
   return (
@@ -29,7 +31,9 @@ export default function LoginPage() {
 
         {/* Auth Card */}
         <div className="premium-card rounded-xl p-6 shadow-xl">
-          <AuthForm />
+          <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}>
+            <AuthForm />
+          </Suspense>
         </div>
 
         {/* Footer text */}

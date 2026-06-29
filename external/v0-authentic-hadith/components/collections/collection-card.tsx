@@ -63,7 +63,7 @@ export function CollectionCard({ collection, variant = "default" }: CollectionCa
           </div>
 
           {/* Names */}
-          <h3 className="text-lg font-bold text-[#1a1f36] mb-1 line-clamp-1">{collection.name_en}</h3>
+          <h3 className="text-lg font-bold text-foreground mb-1 line-clamp-1">{collection.name_en}</h3>
           <p className="text-sm text-[#C5A059] mb-2 font-arabic" dir="rtl">
             {collection.name_ar}
           </p>
@@ -73,7 +73,7 @@ export function CollectionCard({ collection, variant = "default" }: CollectionCa
 
           {/* Grade badge */}
           <div className="mt-auto">
-            <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-semibold bg-gradient-to-r from-[#C5A059] to-[#E8C77D] text-[#2c2416]">
+            <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-semibold bg-gradient-to-r from-[#C5A059] to-[#E8C77D] text-foreground">
               {sahihPercent}% Sahih
             </span>
           </div>
@@ -92,7 +92,7 @@ export function CollectionCard({ collection, variant = "default" }: CollectionCa
           <BookOpen className="w-6 h-6 text-[#C5A059]" />
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="text-base font-bold text-[#1a1f36] mb-0.5 line-clamp-1">{collection.name_en}</h3>
+          <h3 className="text-base font-bold text-foreground mb-0.5 line-clamp-1">{collection.name_en}</h3>
           <p className="text-sm text-[#C5A059] mb-2 font-arabic" dir="rtl">
             {collection.name_ar}
           </p>
@@ -106,10 +106,10 @@ export function CollectionCard({ collection, variant = "default" }: CollectionCa
       {/* Grade distribution bar */}
       {totalGraded > 0 && (
         <div className="mt-4">
-          <div className="flex h-2 rounded-full overflow-hidden bg-gray-100">
+          <div className="flex h-2 rounded-full overflow-hidden bg-muted">
             <div className="bg-gradient-to-r from-[#C5A059] to-[#E8C77D]" style={{ width: `${sahihPercent}%` }} />
             <div className="bg-gradient-to-r from-[#1B5E43] to-[#2D7A5B]" style={{ width: `${hasanPercent}%` }} />
-            <div className="bg-gray-300" style={{ width: `${100 - sahihPercent - hasanPercent}%` }} />
+            <div className="bg-muted-foreground/20" style={{ width: `${100 - sahihPercent - hasanPercent}%` }} />
           </div>
           <div className="flex justify-between mt-1.5 text-[10px] text-muted-foreground">
             <span>{sahihPercent}% Sahih</span>

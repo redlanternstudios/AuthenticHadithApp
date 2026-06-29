@@ -23,7 +23,7 @@ export function AIAssistantBlock() {
         <h3 className="text-xl sm:text-2xl font-bold mb-6">Have a question about hadith?</h3>
         <button
           onClick={() => router.push("/assistant")}
-          className="w-full sm:w-auto px-8 py-4 bg-white text-[#1B5E43] rounded-xl font-semibold hover:scale-[1.02] hover:shadow-lg transition-all"
+          className="w-full sm:w-auto px-8 py-4 bg-card text-[#1B5E43] rounded-xl font-semibold hover:scale-[1.02] hover:shadow-lg transition-all"
         >
           Ask the AI Assistant
         </button>

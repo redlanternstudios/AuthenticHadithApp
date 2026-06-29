@@ -2,7 +2,9 @@ export interface Product {
   id: string
   stripeProductId: string
   stripePriceId: string
+  revenuecatProductId?: string
   name: string
+  tierLabel: string
   description: string
   priceInCents: number
   mode: "payment" | "subscription"
@@ -12,55 +14,72 @@ export interface Product {
   highlighted?: boolean
   badge?: string
   trialDays?: number
-  skipTrialCoupon?: string
 }
+
+/** Free tier limits -- used by quota RPCs and upgrade prompts */
+export const FREE_TIER_LIMITS = {
+  maxSavedHadith: 40,
+  aiExplanationsPerDay: 5,
+  quizzesPerDay: 1,
+  learningPaths: "beginner" as const,
+} as const
+
+/** Feature lists for display in comparison tables */
+export const TIER_FEATURES = {
+  explorer: [
+    "Browse all 8 hadith collections",
+    "Full hadith text (Arabic + English)",
+    "Narrator chain & grading info",
+    "Basic search",
+    "Topic browsing",
+    "Save up to 40 hadiths",
+    "5 AI explanations per day",
+    "Beginner learning paths",
+    "1 quiz per day",
+  ],
+  pro: [
+    "Unlimited AI explanations (Deep mode)",
+    "Advanced search with synonym expansion",
+    "Tag filtering & semantic search",
+    "Unlimited saves & folders",
+    "All learning paths (Advanced + Scholar)",
+    "Unlimited quizzes",
+    "Priority support",
+    "Early access to new features",
+  ],
+  founding: [
+    "Everything in Pro, forever",
+    "Founding member badge & recognition",
+    "All future features included",
+    "No recurring charges",
+    "Lifetime priority support",
+  ],
+} as const
 
 export const PRODUCTS: Product[] = [
   {
-    id: "monthly-intro",
-    stripeProductId: process.env.STRIPE_PRODUCT_MONTHLY_INTRO || "prod_TwQlGuMaHFrj8Y",
-    stripePriceId: process.env.STRIPE_PRICE_PREMIUM_MONTHLY || "",
-    name: "Monthly (Intro)",
-    description: "Introductory monthly access for first-time members. Full access to all learning paths and AI explanations.",
-    priceInCents: 499,
-    mode: "subscription",
-    interval: "month",
-    tier: "premium",
-    badge: "Intro Offer",
-    skipTrialCoupon: "INTRO_MONTHLY",
-    features: [
-      "Full access to all collections",
-      "AI-powered explanations",
-      "All learning paths",
-      "Save & bookmark hadiths",
-      "Basic offline access",
-    ],
-  },
-  {
     id: "monthly-premium",
-    stripeProductId: process.env.STRIPE_PRODUCT_MONTHLY || "prod_TwQlhKMbgmTCKR",
-    stripePriceId: process.env.STRIPE_PRICE_PREMIUM_MONTHLY || "",
-    name: "Monthly Premium",
-    description: "Unlimited access to authentic hadith collections, AI-powered explanations, learning paths, and progress tracking.",
+    stripeProductId: "",
+    stripePriceId: "",
+    revenuecatProductId: "ah_monthly_999",
+    name: "Monthly",
+    tierLabel: "Pro",
+    description: "Unlimited AI, advanced search, all learning paths, and unlimited saves.",
     priceInCents: 999,
     mode: "subscription",
     interval: "month",
     tier: "premium",
     trialDays: 7,
-    features: [
-      "Everything in Intro",
-      "Advanced hadith search",
-      "Priority AI assistant",
-      "Progress tracking",
-      "Custom reading lists",
-    ],
+    features: TIER_FEATURES.pro.slice(0, 5) as unknown as string[],
   },
   {
     id: "annual-premium",
-    stripeProductId: process.env.STRIPE_PRODUCT_ANNUAL || "prod_TwQlg8sbgNPQAY",
-    stripePriceId: process.env.STRIPE_PRICE_PREMIUM_ANNUAL_DISCOUNTED || "",
-    name: "Annual Premium",
-    description: "Full access to Authentic Hadith for one year. Best value for committed learners.",
+    stripeProductId: "",
+    stripePriceId: "",
+    revenuecatProductId: "ah_annual_4999",
+    name: "Annual",
+    tierLabel: "Pro",
+    description: "Best value -- full Pro access for one year at a significant discount.",
     priceInCents: 4999,
     mode: "subscription",
     interval: "year",
@@ -68,36 +87,27 @@ export const PRODUCTS: Product[] = [
     highlighted: true,
     badge: "Best Value",
     features: [
-      "Everything in Monthly Premium",
+      "Everything in Pro",
       "Save 58% vs monthly",
       "Early access to new features",
-      "Extended AI assistant usage",
       "Priority support",
     ],
   },
   {
     id: "lifetime-access",
-    stripeProductId: process.env.STRIPE_PRODUCT_LIFETIME || "prod_TwQlP4juGDT1KA",
-    stripePriceId: process.env.STRIPE_PRICE_LIFETIME || "",
-    name: "Lifetime Access",
-    description: "Lifetime access to Authentic Hadith, including all current and future core features.",
+    stripeProductId: "",
+    stripePriceId: "",
+    revenuecatProductId: "ah_lifetime_9999",
+    name: "Lifetime",
+    tierLabel: "Founding",
+    description: "One-time payment. Permanent access to all current and future features.",
     priceInCents: 9999,
     mode: "payment",
     tier: "lifetime",
-    badge: "One-Time",
-    features: [
-      "Everything in Annual, forever",
-      "All future features included",
-      "No recurring charges",
-      "Lifetime priority support",
-      "Founding member recognition",
-    ],
+    badge: "Founding Member",
+    features: TIER_FEATURES.founding.slice(0, 5) as unknown as string[],
   },
 ]
-
-export const STRIPE_COUPONS = {
-  INTRO_MONTHLY: "INTRO_MONTHLY",
-} as const
 
 export function getSubscriptionProducts() {
   return PRODUCTS.filter((p) => p.mode === "subscription")
@@ -112,6 +122,11 @@ export function getProductById(id: string) {
 }
 
 export function getTierFromProductId(productId: string): "free" | "premium" | "lifetime" {
-  const product = PRODUCTS.find((p) => p.stripeProductId === productId || p.id === productId)
+  const product = PRODUCTS.find(
+    (p) =>
+      p.stripeProductId === productId ||
+      p.id === productId ||
+      p.revenuecatProductId === productId
+  )
   return product?.tier ?? "free"
 }

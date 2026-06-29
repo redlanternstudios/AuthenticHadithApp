@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { ChevronLeft, Bookmark, Share2, BookOpen } from "lucide-react"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
-import { BottomNavigation } from "@/components/home/bottom-navigation"
+
 import { Breadcrumb } from "@/components/collections/breadcrumb"
 import { BookCard } from "@/components/collections/book-card"
 import { cn } from "@/lib/utils"
@@ -54,13 +54,13 @@ export default function CollectionDetailPage() {
   useEffect(() => {
     const fetchCollection = async () => {
       // Fetch collection details
-      const { data: collectionData } = await supabase.from("collections").select("*").eq("slug", slug).single()
+      const { data: collectionData, error: collError } = await supabase.from("collections").select("*").eq("slug", slug).single()
 
       if (collectionData) {
         setCollection(collectionData)
 
         // Fetch books for this collection
-        const { data: booksData } = await supabase
+        const { data: booksData, error: booksError } = await supabase
           .from("books")
           .select("*")
           .eq("collection_id", collectionData.id)
@@ -219,17 +219,17 @@ export default function CollectionDetailPage() {
   return (
     <div className="min-h-screen marble-bg pb-20 md:pb-0">
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-[#e5e7eb] bg-[#F8F6F2]/95 backdrop-blur-sm">
+      <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center gap-4 mb-2">
             <button
               onClick={() => router.push("/collections")}
-              className="w-10 h-10 rounded-full bg-[#F8F6F2] border border-[#e5e7eb] flex items-center justify-center hover:border-[#C5A059] transition-colors"
+              className="w-10 h-10 rounded-full bg-background border border-border flex items-center justify-center hover:border-[#C5A059] transition-colors"
             >
-              <ChevronLeft className="w-5 h-5 text-[#6b7280]" />
+              <ChevronLeft className="w-5 h-5 text-muted-foreground" />
             </button>
             <div className="flex items-center gap-3 md:hidden">
-              <h1 className="text-lg font-semibold text-[#1a1f36] truncate">{collection.name_en}</h1>
+              <h1 className="text-lg font-semibold text-foreground truncate">{collection.name_en}</h1>
             </div>
           </div>
           <Breadcrumb items={[{ label: "Collections", href: "/collections" }, { label: collection.name_en }]} />
@@ -237,7 +237,7 @@ export default function CollectionDetailPage() {
       </header>
 
       {/* Collection Header */}
-      <section className="relative overflow-hidden border-b border-[#e5e7eb]">
+      <section className="relative overflow-hidden border-b border-border">
         {/* Gold gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-r from-[#C5A059]/5 to-transparent" />
 
@@ -251,7 +251,7 @@ export default function CollectionDetailPage() {
             <div className="flex-1">
               {/* Names */}
               <h1
-                className="text-2xl md:text-3xl font-bold text-[#1a1f36] mb-1"
+                className="text-2xl md:text-3xl font-bold text-foreground mb-1"
                 style={{ fontFamily: "Cinzel, serif" }}
               >
                 {collection.name_en}
@@ -267,7 +267,7 @@ export default function CollectionDetailPage() {
               </p>
 
               {/* Stats */}
-              <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-[#1a1f36] mb-4">
+              <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-foreground mb-4">
                 <span>{collection.total_hadiths.toLocaleString()} Hadiths</span>
                 <span className="text-muted-foreground/50">•</span>
                 <span>{collection.total_books || books.length} Books</span>
@@ -293,7 +293,7 @@ export default function CollectionDetailPage() {
                 </button>
                 <button
                   onClick={handleShare}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border-2 border-[#d4cfc7] text-muted-foreground hover:border-[#C5A059] hover:text-[#C5A059] transition-all"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border-2 border-border text-muted-foreground hover:border-[#C5A059] hover:text-[#C5A059] transition-all"
                 >
                   <Share2 className="w-4 h-4" />
                   Share
@@ -305,14 +305,14 @@ export default function CollectionDetailPage() {
       </section>
 
       {/* Quick Stats Bar */}
-      <section className="border-b border-[#e5e7eb] py-4">
+      <section className="border-b border-border py-4">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           {/* Grade Distribution */}
           <div className="mb-4">
             <div className="flex items-center gap-4 mb-2">
-              <span className="text-sm font-medium text-[#1a1f36]">Grade Distribution</span>
+              <span className="text-sm font-medium text-foreground">Grade Distribution</span>
             </div>
-            <div className="flex h-3 rounded-full overflow-hidden bg-gray-100">
+            <div className="flex h-3 rounded-full overflow-hidden bg-muted">
               <div
                 className="bg-gradient-to-r from-[#C5A059] to-[#E8C77D] transition-all"
                 style={{ width: `${sahihPercent}%` }}
@@ -321,7 +321,7 @@ export default function CollectionDetailPage() {
                 className="bg-gradient-to-r from-[#1B5E43] to-[#2D7A5B] transition-all"
                 style={{ width: `${hasanPercent}%` }}
               />
-              <div className="bg-gray-300 transition-all" style={{ width: `${daifPercent}%` }} />
+              <div className="bg-muted-foreground/30 transition-all" style={{ width: `${daifPercent}%` }} />
             </div>
             <div className="flex justify-between mt-2 text-xs text-muted-foreground">
               <span>
@@ -354,7 +354,7 @@ export default function CollectionDetailPage() {
 
       {/* Books List */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 py-6 md:py-8">
-        <h2 className="text-lg font-bold text-[#1a1f36] mb-4">Books ({collection.total_books || books.length})</h2>
+        <h2 className="text-lg font-bold text-foreground mb-4">Books ({collection.total_books || books.length})</h2>
 
         {books.length === 0 ? (
           <div className="text-center py-12">
@@ -384,7 +384,6 @@ export default function CollectionDetailPage() {
         )}
       </section>
 
-      <BottomNavigation />
     </div>
   )
 }

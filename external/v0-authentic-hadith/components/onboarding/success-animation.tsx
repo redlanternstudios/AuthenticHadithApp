@@ -19,7 +19,7 @@ export function SuccessAnimation({ onComplete }: SuccessAnimationProps) {
   }, [onComplete])
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#F8F6F2]/90 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 backdrop-blur-sm">
       <div
         className={`flex flex-col items-center gap-4 transition-all duration-500 ${
           show ? "opacity-100 scale-100" : "opacity-0 scale-75"

@@ -16,6 +16,7 @@ import {
   Bookmark,
   Search,
   HelpCircle,
+  Info,
   User,
   Settings,
   LogOut,
@@ -23,48 +24,54 @@ import {
   Moon,
 } from "lucide-react"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
+import { useLanguage } from "@/hooks/use-language"
+import type { TranslationKey } from "@/lib/i18n/translations"
 
 interface MobileDrawerProps {
   open: boolean
   onClose: () => void
 }
 
-const drawerGroups = [
+type DrawerItem = { icon: typeof Tags; labelKey: TranslationKey; href: string }
+type DrawerGroup = { labelKey: TranslationKey; items: DrawerItem[] }
+
+const drawerGroups: DrawerGroup[] = [
   {
-    label: "Study",
+    labelKey: "study",
     items: [
-      { icon: Tags, label: "Topics", href: "/topics" },
-      { icon: Heart, label: "Sunnah", href: "/sunnah" },
-      { icon: GraduationCap, label: "Learning Paths", href: "/learn" },
-      { icon: Users, label: "Stories", href: "/stories" },
+      { icon: Tags, labelKey: "topics", href: "/topics" },
+      { icon: Heart, labelKey: "sunnah", href: "/sunnah" },
+      { icon: GraduationCap, labelKey: "learningPaths", href: "/learn" },
+      { icon: Users, labelKey: "stories", href: "/stories" },
     ],
   },
   {
-    label: "Daily",
+    labelKey: "daily",
     items: [
-      { icon: PenLine, label: "Reflections", href: "/reflections" },
-      { icon: BarChart3, label: "Progress", href: "/progress" },
+      { icon: PenLine, labelKey: "reflections", href: "/reflections" },
+      { icon: BarChart3, labelKey: "progress", href: "/progress" },
     ],
   },
   {
-    label: "Personal",
+    labelKey: "personal",
     items: [
-      { icon: Trophy, label: "Achievements", href: "/achievements" },
-      { icon: Bookmark, label: "Saved", href: "/saved" },
+      { icon: Trophy, labelKey: "achievements", href: "/achievements" },
+      { icon: Bookmark, labelKey: "saved", href: "/saved" },
     ],
   },
   {
-    label: "Tools",
+    labelKey: "tools",
     items: [
-      { icon: Search, label: "Search", href: "/search" },
-      { icon: HelpCircle, label: "Quiz", href: "/quiz" },
+      { icon: Search, labelKey: "search", href: "/search" },
+      { icon: HelpCircle, labelKey: "quiz", href: "/quiz" },
     ],
   },
   {
-    label: "Account",
+    labelKey: "account",
     items: [
-      { icon: User, label: "Profile", href: "/profile" },
-      { icon: Settings, label: "Settings", href: "/settings" },
+      { icon: User, labelKey: "profile", href: "/profile" },
+      { icon: Settings, labelKey: "settings", href: "/settings" },
+      { icon: Info, labelKey: "about", href: "/about" },
     ],
   },
 ]
@@ -73,11 +80,15 @@ export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { resolvedTheme, setTheme } = useTheme()
+  const { t, dir } = useLanguage()
 
   // Close drawer on route change
   useEffect(() => {
-    onClose()
-  }, [pathname, onClose])
+    if (open) {
+      onClose()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname])
 
   // Lock body scroll when open
   useEffect(() => {
@@ -100,7 +111,7 @@ export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
     const supabase = getSupabaseBrowserClient()
     await fetch("/api/auth/signout", { method: "POST" })
     await supabase.auth.signOut({ scope: "global" })
-    document.cookie = "qbos_onboarded=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
+    document.cookie = "ah_onboarded=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
     router.push("/login")
     router.refresh()
     onClose()
@@ -110,33 +121,38 @@ export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
     <>
       {/* Backdrop */}
       {open && (
-        <div
-          className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm md:hidden"
+        <button
+          type="button"
+          className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm xl:hidden cursor-default"
           onClick={onClose}
-          aria-hidden="true"
+          aria-label={t("closeMenu")}
         />
       )}
 
       {/* Drawer panel */}
       <div
         className={cn(
-          "fixed top-0 right-0 z-[70] h-full w-[280px] bg-card border-l border-border shadow-xl",
-          "transform transition-transform duration-300 ease-in-out md:hidden",
+          "fixed top-0 z-[70] h-full w-[280px] bg-card shadow-xl",
+          "transform transition-transform duration-300 ease-in-out xl:hidden",
           "overflow-y-auto",
-          open ? "translate-x-0" : "translate-x-full",
+          dir === "rtl" ? "left-0 border-r border-border font-arabic" : "right-0 border-l border-border",
+          dir === "rtl" 
+            ? (open ? "translate-x-0" : "-translate-x-full")
+            : (open ? "translate-x-0" : "translate-x-full"),
         )}
+        dir={dir}
         role="dialog"
         aria-modal="true"
-        aria-label="Navigation menu"
+        aria-label={t("menu")}
       >
         {/* Drawer Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
-          <h2 className="text-base font-semibold text-foreground">Menu</h2>
+          <h2 className="text-base font-semibold text-foreground">{t("menu")}</h2>
           <button
             type="button"
             onClick={onClose}
             className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center"
-            aria-label="Close menu"
+            aria-label={t("cancel")}
           >
             <X className="w-5 h-5 text-foreground" />
           </button>
@@ -145,9 +161,9 @@ export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
         {/* Navigation Groups */}
         <div className="py-2">
           {drawerGroups.map((group) => (
-            <div key={group.label} className="px-3 py-2">
+            <div key={group.labelKey} className="px-3 py-2">
               <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-1">
-                {group.label}
+                {t(group.labelKey)}
               </p>
               {group.items.map((item) => {
                 const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
@@ -157,15 +173,16 @@ export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
                     key={item.href}
                     onClick={() => handleNavigation(item.href)}
                     className={cn(
-                      "w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left transition-colors",
+                      "w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-colors",
                       "min-h-[44px]",
+                      dir === "rtl" ? "text-right" : "text-left",
                       isActive
                         ? "bg-[#C5A059]/10 text-[#C5A059]"
                         : "text-foreground hover:bg-muted/50 active:bg-muted",
                     )}
                   >
                     <item.icon className={cn("w-5 h-5 shrink-0", isActive ? "text-[#C5A059]" : "text-muted-foreground")} />
-                    <span className={cn("text-sm", isActive && "font-semibold")}>{item.label}</span>
+                    <span className={cn("text-sm", isActive && "font-semibold")}>{t(item.labelKey)}</span>
                   </button>
                 )
               })}
@@ -178,14 +195,17 @@ export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
           <button
             type="button"
             onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-            className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left transition-colors min-h-[44px] text-foreground hover:bg-muted/50 active:bg-muted"
+            className={cn(
+              "w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-colors min-h-[44px] text-foreground hover:bg-muted/50 active:bg-muted",
+              dir === "rtl" ? "text-right" : "text-left"
+            )}
           >
             {resolvedTheme === "dark" ? (
               <Sun className="w-5 h-5 text-[#C5A059] shrink-0" />
             ) : (
               <Moon className="w-5 h-5 text-muted-foreground shrink-0" />
             )}
-            <span className="text-sm">{resolvedTheme === "dark" ? "Light Mode" : "Dark Mode"}</span>
+            <span className="text-sm">{resolvedTheme === "dark" ? t("lightMode") : t("darkMode")}</span>
           </button>
         </div>
 
@@ -194,10 +214,13 @@ export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
           <button
             type="button"
             onClick={handleSignOut}
-            className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left transition-colors min-h-[44px] text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 active:bg-red-100"
+            className={cn(
+              "w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-colors min-h-[44px] text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 active:bg-red-100",
+              dir === "rtl" ? "text-right" : "text-left"
+            )}
           >
             <LogOut className="w-5 h-5 shrink-0" />
-            <span className="text-sm">Sign Out</span>
+            <span className="text-sm">{t("signOut")}</span>
           </button>
         </div>
       </div>

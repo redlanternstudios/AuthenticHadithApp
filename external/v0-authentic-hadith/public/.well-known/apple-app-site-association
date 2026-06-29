@@ -1,0 +1,11 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "LXL3ZMHHK6.com.byred.authentichadith",
+        "paths": ["/shared/*", "/my-hadith/shared/*"]
+      }
+    ]
+  }
+}
