@@ -92,6 +92,42 @@ Before any EAS build:
 
 ## FIXES
 
+### [FIX-162] — Returning users re-enter onboarding after fresh install
+**Date**: 2026-07-07 PT
+**Session**: Codex
+**Severity**: Critical
+
+**Error Message**:
+```
+Fresh install / cleared AsyncStorage redirects an already-onboarded account to /onboarding.
+```
+
+**Root Cause**:
+`NavigationGate` trusted only the local `AsyncStorage` key `onboarded`. If the local key was missing on a new device, reinstall, or simulator reset, the gate ignored `user_preferences.onboarded=true` and treated the signed-in user as incomplete.
+
+**Fix Applied**:
+```
+app/_layout.tsx now resolves onboarding from local cache first, then Supabase user_preferences for signed-in users.
+```
+
+**Files Changed**:
+- `app/_layout.tsx` — hydrates onboarding state from `user_preferences.onboarded` and writes the local cache when the backend says complete.
+- `lib/onboarding/onboarding-state.ts` — isolated onboarding state resolver so the gate logic is testable.
+- `__tests__/navigation/onboarding-state.test.ts` — covers local completion, backend hydration, new users, and logged-out users.
+
+**Verification Command**:
+```
+npx tsc --noEmit
+npm test -- onboarding-state.test.ts --runInBand
+```
+
+**Result**: Code fixed and static verified. Simulator launched, but full live onboarding QA is blocked on local EAS env access because this machine is not logged into Expo and `.env.local` is absent.
+
+**Lesson**:
+Onboarding completion is account state, not only device state. Local cache can speed the gate, but signed-in users must be allowed to hydrate completion from `user_preferences` so reinstall and new-device flows do not loop.
+
+---
+
 ### [FIX-093] — Premium Monthly paywall subtitle: blank (empty ASC Description), then duplicate of Annual; added per-tier description fallback
 **Date**: 2026-06-18 PT · KP-flagged from in-app screenshots · code change in working tree (not committed), ships in the next EAS build
 **Pattern category**: APPSTORE_COMPLIANCE (3.1.2 subscriptions / 4.0 polish) / MONETIZATION-UI

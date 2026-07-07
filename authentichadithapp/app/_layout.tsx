@@ -29,6 +29,7 @@ import { LanguageProvider } from '@/lib/i18n/LanguageProvider';
 import { RevenueCatProvider, useRevenueCat } from '@/lib/revenuecat/RevenueCatProvider'
 import { registerForPushNotifications, markAppOpened, cancelAllNotifications } from '@/lib/notifications'
 import { supabase } from '@/lib/supabase/client';
+import { resolveOnboardingState } from '@/lib/onboarding/onboarding-state';
 
 // FIX-071: preventAutoHideAsync at module level ensures the splash is held
 // from the very first JS frame — must remain unconditional and at top-level.
@@ -117,12 +118,43 @@ function NavigationGate() {
   const segments = useSegments()
   const [onboarded, setOnboarded] = useState<boolean | null>(null)
 
-  // Read onboarding flag from AsyncStorage on mount and on every route change
+  // Resolve onboarding from local cache first, then Supabase for signed in users.
   useEffect(() => {
-    AsyncStorage.getItem('onboarded').then((value) => {
-      setOnboarded(value === 'true')
+    let cancelled = false
+
+    setOnboarded(null)
+
+    resolveOnboardingState({
+      userId: user?.id,
+      getLocalFlag: () => AsyncStorage.getItem('onboarded'),
+      setLocalFlag: (value) => AsyncStorage.setItem('onboarded', value),
+      fetchRemoteFlag: async (userId) => {
+        const { data, error } = await supabase
+          .from('user_preferences')
+          .select('onboarded')
+          .eq('user_id', userId)
+          .maybeSingle()
+
+        if (error) {
+          __DEV__ && console.warn('[NavigationGate] Onboarding lookup failed:', error.message)
+          return null
+        }
+
+        return data?.onboarded === true
+      },
     })
-  }, [segments])
+      .then((value) => {
+        if (!cancelled) setOnboarded(value)
+      })
+      .catch((err) => {
+        __DEV__ && console.warn('[NavigationGate] Onboarding resolution failed:', err)
+        if (!cancelled) setOnboarded(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [segments, user?.id])
 
   useEffect(() => {
     // Wait until auth, RevenueCat, and AsyncStorage have all resolved

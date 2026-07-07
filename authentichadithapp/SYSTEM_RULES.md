@@ -1249,3 +1249,21 @@ the instant `auth.users` is written. By the time any client code runs post-signu
    replace with `.update()`. Receipt: `git grep -n "from('profiles').insert\|from('profiles').upsert"` must return 0 results.
 
 **Pattern category**: SUPABASE / AUTH-TRIGGER / CLIENT-INSERT-BYPASS. References: BUG-159, BUG-160, BUILD_FIX_LOG FIX-159, FIX-160.
+
+---
+
+## Rule 046: Onboarding Completion Must Hydrate From Account State
+
+Derived from FIX-162 (2026-07-07): returning users can have `user_preferences.onboarded=true`
+while their device has no local `AsyncStorage` flag after reinstall, simulator reset, or a new
+device. Treating the local flag as the only source sends already-onboarded accounts back through
+onboarding and can create a review loop.
+
+**The rule:**
+1. `AsyncStorage` may cache onboarding completion for speed, but it is not the only authority.
+2. When a signed-in user has no local completion flag, the gate must read
+   `user_preferences.onboarded` by `user_id`.
+3. If the backend says `onboarded=true`, immediately write the local cache before redirect logic.
+4. Backend lookup failure must fail closed into onboarding, never into tabs or paywall.
+
+**Pattern category**: NAVIGATION / ONBOARDING / ACCOUNT-STATE-HYDRATION. References: FIX-162.
