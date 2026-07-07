@@ -3,8 +3,8 @@
   "bridge_repo": "https://github.com/redlanternstudios/Claudex.git",
   "bridge_ref": "main",
   "bridge_file": "OPS/BRIDGE.json",
-  "question_exchange_file": "OPS/QUESTION_QUEUE.json",
-  "question_exchange_protocol": "OPS/QUESTION_EXCHANGE.md",
+  "qa_protocol_file": "OPS/QA_PROTOCOL.md",
+  "questions_index_file": "OPS/questions/INDEX.md",
   "local_bridge_path": "../../../Penn Enterprises LLC/Claudex/OPS/BRIDGE.json",
   "product_key": "authentic_hadith"
 }
