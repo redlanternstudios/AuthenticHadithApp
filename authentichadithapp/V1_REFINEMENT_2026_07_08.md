@@ -49,6 +49,10 @@ VERIFIED: Stories uses the shared emerald header, with Back and Home visible on 
 
 VERIFIED: companion and prophet story readers include Home beside their existing bookmark and share actions.
 
+VERIFIED: RevenueCat offering audit passes with current offering `default` and all three expected product IDs.
+
+VERIFIED: Subscription screen shows Back, Home, three plans, Manage Subscription, and Restore Purchases.
+
 ## Screenshot Receipts
 
 Saved in this folder:
@@ -91,6 +95,7 @@ Saved in this folder:
 - e2e-submit-20260708-36-progress-fixed.png
 - e2e-submit-20260708-37-stories-fixed.png
 - e2e-submit-20260708-38-stories-back-home.png
+- e2e-submit-20260708-39-revenuecat-subscription.png
 - e2e-v1-refinement-01-current.png
 - e2e-v1-refinement-02-dark-home.png
 - e2e-v1-refinement-03-dark-appearance.png
@@ -112,6 +117,10 @@ VERIFIED: iOS simulator rebuild succeeded with zero errors after the Search, Pro
 PARTIAL: one Xcode pod warning remains for SDWebImage deployment version. It did not block the debug simulator build.
 
 PARTIAL: e2e sweep is still active for destructive or external flows. Account deletion was viewed but not executed, native share sheet was not completed, App Store Connect was not touched, and the XcodeBuildMCP accessibility snapshot is blocked by local Xcode selector state.
+
+VERIFIED: `npm run qa:revenuecat` passed on 2026 07 08 with `default` offering, package count 3, and no missing product IDs.
+
+PARTIAL: `node scripts/ios-go-no-go-audit.mjs` still reports NO GO with three manual blockers: App Store Connect products Ready to Submit, RoPhone paywall proof, and final go/no go doc.
 
 ## Submission Posture
 

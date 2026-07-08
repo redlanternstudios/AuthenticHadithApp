@@ -20,6 +20,7 @@ jest.mock('react-native-purchases', () => ({
     restorePurchases: jest.fn(),
     logIn: jest.fn(),
     logOut: jest.fn(),
+    getAppUserID: jest.fn(),
     setLogLevel: jest.fn(),
     addCustomerInfoUpdateListener: jest.fn(),
     removeCustomerInfoUpdateListener: jest.fn(),
@@ -79,6 +80,25 @@ describe('getRevenueCatApiKey — iOS key format', () => {
     const { getRevenueCatApiKey } = require('@/lib/revenuecat/config')
     const result = getRevenueCatApiKey()
     expect(result.apiKey).not.toMatch(/^sk_/)
+  })
+})
+
+describe('resetUser — anonymous RevenueCat guard', () => {
+  it('detects RevenueCat anonymous app user IDs', () => {
+    const { isRevenueCatAnonymousId } = require('@/lib/purchases/revenuecat')
+
+    expect(isRevenueCatAnonymousId('$RCAnonymousID:abc123')).toBe(true)
+    expect(isRevenueCatAnonymousId('supabase-user-id')).toBe(false)
+    expect(isRevenueCatAnonymousId(null)).toBe(false)
+  })
+
+  it('checks the current App User ID before calling logOut', () => {
+    const fs = require('fs')
+    const src = fs.readFileSync('lib/purchases/revenuecat.ts', 'utf8')
+
+    expect(src).toContain('Purchases.getAppUserID()')
+    expect(src).toContain('isRevenueCatAnonymousId(appUserId)')
+    expect(src.indexOf('Purchases.getAppUserID()')).toBeLessThan(src.indexOf('Purchases.logOut()'))
   })
 })
 

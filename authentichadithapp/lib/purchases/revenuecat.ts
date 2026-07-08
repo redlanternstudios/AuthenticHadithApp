@@ -35,6 +35,10 @@ export type SubscriptionStatus = {
 let isConfigured = false
 let retryAttempted = false
 
+export function isRevenueCatAnonymousId(appUserId: string | null | undefined): boolean {
+  return typeof appUserId === 'string' && appUserId.startsWith('$RCAnonymousID:')
+}
+
 /** Read by the React provider so both share one source of truth on configure state. */
 export function isRevenueCatConfigured(): boolean {
   return isConfigured
@@ -130,6 +134,10 @@ export async function resetUser(): Promise<void> {
     return
   }
   try {
+    const appUserId = await Purchases.getAppUserID()
+    if (isRevenueCatAnonymousId(appUserId)) {
+      return
+    }
     await Purchases.logOut()
   } catch (err) {
     const e = err as { name?: string; code?: string | number; message?: string }

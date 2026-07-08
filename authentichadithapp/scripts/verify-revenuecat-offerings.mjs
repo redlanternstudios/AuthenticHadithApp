@@ -36,11 +36,19 @@ function summarizeOfferings(offerings) {
 
 loadDotEnv(resolve(process.cwd(), '.env.local'))
 
-const apiKey = process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_IOS
+function readIosFallbackKey() {
+  const configPath = resolve(process.cwd(), 'lib', 'revenuecat', 'config.ts')
+  if (!existsSync(configPath)) return null
+  const source = readFileSync(configPath, 'utf8')
+  const match = source.match(/ios:\s*['"]([^'"]+)['"]/)
+  return match?.[1] ?? null
+}
+
+const apiKey = process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_IOS || readIosFallbackKey()
 
 if (!apiKey) {
   console.error('RevenueCat offering audit: FAIL')
-  console.error('Reason: missing EXPO_PUBLIC_REVENUECAT_API_KEY_IOS')
+  console.error('Reason: missing EXPO_PUBLIC_REVENUECAT_API_KEY_IOS and no public iOS fallback in lib/revenuecat/config.ts')
   process.exit(1)
 }
 

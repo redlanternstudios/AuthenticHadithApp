@@ -155,7 +155,7 @@ App Store Connect IDs are immutable once approved, so the dashboard MUST use the
 | All three iOS products attached to the `premium` entitlement | [ ] |
 | Offering configured (default offering with the three products as packages) | [x] API verified by `npm run qa:revenuecat` |
 | Subscription / paywall screen can fetch offerings on RoPhone (no "no offerings configured" error) | [ ] |
-| Restore Purchases path reachable from Profile / Settings | [ ] |
+| Restore Purchases path reachable from Profile / Settings | [x] Simulator verified 2026-07-08, screenshot `e2e-submit-20260708-39-revenuecat-subscription.png` |
 | StoreKit configuration file (`Configuration.storekit`) present in `ios/` for sandbox testing (if used) | [ ] |
 
 **Blocker?**: Partial. The previous zero-package offering blocker is cleared by API verification, but dashboard entitlement proof and RoPhone/TestFlight purchase-path proof still block App Store submission.

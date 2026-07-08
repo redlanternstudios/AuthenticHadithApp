@@ -1,10 +1,10 @@
 # RevenueCat Gate G Fix - Authentic Hadith
 
-Last updated: 2026-05-28 20:05 PDT
+Last updated: 2026-07-08 12:50 PDT
 
 ## Current Status
 
-`API VERIFIED / DEVICE PENDING`: RevenueCat accepts the iOS public SDK key and returns current offering `default` with all three expected product IDs.
+`API VERIFIED / DEVICE PENDING`: RevenueCat accepts the same iOS public SDK key path used by the app and returns current offering `default` with all three expected product IDs.
 
 Current verifier:
 
@@ -112,7 +112,17 @@ Expected result:
   - `ah_annual_premium`
   - `ah_lifetime_premium`
 
-Current status: PASS as of 2026-05-28 20:05 PDT.
+Current status: PASS as of 2026-07-08 12:50 PDT.
+
+Latest simulator receipt:
+
+- `e2e-submit-20260708-39-revenuecat-subscription.png`
+
+Latest local proof:
+
+- `npm run qa:revenuecat` returned PASS with `current_offering_id` `default`, package count `3`, and no missing product IDs.
+- `npm test -- revenuecat.test.ts onboarding-access.test.ts route-integrity.test.ts --runInBand` returned PASS.
+- `npx tsc --noEmit` returned PASS.
 
 ## Do Not Do This
 
