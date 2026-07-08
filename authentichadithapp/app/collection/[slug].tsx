@@ -20,6 +20,8 @@ import {
 import { FONT_FAMILY } from '@/constants/theme';
 import { useTheme } from '@/lib/theme/ThemeProvider';
 import { isHiddenCollection } from '@/lib/hadith/visibleCollections';
+import { getCanonicalBookTitle } from '@/lib/hadith/bookTitles';
+import { IslamicPatternBackground } from '@/components/ui/IslamicPatternBackground';
 
 interface Collection {
   id: string;
@@ -44,6 +46,8 @@ interface Book {
   collection_name: string | null;
   hadith_count: number | null;
 }
+
+const BOOK_NUMBER_PAGE_SIZE = 1000;
 
 function getGradeColors(colors: ReturnType<typeof getColors>): Record<string, string> {
   return {
@@ -131,7 +135,6 @@ export default function CollectionDetailScreen() {
   const { data: books = [], isLoading: booksLoading } = useQuery({
     queryKey: ['collection-books', resolvedSlug],
     queryFn: async () => {
-      // First try the books table
       const { data: bookRows } = await supabase
         .from('books')
         .select('*')
@@ -139,18 +142,26 @@ export default function CollectionDetailScreen() {
         .not('book_number', 'is', null)
         .order('book_number');
 
-      if (bookRows && bookRows.length > 0) {
-        return bookRows as Book[];
+      const hadiths: { id: string; book_number: number | null }[] = [];
+      let from = 0;
+      while (true) {
+        const { data: page, error: pageError } = await supabase
+          .from('hadiths')
+          .select('id, book_number')
+          .eq('collection_slug', resolvedSlug as string)
+          .not('book_number', 'is', null)
+          .order('book_number', { ascending: true })
+          .order('id', { ascending: true })
+          .range(from, from + BOOK_NUMBER_PAGE_SIZE - 1);
+
+        if (pageError) throw pageError;
+        if (!page || page.length === 0) break;
+        hadiths.push(...page);
+        if (page.length < BOOK_NUMBER_PAGE_SIZE) break;
+        from += BOOK_NUMBER_PAGE_SIZE;
       }
 
-      // Fallback: derive books from hadiths table
-      const { data: hadiths } = await supabase
-        .from('hadiths')
-        .select('book_number')
-        .eq('collection_slug', resolvedSlug as string)
-        .not('book_number', 'is', null);
-
-      if (!hadiths || hadiths.length === 0) return [];
+      if (!hadiths || hadiths.length === 0) return (bookRows as Book[]) || [];
 
       const bookMap = new Map<number, number>();
       for (const h of hadiths) {
@@ -158,15 +169,19 @@ export default function CollectionDetailScreen() {
           bookMap.set(h.book_number, (bookMap.get(h.book_number) || 0) + 1);
         }
       }
+      const titleMap = new Map<number, Book>();
+      for (const book of (bookRows as Book[]) || []) {
+        if (book.book_number != null) titleMap.set(book.book_number, book);
+      }
 
       return Array.from(bookMap.entries())
         .sort(([a], [b]) => a - b)
         .map(([num, count]) => ({
-          id: num,
+          id: titleMap.get(num)?.id ?? num,
           collection_slug: resolvedSlug as string,
           book_number: num,
-          book_name: null,
-          collection_name: null,
+          book_name: titleMap.get(num)?.book_name ?? null,
+          collection_name: titleMap.get(num)?.collection_name ?? null,
           hadith_count: count,
         })) as Book[];
     },
@@ -198,7 +213,7 @@ export default function CollectionDetailScreen() {
 
   const renderBookCard = ({ item }: { item: Book }) => {
     const displayNumber = item.book_number ?? item.id;
-    const displayName = item.book_name || `Book ${displayNumber}`;
+    const displayName = getCanonicalBookTitle(resolvedSlug, displayNumber, item.book_name);
     const hadithCount = item.hadith_count ?? 0;
 
     return (
@@ -209,9 +224,11 @@ export default function CollectionDetailScreen() {
               <Text style={[styles.bookNumberText, { color: colors.emeraldMid }]}>{displayNumber}</Text>
             </View>
             <View style={styles.bookInfo}>
-              <Text style={[styles.bookName, { color: colors.bronzeText }]}>{displayName}</Text>
+              <Text style={[styles.bookName, { color: colors.bronzeText }]} numberOfLines={2}>
+                {displayName}
+              </Text>
               <Text style={[styles.bookMeta, { color: colors.mutedText }]}>
-                {hadithCount} hadiths
+                Book {displayNumber} · {hadithCount} hadiths
               </Text>
             </View>
             <Text style={[styles.bookChevron, { color: colors.mutedText }]}>{'›'}</Text>
@@ -267,7 +284,7 @@ export default function CollectionDetailScreen() {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <IslamicPatternBackground isDark={isDark}>
       <Stack.Screen
         options={{
           title: collection.name_en,
@@ -286,7 +303,7 @@ export default function CollectionDetailScreen() {
           </View>
         }
       />
-    </View>
+    </IslamicPatternBackground>
   );
 }
 

@@ -22,6 +22,7 @@ import { LevelProgressBar } from '@/components/gamification/LevelProgressBar';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { IslamicPatternBackground } from '@/components/ui/IslamicPatternBackground';
 import { TopBar } from '@/components/layout/TopBar';
 import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS, SHADOWS } from '@/lib/styles/colors';
 import { FONT_FAMILY } from '@/constants/theme';
@@ -163,12 +164,12 @@ export default function HomeScreen() {
   const contentMaxWidth = IS_TABLET ? 680 : undefined;
 
   return (
-    <View style={[styles.screenWrapper, { backgroundColor: colors.background }]}>
+    <IslamicPatternBackground isDark={isDark} style={styles.screenWrapper}>
       {/* A#6: Top bar — matches web mobile-top-bar.tsx:89-131 */}
       <TopBar title="Authentic Hadith" />
 
     <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
+      style={styles.container}
       contentContainerStyle={[
         styles.content,
         {
@@ -208,7 +209,7 @@ export default function HomeScreen() {
         <Text style={[styles.heroTitle, { color: colors.marbleBase }]}>
           Go deeper into Bukhari and Muslim
         </Text>
-        <Text style={[styles.heroCopy, { color: colors.borderSubtle }]}>
+        <Text style={[styles.heroCopy, { color: colors.mutedText }]}>
           Read the Sahihayn, reflect on one narration, ask for context, then save what you want to return to.
         </Text>
 
@@ -217,13 +218,13 @@ export default function HomeScreen() {
             <Text style={[styles.heroStatValue, { color: colors.goldHighlight }]}>
               {VISIBLE_HADITH_TOTAL.toLocaleString()}
             </Text>
-            <Text style={[styles.heroStatLabel, { color: colors.borderSubtle }]}>hadiths</Text>
+            <Text style={[styles.heroStatLabel, { color: colors.mutedText }]}>hadiths</Text>
           </View>
           <View style={[styles.heroStat, { backgroundColor: colors.white + '0F', borderColor: colors.goldHighlight + '33' }]}>
             <Text style={[styles.heroStatValue, { color: colors.goldHighlight }]}>
               {VISIBLE_COLLECTION_COUNT}
             </Text>
-            <Text style={[styles.heroStatLabel, { color: colors.borderSubtle }]}>collections</Text>
+            <Text style={[styles.heroStatLabel, { color: colors.mutedText }]}>collections</Text>
           </View>
         </View>
 
@@ -253,7 +254,7 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      <View style={[styles.studyBand, { backgroundColor: colors.marbleBase, borderColor: colors.goldMid + '28' }]}>
+      <View style={[styles.studyBand, { backgroundColor: isDark ? colors.card + 'DD' : colors.marbleBase, borderColor: colors.goldMid + '28' }]}>
         <View style={styles.studyHeader}>
           <Text style={[styles.sectionLabel, { color: colors.goldShadow }]}>STUDY LOOP</Text>
           <Text style={[styles.studyTitle, { color: colors.bronzeText }]}>Choose a path into the text</Text>
@@ -398,7 +399,7 @@ export default function HomeScreen() {
         <Button title="Browse Collections" onPress={() => router.push('/(tabs)/collections')} variant="outline" />
       </View>
     </ScrollView>
-    </View>
+    </IslamicPatternBackground>
   );
 }
 

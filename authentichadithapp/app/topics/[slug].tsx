@@ -9,7 +9,8 @@ import { QueryErrorBanner } from '@/components/common/QueryErrorBanner'
 import { Hadith } from '@/types/hadith'
 import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors'
 import { useTheme } from '@/lib/theme/ThemeProvider'
-import { HIDDEN_COLLECTION_FILTER } from '@/lib/hadith/visibleCollections'
+import { VISIBLE_COLLECTION_SLUGS } from '@/lib/hadith/visibleCollections'
+import { IslamicPatternBackground } from '@/components/ui/IslamicPatternBackground'
 
 export default function TopicHadithsScreen() {
   const { isDark } = useTheme()
@@ -45,16 +46,11 @@ export default function TopicHadithsScreen() {
 
       const hadithIds = hadithTags.map((ht) => ht.hadith_id)
 
-      // Step 2: fetch hadiths by ids, excluding release-hidden collections so a
-      // tagged hidden-collection hadith never surfaces under a topic.
-      let q = supabase
+      const { data, error } = await supabase
         .from('hadiths')
         .select('*')
         .in('id', hadithIds)
-      if (HIDDEN_COLLECTION_FILTER) {
-        q = q.not('collection_slug', 'in', HIDDEN_COLLECTION_FILTER)
-      }
-      const { data, error } = await q
+        .in('collection_slug', VISIBLE_COLLECTION_SLUGS as string[])
       if (error) throw error
       return (data as Hadith[]) || []
     },
@@ -84,7 +80,7 @@ export default function TopicHadithsScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <IslamicPatternBackground isDark={isDark}>
       <Stack.Screen
         options={{
           title: tag.name_en,
@@ -107,7 +103,7 @@ export default function TopicHadithsScreen() {
         onHadithPress={(hadith) => router.push(`/hadith/${hadith.id}`)}
         emptyMessage="No hadiths found for this topic"
       />
-    </View>
+    </IslamicPatternBackground>
   )
 }
 

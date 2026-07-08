@@ -14,6 +14,7 @@
 import {
   HIDDEN_COLLECTION_SLUGS,
   VISIBLE_COLLECTION_COUNT,
+  VISIBLE_COLLECTION_SLUGS,
   VISIBLE_HADITH_TOTAL,
   isHiddenCollection,
   filterVisibleCollections,
@@ -29,6 +30,10 @@ describe('Collection visibility constants — AUDIT-061 / Rule 037', () => {
 
   it('VISIBLE_COLLECTION_COUNT equals 2', () => {
     expect(VISIBLE_COLLECTION_COUNT).toBe(2)
+  })
+
+  it('VISIBLE_COLLECTION_SLUGS contains exactly the Sahihayn', () => {
+    expect(VISIBLE_COLLECTION_SLUGS).toEqual(['sahih-bukhari', 'sahih-muslim'])
   })
 
   it('VISIBLE_HADITH_TOTAL equals 14444 — matches App Store listing copy', () => {

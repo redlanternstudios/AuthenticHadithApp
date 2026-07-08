@@ -51,22 +51,22 @@ export const LIGHT_COLORS = {
 } as const
 
 export const DARK_COLORS = {
-  // Islamic emerald green shades (slightly brighter for dark mode)
-  emeraldShadow: '#2d7a5b',
-  emeraldMid: '#3a9270',
-  emeraldHighlight: '#4caf84',
+  // v0 dark mode uses emerald as the page surface, not flat charcoal.
+  emeraldShadow: '#0a2a1f',
+  emeraldMid: '#1b5e43',
+  emeraldHighlight: '#4a9973',
 
-  // Gold accents (slightly brighter for dark mode)
+  // Gold accents
   goldShadow: '#c5a059',
   goldMid: '#d4b76e',
   goldHighlight: '#e8c77d',
 
-  // Dark marble base
-  marbleBase: '#1a1a1a',
+  // Marble remains the readable cream surface inside dark emerald mode.
+  marbleBase: '#f8f6f2',
 
   // Text colors for dark mode
   bronzeText: '#e8e6e3',
-  mutedText: '#a39d94',
+  mutedText: '#d4cfc7',
 
   // Hadith grades (adjusted for dark mode)
   sahih: '#3a9270',
@@ -74,11 +74,11 @@ export const DARK_COLORS = {
   daif: '#ef4444',
 
   // UI colors for dark mode
-  background: '#0f0f0f',
-  card: '#1c1c1e',
-  cardElevated: '#242424',
-  border: '#2c2c2e',
-  borderSubtle: '#242424',
+  background: '#0a2a1f',
+  card: '#0f3529',
+  cardElevated: '#123f31',
+  border: '#2d7a5b',
+  borderSubtle: '#1b5e43',
   white: '#ffffff',
   black: '#000000',
 
@@ -97,9 +97,9 @@ export const DARK_COLORS = {
   chatAiBubble: '#1b5e43',
 
   // Tab bar
-  tabBar: '#1c1c1e',
-  tabBarBorder: '#2c2c2e',
-  tabBarInactive: '#636366',
+  tabBar: '#0f3529',
+  tabBarBorder: '#2d7a5b',
+  tabBarInactive: '#d4cfc7',
 } as const
 
 // Default to light colors for backward compatibility

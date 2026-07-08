@@ -18,6 +18,10 @@
 
 import { createClient } from '@supabase/supabase-js'
 
+export default function DeleteAccountRoute() {
+  return null
+}
+
 // ── In-memory rate limiter ───────────────────────────────────────────────────
 // Max 3 attempts per IP per 15-minute window. Stored in process memory so it
 // resets on server restart (acceptable — this is a last-ditch DoS guard, not

@@ -7,6 +7,11 @@ export const HIDDEN_COLLECTION_SLUGS: readonly string[] = [
   "muwatta-malik",
 ];
 
+export const VISIBLE_COLLECTION_SLUGS: readonly string[] = [
+  "sahih-bukhari",
+  "sahih-muslim",
+];
+
 // Sahihayn only: Sahih al-Bukhari + Sahih Muslim.
 // Headline is the CORPUS total (raw Bukhari+Muslim rows = 14,444) so it matches the
 // App Store listing copy exactly (KP directive 2026-06-10 — the reviewer

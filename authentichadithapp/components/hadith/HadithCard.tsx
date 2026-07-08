@@ -130,7 +130,7 @@ export function HadithCard({ hadith, onPress, compact = false, showSummarize = f
 
       {/* Read more hint on compact cards */}
       {compact && onPress && (
-        <Text style={[styles.readMore, { color: colors.emeraldMid }]}>Read more →</Text>
+        <Text style={[styles.readMore, { color: isDark ? colors.goldHighlight : colors.emeraldMid }]}>Read more →</Text>
       )}
 
       {/* Optional inline AI Summary (home card parity with hadith detail screen) */}

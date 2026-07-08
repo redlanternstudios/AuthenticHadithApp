@@ -9,6 +9,9 @@ import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors'
 import { useTheme } from '@/lib/theme/ThemeProvider'
 import { QueryErrorBanner } from '@/components/common/QueryErrorBanner'
 import { Hadith } from '@/types/hadith'
+import { getCanonicalBookTitle } from '@/lib/hadith/bookTitles'
+import { TopBar } from '@/components/layout/TopBar'
+import { IslamicPatternBackground } from '@/components/ui/IslamicPatternBackground'
 
 export default function BookDetailScreen() {
   const { isDark } = useTheme()
@@ -18,7 +21,7 @@ export default function BookDetailScreen() {
 
   const bookNum = book_number ? parseInt(book_number, 10) : null
   const collectionSlug = slug || null
-  const title = `Book ${bookNum ?? id}`
+  const title = getCanonicalBookTitle(collectionSlug, bookNum, `Book ${bookNum ?? id}`)
 
   // Fetch hadiths for this book directly from hadiths table
   const { data: hadiths = [], isLoading, isError, refetch } = useQuery({
@@ -63,7 +66,7 @@ export default function BookDetailScreen() {
   if (isError) {
     return (
       <View style={[styles.emptyContainer, { backgroundColor: colors.background }]}>
-        <Stack.Screen options={{ title, headerShown: true }} />
+        <Stack.Screen options={{ headerShown: false }} />
         <QueryErrorBanner onRetry={refetch} />
       </View>
     )
@@ -73,7 +76,8 @@ export default function BookDetailScreen() {
   if (!isLoading && hadiths.length === 0) {
     return (
       <View style={[styles.emptyContainer, { backgroundColor: colors.background }]}>
-        <Stack.Screen options={{ title, headerShown: true }} />
+        <Stack.Screen options={{ headerShown: false }} />
+        <TopBar title={title} showBack />
         <Text style={[styles.emptyText, { color: colors.mutedText }]}>
           No hadiths found for this book.
         </Text>
@@ -90,13 +94,13 @@ export default function BookDetailScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <IslamicPatternBackground style={[styles.container, { backgroundColor: colors.background }]} isDark={isDark}>
       <Stack.Screen
         options={{
-          title,
-          headerShown: true,
+          headerShown: false,
         }}
       />
+      <TopBar title={title} showBack />
       {isError && <QueryErrorBanner onRetry={refetch} />}
 
       <View style={styles.header}>
@@ -112,7 +116,7 @@ export default function BookDetailScreen() {
         onHadithPress={(hadith) => router.push(`/hadith/${hadith.id}`)}
         emptyMessage="No hadiths found in this book."
       />
-    </View>
+    </IslamicPatternBackground>
   )
 }
 
@@ -125,6 +129,7 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING.xxl,
   },
   header: {
+    paddingHorizontal: SPACING.md,
     paddingTop: SPACING.md,
     paddingBottom: SPACING.lg,
   },

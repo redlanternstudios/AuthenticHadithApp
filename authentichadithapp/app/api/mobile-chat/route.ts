@@ -19,6 +19,10 @@ import { generateText } from 'ai'
 import { createGroq } from '@ai-sdk/groq'
 import { checkInputSafety, ISLAMIC_ETHICS_ADDENDUM } from '../../../lib/islamic-safety-filter'
 
+export default function MobileChatRoute() {
+  return null
+}
+
 // IMPORTANT: do NOT throw at module-load time.
 //
 // Expo Router bundles every file under `app/` into the JS bundle that ships

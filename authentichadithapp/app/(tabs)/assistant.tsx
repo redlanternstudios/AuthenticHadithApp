@@ -74,7 +74,7 @@ function AssistantScreenInner() {
   }, []);
 
   useEffect(() => {
-    if (scrollViewRef.current) {
+    if (messages.length > 0 && scrollViewRef.current) {
       scrollViewRef.current.scrollToEnd({ animated: true });
     }
   }, [messages]);
@@ -186,7 +186,7 @@ function AssistantScreenInner() {
             </View>
           )}
           <Text style={[styles.subtitle, { color: colors.mutedText }]}>
-            Ask questions about hadith. Answers are AI-generated context, not a fatwa.
+            Ask questions about hadith. Answers are study context, not a fatwa.
           </Text>
         </View>
 
@@ -194,7 +194,11 @@ function AssistantScreenInner() {
           ref={scrollViewRef}
           style={styles.messagesContainer}
           contentContainerStyle={styles.messagesContent}
-          onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+          onContentSizeChange={() => {
+            if (messages.length > 0) {
+              scrollViewRef.current?.scrollToEnd({ animated: true });
+            }
+          }}
         >
           {messages.length === 0 ? (
             <View style={styles.emptyState}>
@@ -284,9 +288,9 @@ function AssistantScreenInner() {
           <Ionicons name="sparkles-outline" size={14} color={colors.mutedText} />
           <Text style={[styles.quotaText, { color: colors.mutedText }]}>
             {isPremium
-              ? 'Unlimited explanations (Premium)'
+              ? 'Deep mode enabled'
               : isAtLimit
-                ? 'Daily limit reached. Upgrade for unlimited access.'
+                ? 'Daily guidance limit reached for today.'
                 : `Free explanations today: ${remaining} / ${FREE_DAILY_LIMIT}`}
           </Text>
         </View>
@@ -327,7 +331,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: SPACING.md,
-    paddingBottom: SPACING.md,
+    paddingBottom: SPACING.lg,
     borderBottomWidth: 1,
   },
   title: {
@@ -339,6 +343,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.base,
+    lineHeight: 22,
   },
   deepModeBadge: {
     borderWidth: 1,
@@ -362,12 +367,13 @@ const styles = StyleSheet.create({
   emptyState: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: SPACING.xxl * 2,
+    justifyContent: 'flex-start',
+    paddingTop: SPACING.xl,
+    paddingBottom: SPACING.xl,
   },
   emptyIcon: {
-    fontSize: 64,
-    marginBottom: SPACING.lg,
+    fontSize: 40,
+    marginBottom: SPACING.md,
   },
   emptyText: {
     fontFamily: FONT_FAMILY.heading,
@@ -378,8 +384,9 @@ const styles = StyleSheet.create({
   emptySubtext: {
     fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.base,
+    lineHeight: 22,
     textAlign: 'center',
-    paddingHorizontal: SPACING.xl,
+    paddingHorizontal: SPACING.lg,
   },
   messageBubble: {
     borderRadius: BORDER_RADIUS.lg,

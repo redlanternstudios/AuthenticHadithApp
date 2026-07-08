@@ -194,16 +194,28 @@ function AppContent() {
             without it iOS renders the route-group literal "(tabs)". */}
         <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'Home' }} />
         <Stack.Screen name="auth" options={{ headerShown: false }} />
-        <Stack.Screen name="hadith" options={{ headerShown: false }} />
-        <Stack.Screen name="collection" options={{ headerShown: false }} />
-        <Stack.Screen name="collections" options={{ headerShown: false }} />
-        <Stack.Screen name="book" options={{ headerShown: false }} />
-        <Stack.Screen name="chapter" options={{ headerShown: false }} />
-        <Stack.Screen name="topics" options={{ headerShown: false }} />
-        <Stack.Screen name="bookmarks" options={{ headerShown: false }} />
-        <Stack.Screen name="learn" options={{ headerShown: false }} />
+        <Stack.Screen name="hadith/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="collection/[slug]" options={{ headerShown: false }} />
+        <Stack.Screen name="collections/index" options={{ headerShown: false }} />
+        <Stack.Screen name="book/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="chapter/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="topics/index" options={{ headerShown: false }} />
+        <Stack.Screen name="topics/[slug]" options={{ headerShown: false }} />
+        <Stack.Screen name="topics/tag/[slug]" options={{ headerShown: false }} />
+        <Stack.Screen name="bookmarks/index" options={{ headerShown: false }} />
+        <Stack.Screen name="learn/[pathId]" options={{ headerShown: false }} />
+        <Stack.Screen name="learn/lesson/[lessonId]" options={{ headerShown: false }} />
         <Stack.Screen name="my-hadith" options={{ headerShown: false }} />
-        <Stack.Screen name="settings" options={{ headerShown: false }} />
+        <Stack.Screen name="settings/index" options={{ headerShown: false }} />
+        <Stack.Screen name="settings/about" options={{ headerShown: false }} />
+        <Stack.Screen name="settings/appearance" options={{ headerShown: false }} />
+        <Stack.Screen name="settings/credits" options={{ headerShown: false }} />
+        <Stack.Screen name="settings/delete-account" options={{ headerShown: false }} />
+        <Stack.Screen name="settings/language" options={{ headerShown: false }} />
+        <Stack.Screen name="settings/notifications" options={{ headerShown: false }} />
+        <Stack.Screen name="settings/privacy" options={{ headerShown: false }} />
+        <Stack.Screen name="settings/subscription" options={{ headerShown: false }} />
+        <Stack.Screen name="settings/sync" options={{ headerShown: false }} />
         <Stack.Screen name="onboarding" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
         <Stack.Screen name="paywall" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
         <Stack.Screen name="progress" options={{ headerShown: false }} />
