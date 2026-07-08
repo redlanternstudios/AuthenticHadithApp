@@ -26,6 +26,7 @@ import {
   ActivityIndicator,
 } from 'react-native'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { Ionicons } from '@expo/vector-icons'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth/AuthProvider'
@@ -359,6 +360,14 @@ export default function CompanionStoryScreen() {
             </Text>
           </View>
           <View style={styles.headerActions}>
+            <Pressable
+              onPress={() => router.push('/(tabs)')}
+              style={styles.iconBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Go to Home"
+            >
+              <Ionicons name="home" size={18} color={colors.goldMid} />
+            </Pressable>
             {/* Bookmark */}
             <Pressable
               onPress={handleBookmark}

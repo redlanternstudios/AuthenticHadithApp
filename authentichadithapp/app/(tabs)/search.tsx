@@ -3,7 +3,6 @@ import {
   StyleSheet,
   View,
   Text,
-  ScrollView,
   Pressable,
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
@@ -147,11 +146,7 @@ export default function SearchScreen() {
         </View>
 
         {collections.length > 0 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.collectionChipRow}
-          >
+          <View style={styles.collectionChipRow}>
             <Pressable
               style={[
                 styles.chip,
@@ -200,7 +195,7 @@ export default function SearchScreen() {
                 </Pressable>
               );
             })}
-          </ScrollView>
+          </View>
         )}
       </View>
 
@@ -267,6 +262,8 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.sm,
   },
   collectionChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: SPACING.sm,
     paddingBottom: SPACING.xs,
   },

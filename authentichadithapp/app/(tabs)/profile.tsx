@@ -386,12 +386,15 @@ const styles = StyleSheet.create({
   },
   identityText: {
     flex: 1,
+    minWidth: 0,
     gap: 6,
   },
   emailText: {
     fontFamily: FONT_FAMILY.bodySemiBold,
-    fontSize: FONT_SIZES.base,
+    fontSize: FONT_SIZES.sm,
     fontWeight: '600',
+    flexShrink: 1,
+    maxWidth: '100%',
   },
   proBadge: {
     alignSelf: 'flex-start',

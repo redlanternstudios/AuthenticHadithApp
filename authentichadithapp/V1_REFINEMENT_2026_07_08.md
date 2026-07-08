@@ -39,6 +39,16 @@ VERIFIED: native header pages now receive a Home button globally, and custom hea
 
 VERIFIED: Hadith detail contrast now matches the online pattern better by keeping the diamond pattern behind solid reading panels.
 
+VERIFIED: Search collection chips now wrap cleanly so Sahih Muslim is visible and tappable.
+
+VERIFIED: Profile long emails are constrained inside the identity card.
+
+VERIFIED: Progress uses a readable Back control and keeps Home available in the header.
+
+VERIFIED: Stories uses the shared emerald header, with Back and Home visible on the list route.
+
+VERIFIED: companion and prophet story readers include Home beside their existing bookmark and share actions.
+
 ## Screenshot Receipts
 
 Saved in this folder:
@@ -62,6 +72,25 @@ Saved in this folder:
 - e2e-submit-20260708-17-hadith-detail-contrast.png
 - e2e-submit-20260708-18-collections-back-home.png
 - e2e-submit-20260708-19-hadith-back-home-contrast.png
+- e2e-submit-20260708-20-search.png
+- e2e-submit-20260708-21-search-fixed.png
+- e2e-submit-20260708-22-learn.png
+- e2e-submit-20260708-23-profile.png
+- e2e-submit-20260708-24-settings.png
+- e2e-submit-20260708-25-settings-privacy.png
+- e2e-submit-20260708-26-settings-notifications.png
+- e2e-submit-20260708-27-settings-about.png
+- e2e-submit-20260708-28-settings-delete-account.png
+- e2e-submit-20260708-29-create-folder.png
+- e2e-submit-20260708-30-bookmarks.png
+- e2e-submit-20260708-31-progress.png
+- e2e-submit-20260708-32-achievements.png
+- e2e-submit-20260708-33-quiz.png
+- e2e-submit-20260708-34-stories.png
+- e2e-submit-20260708-35-profile-fixed.png
+- e2e-submit-20260708-36-progress-fixed.png
+- e2e-submit-20260708-37-stories-fixed.png
+- e2e-submit-20260708-38-stories-back-home.png
 - e2e-v1-refinement-01-current.png
 - e2e-v1-refinement-02-dark-home.png
 - e2e-v1-refinement-03-dark-appearance.png
@@ -78,12 +107,12 @@ VERIFIED: `npx tsc --noEmit` passed after the current fixes.
 
 VERIFIED: focused tests passed after the current fixes: book titles, visible collections, route integrity, home template, onboarding access.
 
-VERIFIED: iOS simulator rebuild succeeded with zero errors.
+VERIFIED: iOS simulator rebuild succeeded with zero errors after the Search, Profile, Progress, and Stories fixes.
 
 PARTIAL: one Xcode pod warning remains for SDWebImage deployment version. It did not block the debug simulator build.
 
-PARTIAL: e2e sweep is still active. Hadith detail, settings child pages, search, learn, profile, save, share, and destructive account flows still need explicit pass or scoped deferral before saying ready to submit.
+PARTIAL: e2e sweep is still active for destructive or external flows. Account deletion was viewed but not executed, native share sheet was not completed, App Store Connect was not touched, and the XcodeBuildMCP accessibility snapshot is blocked by local Xcode selector state.
 
 ## Submission Posture
 
-PARTIAL: not ready to submit yet. The main blockers found so far were fixed, but the full route and button sweep is not complete.
+PARTIAL: not ready to submit yet. The main visible blockers found in this pass were fixed and receipted, but the final App Store readiness call still needs scoped review of share, notification permission, purchase restore, and account deletion safeguards.

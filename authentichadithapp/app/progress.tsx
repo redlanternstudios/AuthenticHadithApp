@@ -25,7 +25,7 @@ export default function ProgressScreen() {
   const router = useRouter()
   // Guaranteed-working back affordance: the native header back tap was a no-op on this
   // pushed stack screen; only the swipe gesture popped. This explicit control always works.
-  const goHome = () => (router.canGoBack() ? router.back() : router.replace('/'))
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace('/'))
 
   const { data: stats, isLoading: statsLoading, isError: statsError, refetch: refetchStats } = useQuery({
     queryKey: ['user-stats', user?.id],
@@ -130,13 +130,13 @@ export default function ProgressScreen() {
           headerShown: true,
           headerLeft: () => (
             <TouchableOpacity
-              onPress={goHome}
+              onPress={goBack}
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               accessibilityRole="button"
-              accessibilityLabel="Back to Home"
+              accessibilityLabel="Go back"
               style={{ paddingHorizontal: 8, paddingVertical: 4 }}
             >
-              <Text style={{ color: colors.emeraldMid, fontSize: 17, fontWeight: '600' }}>‹ Home</Text>
+              <Text style={{ color: colors.goldMid, fontSize: 17, fontWeight: '600' }}>‹ Back</Text>
             </TouchableOpacity>
           ),
         }}
