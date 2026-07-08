@@ -110,10 +110,9 @@ function PushTokenSync() {
 }
 
 // Pure side-effect component — renders nothing, only redirects.
-// Enforces auth → onboarding → subscription gate on every launch.
+// Enforces auth → onboarding on every launch. Subscription remains optional.
 function NavigationGate() {
   const { user, isLoading: authLoading } = useAuth()
-  const { isPro, isLoading: rcLoading } = useRevenueCat()
   const router = useRouter()
   const segments = useSegments()
   const [onboarded, setOnboarded] = useState<boolean | null>(null)
@@ -157,13 +156,12 @@ function NavigationGate() {
   }, [segments, user?.id])
 
   useEffect(() => {
-    // Wait until auth, RevenueCat, and AsyncStorage have all resolved
-    if (authLoading || rcLoading || onboarded === null) return
+    // Wait until auth and AsyncStorage have both resolved.
+    if (authLoading || onboarded === null) return
 
     const inAuth = segments[0] === 'auth'
     const inShared = segments[0] === 'shared'
     const inOnboarding = segments[0] === 'onboarding'
-    const inPaywall = segments[0] === 'paywall'
 
     // FIX-115 B4: SCREENSHOT-BYPASS reverted — all three gates restored for
     // production. These were commented out temporarily during App Store screenshot
@@ -180,14 +178,8 @@ function NavigationGate() {
       return
     }
 
-    if (!isPro) {
-      // Onboarded but no active subscription
-      if (!inPaywall) router.replace('/paywall')
-      return
-    }
-
-    // All gates passed — stay on (tabs), no redirect needed
-  }, [authLoading, rcLoading, onboarded, user, isPro, segments, router])
+    // All required gates passed. Stay on the current app route.
+  }, [authLoading, onboarded, user, segments, router])
 
   return null
 }

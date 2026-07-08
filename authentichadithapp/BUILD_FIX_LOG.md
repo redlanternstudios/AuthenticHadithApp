@@ -92,6 +92,50 @@ Before any EAS build:
 
 ## FIXES
 
+### [FIX-163] — Sahihayn onboarding, optional access, and home study hierarchy
+**Date**: 2026-07-08 PT
+**Session**: Codex
+**Severity**: Critical
+
+**Error Message**:
+```
+Onboarding showed non-shipping Sunan collections, completed onboarding sent users to a paywall, and the home screen did not create a clear deeper study path.
+```
+
+**Root Cause**:
+The app had release-hidden collection copy still hardcoded in onboarding and paywall surfaces, while the root navigation gate treated subscription status as mandatory app access instead of an optional premium layer. The home screen then stacked passive cards without a semantic color system or intentional section break.
+
+**Fix Applied**:
+```
+Onboarding now lists only Sahih Bukhari and Sahih Muslim, completed onboarding routes to the app, the global subscription redirect was removed, paywall copy now says support is optional, and Home now uses a SightEngine-style study dashboard with semantic colors and page breaks.
+```
+
+**Files Changed**:
+- `app/onboarding.tsx` — limited onboarding collections to Bukhari and Muslim, defaulted both as selected, and routes completion to the app.
+- `app/_layout.tsx` — removed the global non-subscriber paywall redirect while preserving auth and onboarding gates.
+- `app/paywall.tsx` — changed copy from forced access language to optional support language and locked corpus copy to 14,444 Sahihayn hadiths.
+- `app/(tabs)/index.tsx` — redesigned the first viewport around a deeper Sahihayn study path, semantic color conventions, and stronger section breaks.
+- `__tests__/navigation/onboarding-access.test.ts` — guards collection visibility, onboarding completion route, optional access, and paywall corpus copy.
+- `__tests__/home/home-screen-template.test.ts` — guards the deeper Sahihayn study framing and study loop.
+
+**Verification Command**:
+```
+npx tsc --noEmit
+npm test -- home-screen-template.test.ts onboarding-access.test.ts --runInBand
+```
+
+**Result**: Code verified. Simulator screenshots saved:
+- `e2e-onboarding-01-launch.png`
+- `e2e-home-redesign-02.png`
+- `e2e-home-color-conventions-03.png`
+- `e2e-home-page-breaks-04.png`
+- `e2e-home-color-pagebreak-final.png`
+
+**Lesson**:
+Color conventions must map to product meaning. Emerald is trust and primary movement, gold is emphasis and metadata, marble is the reading surface, and bronze is body text. Knowledge apps also need intentional section stops so the user feels a complete study chapter instead of a clipped card stack.
+
+---
+
 ### [FIX-162] — Returning users re-enter onboarding after fresh install
 **Date**: 2026-07-07 PT
 **Session**: Codex

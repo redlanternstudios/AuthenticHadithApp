@@ -18,23 +18,24 @@ import { FONT_FAMILY } from '@/constants/theme'
 import { Button } from '@/components/ui/Button'
 import { useRevenueCat } from '@/lib/revenuecat/RevenueCatProvider'
 import { ENTITLEMENT_ID } from '@/lib/revenuecat/config'
+import { VISIBLE_COLLECTION_COUNT, VISIBLE_HADITH_TOTAL } from '@/lib/hadith/visibleCollections'
 
 // ─── Value Props ──────────────────────────────────────────────────────────────
 const VALUE_PROPS = [
   {
     icon: '📚',
-    title: 'Complete Collection',
-    desc: 'All 6 major hadith books — over 30,000 authenticated hadiths',
+    title: 'Sahihayn Library',
+    desc: `${VISIBLE_HADITH_TOTAL.toLocaleString()} hadiths from ${VISIBLE_COLLECTION_COUNT} collections: Sahih Bukhari and Sahih Muslim`,
   },
   {
     icon: '🤖',
     title: 'AI Hadith Assistant',
-    desc: 'Ask questions, get guidance rooted in verified sources',
+    desc: 'Ask questions with guidance rooted in the available Sahihayn sources',
   },
   {
     icon: '📈',
     title: 'Learn & Track',
-    desc: 'Structured courses with progress tracking across topics',
+    desc: 'Structured learning with progress tracking across topics',
   },
 ]
 
@@ -59,11 +60,11 @@ function getAnnualPackage(packages: PurchasesPackage[]): PurchasesPackage | null
 function getPlanDescription(packageType: string): string {
   switch (packageType) {
     case 'MONTHLY':
-      return 'Full library access, AI assistant, and structured learning. Billed monthly — cancel anytime.'
+      return 'Optional monthly support for premium tools. The Sahihayn library remains available in the app.'
     case 'ANNUAL':
-      return 'Complete access for the full year. All features, all content, all updates included.'
+      return 'Optional annual support for premium tools and continued app development.'
     case 'LIFETIME':
-      return 'One-time purchase. Unlimited access to the complete collection, forever — no recurring fees.'
+      return 'One-time support for premium tools without a recurring subscription.'
     default:
       return 'Full access to Authentic Hadith and all features.'
   }
@@ -220,10 +221,10 @@ export default function PaywallScreen() {
           <Text style={styles.iconEmoji}>📖</Text>
         </View>
         <Text style={[styles.title, { color: colors.bronzeText }]}>
-          Unlock Authentic Hadith
+          Support Authentic Hadith
         </Text>
         <Text style={[styles.subtitle, { color: colors.mutedText }]}>
-          Access the full library of verified hadiths
+          The Sahih Bukhari and Sahih Muslim library is available without a required purchase.
         </Text>
       </View>
 
@@ -253,7 +254,7 @@ export default function PaywallScreen() {
 
       {/* ── Plan Cards ── */}
       <View style={styles.plansSection}>
-        <Text style={[styles.plansLabel, { color: colors.bronzeText }]}>Choose Your Plan</Text>
+        <Text style={[styles.plansLabel, { color: colors.bronzeText }]}>Optional Support Plans</Text>
         {packages.map((pkg) => {
           const isSelected = selectedPackage?.identifier === pkg.identifier
           const isAnnual = pkg.packageType === 'ANNUAL'
@@ -314,7 +315,7 @@ export default function PaywallScreen() {
       {/* ── CTA Button ── */}
       <View style={styles.ctaSection}>
         <Button
-          title={purchasing ? 'Processing...' : 'Start My Plan'}
+          title={purchasing ? 'Processing...' : 'Continue'}
           variant="primary"
           size="large"
           onPress={handlePurchase}

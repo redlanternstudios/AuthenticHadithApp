@@ -21,10 +21,6 @@ const SCHOOLS_OF_THOUGHT = ['Hanafi', 'Maliki', "Shafi'i", 'Hanbali', 'Other / P
 const COLLECTIONS = [
   { id: 'bukhari', name: 'Sahih Bukhari', count: '7,277 hadiths' },
   { id: 'muslim', name: 'Sahih Muslim', count: '7,167 hadiths' },
-  { id: 'tirmidhi', name: 'Sunan at-Tirmidhi', count: '3,241 hadiths' },
-  { id: 'abudawud', name: 'Sunan Abu Dawud', count: '3,751 hadiths' },
-  { id: 'nasai', name: "Sunan an-Nasa'i", count: '5,045 hadiths' },
-  { id: 'ibnmajah', name: 'Sunan Ibn Majah', count: '3,524 hadiths' },
 ]
 
 const LEARNING_LEVELS = ['Beginner', 'Intermediate', 'Advanced']
@@ -54,7 +50,7 @@ export default function OnboardingScreen() {
   const [data, setData] = useState<OnboardingData>({
     name: '',
     schoolOfThought: '',
-    collections: [],
+    collections: ['bukhari', 'muslim'],
     learningLevel: 'Intermediate',
     safetyAgreed: false,
     termsAgreed: false,
@@ -80,7 +76,7 @@ export default function OnboardingScreen() {
   const handleComplete = async () => {
     if (!user) {
       await AsyncStorage.setItem('onboarded', 'true')
-      router.replace('/paywall')
+      router.replace('/(tabs)')
       return
     }
 
@@ -124,7 +120,7 @@ export default function OnboardingScreen() {
       }
 
       await AsyncStorage.setItem('onboarded', 'true')
-      router.replace('/paywall')
+      router.replace('/(tabs)')
     } catch {
       Alert.alert('Error', 'Something went wrong. Please try again.')
     } finally {
