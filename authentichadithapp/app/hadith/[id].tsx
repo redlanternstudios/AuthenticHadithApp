@@ -3,7 +3,6 @@ import {
   ScrollView,
   View,
   Text,
-  TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
   Pressable,
@@ -23,10 +22,13 @@ import { sendChatMessage } from '@/lib/api/groq'
 import { supabase } from '@/lib/supabase/client'
 import {
   formatHadithReference,
+  getCollectionDisplayName,
   useCollectionDisplayNames,
 } from '@/lib/hadith/collectionDisplayName'
 import { isHiddenCollection } from '@/lib/hadith/visibleCollections'
 import { trackActivity } from '@/lib/gamification/track-activity'
+import { TopBar } from '@/components/layout/TopBar'
+import { IslamicPatternBackground } from '@/components/ui/IslamicPatternBackground'
 
 // Key Teaching panel gating. The `enriched_hadiths` table holds optional
 // per-hadith insight rows whose authorial provenance has not been documented
@@ -219,40 +221,19 @@ export default function HadithDetailScreen() {
   }
 
   const collectionName =
-    collectionData?.name_en || 'Unknown Collection'
+    collectionData?.name_en || getCollectionDisplayName(hadith.collection_slug, collectionNames)
 
   return (
-    <>
+    <IslamicPatternBackground style={[styles.container, { backgroundColor: colors.background }]} isDark={isDark}>
       <Stack.Screen
         options={{
-          title: '',
-          headerStyle: { backgroundColor: colors.background },
-          headerTintColor: colors.emeraldMid,
-          headerShadowVisible: false,
-          // Transparent header blends with page background on iOS
-          headerTransparent: false,
-          headerRight: () => (
-            <TouchableOpacity
-              onPress={() => toggleBookmark()}
-              disabled={isTogglingBookmark || !user}
-              style={styles.headerBtn}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              accessibilityLabel={isBookmarked ? 'Remove bookmark' : 'Bookmark this hadith'}
-              accessibilityRole="button"
-              accessibilityState={{ checked: isBookmarked }}
-            >
-              <Ionicons
-                name={isBookmarked ? 'bookmark' : 'bookmark-outline'}
-                size={22}
-                color={isBookmarked ? colors.emeraldMid : colors.mutedText}
-              />
-            </TouchableOpacity>
-          ),
+          headerShown: false,
         }}
       />
+      <TopBar title={formatHadithReference(hadith, collectionNames)} showBack />
 
       <ScrollView
-        style={[styles.container, { backgroundColor: colors.background }]}
+        style={styles.container}
         contentContainerStyle={[
           styles.content,
           {
@@ -266,8 +247,8 @@ export default function HadithDetailScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Collection + Number */}
-        <View style={[styles.metaRow, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.collectionName, { color: colors.emeraldMid }]}>
+        <View style={[styles.metaRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Text style={[styles.collectionName, { color: isDark ? colors.goldHighlight : colors.emeraldMid }]}>
             {collectionName}
           </Text>
           <Text style={[styles.hadithNumber, { color: colors.mutedText }]}>
@@ -281,10 +262,10 @@ export default function HadithDetailScreen() {
             <View
               style={[
                 styles.gradeBadge,
-                {
-                  backgroundColor:
-                    hadith.grade === 'sahih'
-                      ? colors.sahih + '18'
+                  {
+                    backgroundColor:
+                      hadith.grade === 'sahih'
+                      ? (isDark ? colors.goldMid + '22' : colors.sahih + '18')
                       : hadith.grade === 'hasan'
                       ? colors.hasan + '18'
                       : colors.daif + '18',
@@ -297,7 +278,7 @@ export default function HadithDetailScreen() {
                   {
                     color:
                       hadith.grade === 'sahih'
-                        ? colors.sahih
+                        ? (isDark ? colors.goldHighlight : colors.sahih)
                         : hadith.grade === 'hasan'
                         ? colors.hasan
                         : colors.daif,
@@ -309,7 +290,7 @@ export default function HadithDetailScreen() {
             </View>
           )}
           {hadith.narrator && (
-            <Text style={[styles.narrator, { color: colors.mutedText }]}>
+            <Text style={[styles.narrator, { color: colors.bronzeText }]}>
               {hadith.narrator}
             </Text>
           )}
@@ -324,13 +305,13 @@ export default function HadithDetailScreen() {
                 style={[
                   styles.tagChip,
                   {
-                    backgroundColor: colors.emeraldMid + '14',
-                    borderColor: colors.emeraldMid + '30',
+                    backgroundColor: (isDark ? colors.goldMid : colors.emeraldMid) + '18',
+                    borderColor: (isDark ? colors.goldMid : colors.emeraldMid) + '50',
                   },
                 ]}
                 accessibilityLabel={tag.name_en}
               >
-                <Text style={[styles.tagChipText, { color: colors.emeraldMid }]}>
+                <Text style={[styles.tagChipText, { color: isDark ? colors.goldHighlight : colors.emeraldMid }]}>
                   {tag.name_en}
                 </Text>
               </View>
@@ -393,7 +374,7 @@ export default function HadithDetailScreen() {
 
         {/* Arabic text */}
         {languageMode !== 'english' ? (
-          <View style={[styles.textSection, { borderBottomColor: colors.borderSubtle }]}>
+          <View style={[styles.textSection, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Text style={[styles.sectionLabel, { color: colors.mutedText }]}>Arabic</Text>
             {hasArabic ? (
               <Text style={[styles.arabicText, { color: colors.bronzeText }]}>
@@ -410,7 +391,7 @@ export default function HadithDetailScreen() {
 
         {/* English */}
         {languageMode !== 'arabic' ? (
-          <View style={[styles.textSection, { borderBottomColor: colors.borderSubtle }]}>
+          <View style={[styles.textSection, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Text style={[styles.sectionLabel, { color: colors.mutedText }]}>Translation</Text>
             {hasEnglish ? (
               <Text style={[styles.englishText, { color: colors.bronzeText }]}>
@@ -578,19 +559,28 @@ export default function HadithDetailScreen() {
         <View style={styles.actions}>
           {[
             {
+              icon: isBookmarked ? ('bookmark' as const) : ('bookmark-outline' as const),
+              label: isBookmarked ? 'Saved' : 'Bookmark',
+              onPress: () => toggleBookmark(),
+              disabled: isTogglingBookmark || !user,
+            },
+            {
               icon: 'folder-outline' as const,
               label: 'Save',
               onPress: () => setShowSaveModal(true),
+              disabled: false,
             },
             {
               icon: 'share-outline' as const,
               label: 'Share',
               onPress: () => shareHadith(hadith, collectionNames),
+              disabled: false,
             },
             {
               icon: 'library-outline' as const,
               label: 'Collection',
               onPress: () => router.push(`/collection/${hadith.collection_slug}`),
+              disabled: false,
             },
           ].map(btn => (
             <Pressable
@@ -598,11 +588,14 @@ export default function HadithDetailScreen() {
               style={({ pressed }) => [
                 styles.actionBtn,
                 { borderColor: colors.border, backgroundColor: colors.card },
+                btn.disabled && { opacity: 0.5 },
                 pressed && { opacity: 0.7 },
               ]}
               onPress={btn.onPress}
+              disabled={btn.disabled}
               accessibilityLabel={btn.label === 'Collection' ? `View ${collectionName} collection` : `${btn.label} hadith`}
               accessibilityRole="button"
+              accessibilityState={{ disabled: btn.disabled }}
             >
               <Ionicons name={btn.icon} size={18} color={colors.emeraldMid} />
               <Text style={[styles.actionBtnText, { color: colors.emeraldMid }]}>
@@ -618,7 +611,7 @@ export default function HadithDetailScreen() {
         hadithId={id}
         onClose={() => setShowSaveModal(false)}
       />
-    </>
+    </IslamicPatternBackground>
   )
 }
 
@@ -627,7 +620,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingTop: SPACING.md,
+    paddingTop: SPACING.lg,
   },
   center: {
     flex: 1,
@@ -638,14 +631,11 @@ const styles = StyleSheet.create({
     fontFamily: FONT_FAMILY.body,
     fontSize: FONT_SIZES.md,
   },
-  headerBtn: {
-    marginRight: 4,
-    padding: SPACING.sm,
-  },
   metaRow: {
     marginBottom: SPACING.md,
-    paddingBottom: SPACING.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    padding: SPACING.md,
+    borderRadius: BORDER_RADIUS.xl,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   collectionName: {
     fontFamily: FONT_FAMILY.headingMedium,
@@ -684,8 +674,9 @@ const styles = StyleSheet.create({
   },
   textSection: {
     marginBottom: SPACING.lg,
-    paddingBottom: SPACING.lg,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    padding: SPACING.md,
+    borderRadius: BORDER_RADIUS.xl,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   sectionLabel: {
     fontFamily: FONT_FAMILY.bodySemiBold,

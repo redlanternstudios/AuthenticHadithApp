@@ -4,7 +4,8 @@ import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { View, useColorScheme } from 'react-native';
+import { Pressable, View, useColorScheme } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import 'react-native-reanimated';
@@ -30,6 +31,7 @@ import { RevenueCatProvider, useRevenueCat } from '@/lib/revenuecat/RevenueCatPr
 import { registerForPushNotifications, markAppOpened, cancelAllNotifications } from '@/lib/notifications'
 import { supabase } from '@/lib/supabase/client';
 import { resolveOnboardingState } from '@/lib/onboarding/onboarding-state';
+import { getColors } from '@/lib/styles/colors';
 
 // FIX-071: preventAutoHideAsync at module level ensures the splash is held
 // from the very first JS frame — must remain unconditional and at top-level.
@@ -186,10 +188,33 @@ function NavigationGate() {
 
 function AppContent() {
   const { isDark } = useTheme();
+  const colors = getColors(isDark);
+  const router = useRouter();
 
   return (
     <NavigationThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
-      <Stack>
+      <Stack
+        screenOptions={{
+          headerStyle: { backgroundColor: colors.card },
+          headerTintColor: colors.goldMid,
+          headerTitleStyle: {
+            color: colors.bronzeText,
+            fontFamily: 'Cinzel_600SemiBold',
+          },
+          headerShadowVisible: false,
+          headerRight: () => (
+            <Pressable
+              onPress={() => router.push('/(tabs)')}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Go to Home"
+              style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Ionicons name="home" size={20} color={colors.goldMid} />
+            </Pressable>
+          ),
+        }}
+      >
         {/* title here is the BACK label on every screen pushed from the tabs —
             without it iOS renders the route-group literal "(tabs)". */}
         <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'Home' }} />

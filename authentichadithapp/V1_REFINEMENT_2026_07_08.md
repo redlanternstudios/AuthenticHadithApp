@@ -35,6 +35,10 @@ VERIFIED: Collections screen was reformatted into a Sahihayn entry page with two
 
 VERIFIED: Book detail now uses the canonical title and app TopBar instead of the stale native route header.
 
+VERIFIED: native header pages now receive a Home button globally, and custom header pages expose Back plus Home.
+
+VERIFIED: Hadith detail contrast now matches the online pattern better by keeping the diamond pattern behind solid reading panels.
+
 ## Screenshot Receipts
 
 Saved in this folder:
@@ -54,6 +58,10 @@ Saved in this folder:
 - e2e-submit-20260708-13-collections-fixed.png
 - e2e-submit-20260708-14-book-title.png
 - e2e-submit-20260708-15-book-fixed.png
+- e2e-submit-20260708-16-hadith-detail-fixed.png
+- e2e-submit-20260708-17-hadith-detail-contrast.png
+- e2e-submit-20260708-18-collections-back-home.png
+- e2e-submit-20260708-19-hadith-back-home-contrast.png
 - e2e-v1-refinement-01-current.png
 - e2e-v1-refinement-02-dark-home.png
 - e2e-v1-refinement-03-dark-appearance.png
@@ -79,4 +87,3 @@ PARTIAL: e2e sweep is still active. Hadith detail, settings child pages, search,
 ## Submission Posture
 
 PARTIAL: not ready to submit yet. The main blockers found so far were fixed, but the full route and button sweep is not complete.
-

@@ -53,7 +53,22 @@ export function ScreenHeader({ title, subtitle, showBack = false, right }: Scree
             </Text>
           ) : null}
         </View>
-        {right ? <View style={styles.right}>{right}</View> : null}
+        {showBack || right ? (
+          <View style={styles.right}>
+            {right}
+            {showBack ? (
+              <Pressable
+                onPress={() => router.push('/(tabs)')}
+                hitSlop={8}
+                style={styles.homeButton}
+                accessibilityRole="button"
+                accessibilityLabel="Go to Home"
+              >
+                <Ionicons name="home" size={22} color={colors.goldMid} />
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
       </View>
     </View>
   )
@@ -93,5 +108,14 @@ const styles = StyleSheet.create({
   },
   right: {
     marginLeft: SPACING.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
+  homeButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 })

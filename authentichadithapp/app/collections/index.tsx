@@ -45,7 +45,7 @@ export default function CollectionsScreen() {
 
   return (
     <IslamicPatternBackground style={[styles.screen, { backgroundColor: colors.background }]} isDark={isDark}>
-      <TopBar title="Collections" />
+      <TopBar title="Collections" showBack />
       <FlatList
         data={visibleCollections}
         keyExtractor={(item) => item.id}
