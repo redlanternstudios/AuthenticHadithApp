@@ -72,7 +72,7 @@ const PACKAGE_DESC: Record<string, string> = {
   // Distinct per tier — Monthly leads with month-to-month flexibility (same
   // features as Annual, so we differentiate on the billing term, not the copy)
   // to avoid a duplicate subtitle with Annual. No pricing/savings language (2.3.7).
-  ah_monthly_premium: 'Premium access month to month. Cancel anytime.',
+  ah_monthly_premium: '7 day free trial, then monthly premium access. Cancel anytime.',
   ah_annual_premium: 'Unlimited AI assistant, learning paths & quizzes.',
   ah_lifetime_premium: 'Unlock all premium features of Authentic Hadith.',
 };
@@ -90,9 +90,12 @@ function getPackageDisplay(pkg: any): { title: string; price: string; desc: stri
 
   // Known product: clean label + live price + our controlled billing cadence.
   if (knownTitle !== undefined && knownCadence !== undefined) {
+    const price = id === 'ah_monthly_premium' && livePrice
+      ? `7 days free, then ${livePrice}${knownCadence}`
+      : livePrice ? `${livePrice}${knownCadence}` : '';
     return {
       title: knownTitle,
-      price: livePrice ? `${livePrice}${knownCadence}` : '',
+      price,
       desc: liveDesc || PACKAGE_DESC[id] || '',
     };
   }

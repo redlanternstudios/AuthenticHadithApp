@@ -261,3 +261,25 @@ The current `BUILD_FIX_LOG.md` entries imported into Codex understanding:
 - Apple Review demo account has a premium entitlement and working credentials stored privately in App Store Connect.
 
 Status: engineering config is hardened; dashboard/device proof is still required before final App Store submission.
+
+### 2026-07-09 seven day monthly trial copy pass
+
+Rory requested that the monthly subscription clearly show a free seven day option tied to the $9.99 monthly product.
+
+Code side change:
+
+- `app/settings/subscription.tsx` now renders `ah_monthly_premium` as seven days free, then the live StoreKit monthly price and cadence.
+- The monthly subtitle now says seven day free trial, then monthly premium access, cancel anytime.
+
+Verification:
+
+- `npx tsc --noEmit` passed.
+- `npm test -- revenuecat.test.ts onboarding-access.test.ts route-integrity.test.ts --runInBand` passed, 61 tests.
+- `node scripts/qa-appstore-metadata.mjs` passed.
+- `npm run lint` passed with zero errors and four existing warnings.
+- `npm run qa:revenuecat` passed against current offering `default` with all three product ids.
+
+Remaining Apple proof:
+
+- App Store Connect must still confirm `ah_monthly_premium` has a real seven day introductory offer. Local copy does not create the Apple trial.
+- `node scripts/ios-go-no-go-audit.mjs` still reports NO GO because Gate F Ready to Submit, Gate G RoPhone paywall proof, and the go or no go doc remain manually pending.
