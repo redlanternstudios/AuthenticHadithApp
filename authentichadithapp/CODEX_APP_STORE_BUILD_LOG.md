@@ -283,3 +283,20 @@ Remaining Apple proof:
 
 - App Store Connect must still confirm `ah_monthly_premium` has a real seven day introductory offer. Local copy does not create the Apple trial.
 - `node scripts/ios-go-no-go-audit.mjs` still reports NO GO because Gate F Ready to Submit, Gate G RoPhone paywall proof, and the go or no go doc remain manually pending.
+
+Production build receipt:
+
+- 2026-07-09: `npm run qa:build` started a production iOS EAS build after Rory approved uploading source to Expo.
+- EAS build ID: `67bbfe1d-12b1-4421-8085-766b82a8ccd0`
+- Build URL: `https://expo.dev/accounts/redlantern/projects/authentichadithapp/builds/67bbfe1d-12b1-4421-8085-766b82a8ccd0`
+- App version: `1.1.0`
+- iOS build number: `104`
+- Commit: `1b011308ced92bee83f1e3492ef91c050e52d6ed`
+- Status: `FINISHED`
+- IPA artifact: `https://expo.dev/artifacts/eas/BuqvvoIQm3XPw0We74Sh4purKmSaLTSuml5iNGZ_s-o.ipa`
+
+Submit blocker:
+
+- `npx eas-cli submit --platform ios --id 67bbfe1d-12b1-4421-8085-766b82a8ccd0 --non-interactive` was not run.
+- Reason: Apple upload requires exact approval after the risk is stated because `IOS_SUBMISSION_GO_NO_GO.md` still says NO GO and the manual gates remain open.
+- Safe next approval text: `Approved: upload Authentic Hadith build 104 to App Store Connect and TestFlight via EAS Submit. I understand the go/no-go doc is still NO GO and this does not submit for App Review.`
