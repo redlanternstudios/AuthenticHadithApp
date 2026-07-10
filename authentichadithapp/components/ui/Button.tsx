@@ -36,7 +36,7 @@ export function Button({
     ...(variant === 'outline' && {
       backgroundColor: 'transparent',
       borderWidth: 1.5,
-      borderColor: colors.emeraldMid,
+      borderColor: isDark ? colors.goldMid : colors.emeraldMid,
     }),
     ...(variant === 'ghost' && { backgroundColor: 'transparent' }),
   }
@@ -45,7 +45,7 @@ export function Button({
     variant === 'primary' || variant === 'secondary'
       ? colors.white
       : variant === 'outline'
-      ? colors.emeraldMid
+      ? isDark ? colors.marbleBase : colors.emeraldMid
       : colors.emeraldMid
 
   const sizeStyles: { container: ViewStyle; fontSize: number } =
@@ -70,7 +70,7 @@ export function Button({
     >
       {isLoading ? (
         <ActivityIndicator
-          color={variant === 'primary' || variant === 'secondary' ? colors.white : colors.emeraldMid}
+          color={variant === 'primary' || variant === 'secondary' ? colors.white : textColor}
         />
       ) : (
         <Text style={[styles.text, { color: textColor, fontSize: sizeStyles.fontSize }]}>

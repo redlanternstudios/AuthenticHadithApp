@@ -51,11 +51,25 @@ const SECTIONS: { title: string; items: MoreItem[] }[] = [
     title: 'STUDY',
     items: [
       {
+        icon: '✨',
+        title: 'LanternAI',
+        description: 'Open the chat bubble for hadith guidance',
+        route: '/(tabs)/assistant',
+        accessibilityLabel: 'Open LanternAI',
+      },
+      {
         icon: '🎓',
         title: 'Learn',
         description: 'Structured lessons and learning paths',
         route: '/(tabs)/learn',
         accessibilityLabel: 'Open Learn screen',
+      },
+      {
+        icon: '🏆',
+        title: 'Badges',
+        description: 'Track lessons, quizzes, stories, and Sunnah progress',
+        route: '/achievements',
+        accessibilityLabel: 'Open Badges',
       },
     ],
   },

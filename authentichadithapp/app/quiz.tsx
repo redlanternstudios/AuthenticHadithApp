@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react'
-import { StyleSheet, View, ScrollView, Text, Pressable } from 'react-native'
+import { StyleSheet, View, ScrollView, Text, Pressable, Share } from 'react-native'
 import { Stack, useRouter } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
@@ -17,6 +17,8 @@ import { STATIC_QUIZZES, getStaticQuiz } from '@/lib/learning/staticQuizContent'
 import { QueryErrorBanner } from '@/components/common/QueryErrorBanner'
 import { useRevenueCat } from '@/lib/revenuecat/RevenueCatProvider'
 import { FONT_FAMILY } from '@/constants/theme'
+import { markComplete as svcMarkComplete } from '@/lib/progress/progressService'
+import { buildQuizShareText } from '@/lib/share/shareContent'
 
 type QuizState = 'start' | 'playing' | 'results'
 
@@ -166,9 +168,16 @@ export default function QuizScreen() {
             if (error) __DEV__ && console.warn('[Quiz] quiz_attempts insert failed (non-fatal):', error)
           })
         }
+        void svcMarkComplete('quiz', `${quizMode}:${Date.now()}`, {
+          score: newScore,
+          total_questions: questions.length,
+          quiz_mode: quizMode,
+        }).catch((err) => {
+          __DEV__ && console.warn('[Quiz] local completion failed (non-fatal):', err)
+        })
       }
     }, 1500)
-  }, [selectedAnswer, currentQuestion, questions, answers, score, user, timer])
+  }, [selectedAnswer, currentQuestion, questions, answers, score, user, timer, quizMode])
 
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`
 
@@ -340,6 +349,25 @@ export default function QuizScreen() {
               </View>
             ))}
           </Card>
+
+          <Button
+            title="Share Result"
+            variant="outline"
+            size="large"
+            onPress={async () => {
+              const message = buildQuizShareText({
+                title: 'Student of Hadith',
+                score,
+                total: questions.length,
+                quizMode,
+              })
+              try {
+                await Share.share({ message, title: 'Quiz Result' })
+              } catch (err) {
+                __DEV__ && console.warn('[Quiz] share failed:', err)
+              }
+            }}
+          />
 
           <Button
             title="Try Again"

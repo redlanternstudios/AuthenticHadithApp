@@ -13,9 +13,10 @@
  */
 
 import React, { useMemo, useState } from 'react'
-import { StyleSheet, View, ScrollView, Text, Pressable } from 'react-native'
+import { StyleSheet, View, ScrollView, Text, Pressable, Share } from 'react-native'
 import { Stack } from 'expo-router'
 import { Card } from '@/components/ui/Card'
+import { Button } from '@/components/ui/Button'
 import { LevelProgressBar } from '@/components/gamification/LevelProgressBar'
 import { useTheme } from '@/lib/theme/ThemeProvider'
 import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
@@ -23,6 +24,7 @@ import { getLevelInfo } from '@/lib/gamification/level-calculator'
 import { useBadges, useProgressSummary } from '@/hooks/useProgress'
 import { BadgeDefinition } from '@/lib/progress/progressService'
 import { FONT_FAMILY } from '@/constants/theme'
+import { buildBadgeShareText } from '@/lib/share/shareContent'
 
 type Filter = 'all' | 'unlocked' | 'locked'
 
@@ -40,6 +42,7 @@ const FILTERS: { key: Filter; label: string }[] = [
 const XP_PER_TYPE: Record<string, number> = {
   story: 25,
   lesson: 15,
+  quiz: 10,
   sunnah_practice: 10,
   course: 50,
   daily_hadith: 5,
@@ -92,6 +95,25 @@ export default function AchievementsScreen() {
           : `${unlockedCount} of ${totalCount} unlocked`}
       </Text>
 
+      <Button
+        title="Share Progress"
+        variant="outline"
+        onPress={async () => {
+          const message = [
+            `Authentic Hadith progress`,
+            `Completed: ${summary.totalCompleted}`,
+            `Lessons: ${summary.byType.lesson}`,
+            `Quizzes: ${summary.byType.quiz}`,
+            `Stories: ${summary.byType.story}`,
+          ].join('\n')
+          try {
+            await Share.share({ message, title: 'Authentic Hadith Progress' })
+          } catch (err) {
+            __DEV__ && console.warn('[Achievements] share progress failed:', err)
+          }
+        }}
+      />
+
       {/* Level Progress */}
       <Card variant="elevated" style={styles.levelCard}>
         <LevelProgressBar levelInfo={levelInfo} />
@@ -101,6 +123,7 @@ export default function AchievementsScreen() {
       <View style={styles.statsRow}>
         <StatPill colors={colors} label="Stories" value={summary.byType.story} />
         <StatPill colors={colors} label="Lessons" value={summary.byType.lesson} />
+        <StatPill colors={colors} label="Quizzes" value={summary.byType.quiz} />
         <StatPill colors={colors} label="Sunnah" value={summary.byType.sunnah_practice} />
       </View>
 
@@ -197,6 +220,24 @@ function BadgeTile({
       >
         {badge.description}
       </Text>
+      {badge.unlocked && (
+        <Pressable
+          onPress={async () => {
+            const message = buildBadgeShareText({
+              name: badge.name,
+              description: badge.description,
+            })
+            try {
+              await Share.share({ message, title: badge.name })
+            } catch (err) {
+              __DEV__ && console.warn('[Achievements] share badge failed:', err)
+            }
+          }}
+          style={[styles.shareButton, { borderColor: colors.border }]}
+        >
+          <Text style={[styles.shareButtonText, { color: colors.emeraldMid }]}>Share</Text>
+        </Pressable>
+      )}
       {!badge.unlocked && badge.progress != null && (
         <View style={[styles.badgeProgressBg, { backgroundColor: colors.border }]}>
           <View
@@ -252,9 +293,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: SPACING.sm,
     marginBottom: SPACING.md,
+    flexWrap: 'wrap',
   },
   statPill: {
-    flex: 1,
+    width: '48%',
     paddingVertical: SPACING.sm,
     paddingHorizontal: SPACING.md,
     borderRadius: BORDER_RADIUS.lg,
@@ -315,6 +357,7 @@ const styles = StyleSheet.create({
     fontFamily: FONT_FAMILY.body,
     textAlign: 'center',
     minHeight: 32,
+    marginBottom: SPACING.xs,
   },
   badgeProgressBg: {
     width: '100%',
@@ -326,6 +369,18 @@ const styles = StyleSheet.create({
   badgeProgressFill: {
     height: '100%',
     borderRadius: 2,
+  },
+  shareButton: {
+    marginTop: SPACING.sm,
+    borderWidth: 1,
+    borderRadius: BORDER_RADIUS.full,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
+  },
+  shareButtonText: {
+    fontSize: FONT_SIZES.xs,
+    fontFamily: FONT_FAMILY.bodySemiBold,
+    textAlign: 'center',
   },
   empty: {
     padding: SPACING.xl,

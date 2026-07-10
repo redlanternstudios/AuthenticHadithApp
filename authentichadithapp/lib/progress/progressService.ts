@@ -25,12 +25,14 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { BADGE_CONFIG, getBadgeProgress } from '@/lib/gamification/badge-config'
 
 // ─── Types ─────────────────────────────────────────────────────────
 
 export type CompletionType =
   | 'story'
   | 'lesson'
+  | 'quiz'
   | 'sunnah_practice'
   | 'course'
   | 'daily_hadith'
@@ -579,6 +581,7 @@ export async function getProgressSummary(): Promise<ProgressSummary> {
   const byType: Record<CompletionType, number> = {
     story: 0,
     lesson: 0,
+    quiz: 0,
     sunnah_practice: 0,
     course: 0,
     daily_hadith: 0,
@@ -612,49 +615,23 @@ export async function getProgressSummary(): Promise<ProgressSummary> {
  */
 export async function getBadges(): Promise<BadgeDefinition[]> {
   const summary = await getProgressSummary()
-  const stories = summary.byType.story
-  const lessons = summary.byType.lesson
-  const sunnah = summary.byType.sunnah_practice
-  const days = summary.activeDays.length
+  const metricMap = {
+    totalCompleted: summary.totalCompleted,
+    story: summary.byType.story,
+    lesson: summary.byType.lesson,
+    quiz: summary.byType.quiz,
+    sunnah: summary.byType.sunnah_practice,
+    days: summary.activeDays.length,
+  }
 
-  const def = (
-    id: string,
-    name: string,
-    description: string,
-    icon: string,
-    unlocked: boolean,
-    progress?: number
-  ): BadgeDefinition => ({ id, name, description, icon, unlocked, progress })
-
-  return [
-    def('seeker', 'Seeker', 'Begin your journey of learning.', '🌱',
-      summary.totalCompleted >= 1,
-      Math.min(summary.totalCompleted / 1, 1)),
-    def('first_story', 'First Story', 'Complete your first story.', '📖',
-      stories >= 1,
-      Math.min(stories / 1, 1)),
-    def('first_lesson', 'First Lesson', 'Complete your first lesson.', '📚',
-      lessons >= 1,
-      Math.min(lessons / 1, 1)),
-    def('first_sunnah', 'First Sunnah', 'Practice your first Sunnah.', '🕌',
-      sunnah >= 1,
-      Math.min(sunnah / 1, 1)),
-    def('story_5', 'Storyteller', 'Complete 5 stories.', '📚',
-      stories >= 5,
-      Math.min(stories / 5, 1)),
-    def('lesson_5', 'Student', 'Complete 5 lessons.', '🎓',
-      lessons >= 5,
-      Math.min(lessons / 5, 1)),
-    def('sunnah_5', 'Devoted', 'Practice 5 Sunnah practices.', '🌟',
-      sunnah >= 5,
-      Math.min(sunnah / 5, 1)),
-    def('streak_7', '7-Day Streak', 'Engage on 7 different days.', '🔥',
-      days >= 7,
-      Math.min(days / 7, 1)),
-    def('total_25', 'Dedicated', 'Complete 25 items in total.', '🏆',
-      summary.totalCompleted >= 25,
-      Math.min(summary.totalCompleted / 25, 1)),
-  ]
+  return BADGE_CONFIG.map((badge) => ({
+    id: badge.id,
+    name: badge.name,
+    description: badge.description,
+    icon: badge.icon,
+    unlocked: metricMap[badge.metric] >= badge.threshold,
+    progress: getBadgeProgress(metricMap[badge.metric], badge.threshold),
+  }))
 }
 
 // ─── Subscription mechanism for hooks ──────────────────────────────

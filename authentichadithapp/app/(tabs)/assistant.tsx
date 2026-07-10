@@ -277,10 +277,18 @@ function AssistantScreenInner() {
           )}
         </ScrollView>
 
-        <View style={[styles.fatwaFooter, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
-          <Ionicons name="information-circle-outline" size={14} color={colors.mutedText} />
-          <Text style={[styles.fatwaText, { color: colors.mutedText }]}>
+        <View style={[styles.lanternBubble, { backgroundColor: colors.chatAiBubble }]}>
+          <View style={styles.bubbleHeader}>
+            <View style={[styles.avatarContainer, { backgroundColor: 'rgba(255,255,255,0.14)' }]}>
+              <Ionicons name="sparkles" size={16} color={colors.white} />
+            </View>
+            <Text style={[styles.bubbleTitle, { color: colors.white }]}>LanternAI</Text>
+          </View>
+          <Text style={[styles.bubbleText, { color: colors.white }]}>
             AI guidance only. For rulings, consult a qualified scholar.
+          </Text>
+          <Text style={[styles.bubbleHint, { color: colors.white + 'CC' }]}>
+            Open LanternAI from the footer or the More menu whenever you need context.
           </Text>
         </View>
 
@@ -521,20 +529,30 @@ const styles = StyleSheet.create({
   quotaText: {
     fontSize: FONT_SIZES.xs,
   },
-  fatwaFooter: {
+  lanternBubble: {
+    marginHorizontal: SPACING.md,
+    marginBottom: SPACING.sm,
+    borderRadius: BORDER_RADIUS.xl,
+    padding: SPACING.md,
+  },
+  bubbleHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: SPACING.xs,
-    paddingVertical: SPACING.xs,
-    paddingHorizontal: SPACING.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    marginBottom: SPACING.xs,
   },
-  fatwaText: {
+  bubbleTitle: {
+    fontFamily: FONT_FAMILY.bodySemiBold,
+    fontSize: FONT_SIZES.sm,
+    fontWeight: '600',
+  },
+  bubbleText: {
+    fontSize: FONT_SIZES.xs,
+    lineHeight: 18,
+  },
+  bubbleHint: {
+    marginTop: SPACING.xs,
     fontSize: FONT_SIZES.xs,
     fontStyle: 'italic',
-    textAlign: 'center',
-    flexShrink: 1,
   },
 });
 

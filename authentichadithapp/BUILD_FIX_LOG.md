@@ -92,6 +92,53 @@ Before any EAS build:
 
 ## FIXES
 
+### [FIX-164] — Submission day one feature pass for learning, quiz, badges, sharing, and monthly trial copy
+**Date**: 2026-07-10 PT
+**Session**: Codex
+**Severity**: Critical
+
+**Error Message**:
+```
+Learning sections were unreadable in dark mode, quiz questions did not feel tied to lessons, LanternAI needed a footer entry, Badges needed to be reachable, and the monthly product needed to clearly show the seven day trial.
+```
+
+**Root Cause**:
+The learning and quiz loop had local UI and progress pieces, but they were not fully connected into the navigation and badge system. Shared outline buttons also used low contrast dark mode colors. Today still carried a few non Sahihayn references even after the release scope was narrowed to Bukhari and Muslim.
+
+**Fix Applied**:
+```
+Added LanternAI footer and More entry copy, added More > Badges reachability, wired quiz completions into local progress and badge calculation, added lesson and quiz share actions, made outline buttons readable in dark mode, and tightened Today Sunnah references to Bukhari and Muslim.
+```
+
+**Files Changed**:
+- `app/(tabs)/assistant.tsx` — updated LanternAI bubble copy.
+- `app/(tabs)/more.tsx` — added LanternAI and Badges navigation entries.
+- `app/(tabs)/today.tsx` — removed Today Sunnah references outside Bukhari and Muslim.
+- `app/achievements.tsx` — added quiz stats, progress sharing, and badge sharing.
+- `app/learn/lesson/[lessonId].tsx` — added Share Lesson action.
+- `app/quiz.tsx` — added shareable results and local quiz completion writes.
+- `components/ui/Button.tsx` — corrected outline button contrast in dark mode.
+- `hooks/useProgress.ts` — added quiz progress defaults.
+- `lib/progress/progressService.ts` — moved badge calculation to config and added quiz progress.
+- `lib/share/shareContent.ts` — centralized share text helpers.
+- `lib/gamification/badge-config.ts` — centralized badge thresholds and metrics.
+
+**Verification Command**:
+```
+npx tsc --noEmit
+npm run lint
+git diff --check
+npx expo-doctor
+npm run qa:revenuecat
+```
+
+**Result**: Code verified locally. `npm run lint` has zero errors and four pre existing warnings. `npx expo-doctor` passes 18 of 18. RevenueCat offering audit returns the expected monthly, annual, and lifetime products.
+
+**Lesson**:
+Incentive loops are not complete until the loop is reachable, measurable, shareable, and readable in both color modes. Subscription trial copy also needs a local display guard, but App Store introductory offer proof remains a separate App Store Connect receipt.
+
+---
+
 ### [FIX-163] — Sahihayn onboarding, optional access, and home study hierarchy
 **Date**: 2026-07-08 PT
 **Session**: Codex

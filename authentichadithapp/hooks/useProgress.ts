@@ -114,7 +114,7 @@ export function useCompletedItems(type?: CompletionType) {
 export function useProgressSummary() {
   const [summary, setSummary] = useState<ProgressSummary>({
     totalCompleted: 0,
-    byType: { story: 0, lesson: 0, sunnah_practice: 0, course: 0, daily_hadith: 0 },
+    byType: { story: 0, lesson: 0, quiz: 0, sunnah_practice: 0, course: 0, daily_hadith: 0 },
     lastCompleted: null,
     activeDays: [],
   })

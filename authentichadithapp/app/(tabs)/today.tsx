@@ -34,12 +34,9 @@ import { SaveHadithModal } from '@/components/my-hadith/SaveHadithModal'
 const DAILY_ACTIONS = [
   { action: 'Say Bismillah before eating', reference: 'Sahih al-Bukhari 5376' },
   { action: "Pray two rak'ahs of Duha", reference: 'Sahih Muslim 748' },
-  { action: 'Read Surah al-Mulk before sleeping', reference: 'Jami at-Tirmidhi 2891' },
   { action: 'Make dhikr after Fajr until sunrise', reference: 'Sahih Muslim 2137' },
-  { action: 'Smile at your brother/sister', reference: 'Jami at-Tirmidhi 1956' },
   { action: 'Use the miswak', reference: 'Sahih al-Bukhari 887' },
   { action: 'Drink water in three sips', reference: 'Sahih Muslim 2028' },
-  { action: 'Say the morning and evening adhkar', reference: 'Sunan Abu Dawud 5068' },
   { action: 'Give charity, even if small', reference: 'Sahih al-Bukhari 1417' },
   { action: 'Visit a sick person', reference: 'Sahih al-Bukhari 5649' },
   { action: 'Make istighfar 100 times', reference: 'Sahih Muslim 2702' },

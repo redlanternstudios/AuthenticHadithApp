@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, Text, ScrollView , View as RNView, Text as RNText } from 'react-native';
+import { StyleSheet, View, Text, ScrollView , View as RNView, Text as RNText, Share } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import Markdown from 'react-native-markdown-display';
@@ -18,6 +18,7 @@ import { trackActivity } from '@/lib/gamification/track-activity';
 import { supabase } from '@/lib/supabase/client';
 import { scheduleLessonReminder, getLessonReminderEnabled } from '@/lib/notifications';
 import { QueryErrorBanner } from '@/components/common/QueryErrorBanner';
+import { buildLessonShareText } from '@/lib/share/shareContent';
 
 export default function LessonDetailScreen() {
   const params = useLocalSearchParams<{ lessonId: string; pathId?: string }>();
@@ -126,6 +127,23 @@ export default function LessonDetailScreen() {
           {lesson.description?.trim() ? (
             <Text style={[styles.description, { color: colors.bronzeText }]}>{lesson.description}</Text>
           ) : null}
+
+          <Button
+            title="Share Lesson"
+            variant="outline"
+            onPress={async () => {
+              const message = buildLessonShareText({
+                title: lesson.title,
+                description: lesson.description,
+                lessonId: lesson.id,
+              });
+              try {
+                await Share.share({ message, title: lesson.title });
+              } catch (err) {
+                __DEV__ && console.warn('[Lesson] share failed:', err);
+              }
+            }}
+          />
 
           {lesson.content?.trim() ? (
             <View
