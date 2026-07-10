@@ -300,3 +300,12 @@ Submit blocker:
 - `npx eas-cli submit --platform ios --id 67bbfe1d-12b1-4421-8085-766b82a8ccd0 --non-interactive` was not run.
 - Reason: Apple upload requires exact approval after the risk is stated because `IOS_SUBMISSION_GO_NO_GO.md` still says NO GO and the manual gates remain open.
 - Safe next approval text: `Approved: upload Authentic Hadith build 104 to App Store Connect and TestFlight via EAS Submit. I understand the go/no-go doc is still NO GO and this does not submit for App Review.`
+
+Apple upload attempt:
+
+- 2026-07-09: Rory approved proceeding with the Apple upload.
+- EAS submission ID: `396c981c-b2d6-4dd5-bf95-2da09f3056bd`
+- Submission URL: `https://expo.dev/accounts/redlantern/projects/authentichadithapp/submissions/396c981c-b2d6-4dd5-bf95-2da09f3056bd`
+- Result: FAILED.
+- Apple rejection: `CFBundleShortVersionString [1.1.0]` must be higher than the previously approved version `[1.1.0]`; the `1.1.0` prerelease train is closed for new build submissions.
+- Fix: bump release version to `1.1.1`, rebuild, then upload the new build to App Store Connect.
