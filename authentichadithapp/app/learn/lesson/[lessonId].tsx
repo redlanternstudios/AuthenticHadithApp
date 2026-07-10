@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, View, Text, ScrollView , View as RNView, Text as RNText } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
+import Markdown from 'react-native-markdown-display';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -37,8 +38,7 @@ export default function LessonDetailScreen() {
   const neighbors = getLessonNeighbors(pathLessons, lessonId);
   const goToLesson = (id: string) => router.replace(`/learn/lesson/${id}?pathId=${pathId}`);
 
-  // V2: lesson content from Supabase `learning_lessons`. content_markdown is
-  // rendered as plain text (no markdown lib dependency).
+  // V2: lesson content from Supabase `learning_lessons`.
   const { data: lesson, isLoading, isError, refetch } = useQuery({
     queryKey: ['lesson', lessonId],
     queryFn: async (): Promise<Lesson | null> => {
@@ -128,20 +128,42 @@ export default function LessonDetailScreen() {
           ) : null}
 
           {lesson.content?.trim() ? (
-            <View style={[styles.contentSection, { backgroundColor: colors.marbleBase }]}>
-              <Text style={[styles.contentText, { color: colors.bronzeText }]}>{lesson.content}</Text>
+            <View
+              style={[
+                styles.contentSection,
+                {
+                  backgroundColor: isDark ? colors.cardElevated : colors.marbleBase,
+                  borderColor: isDark ? colors.emeraldHighlight + '55' : colors.borderSubtle,
+                },
+              ]}
+            >
+              <Markdown style={createMarkdownStyles(colors, isDark)}>{lesson.content}</Markdown>
             </View>
           ) : !lesson.description?.trim() ? (
             // Neither description nor content present — render a single premium
             // placeholder so the card never looks empty/broken.
-            <View style={[styles.contentSection, { backgroundColor: colors.marbleBase }]}>
+            <View
+              style={[
+                styles.contentSection,
+                {
+                  backgroundColor: isDark ? colors.cardElevated : colors.marbleBase,
+                  borderColor: isDark ? colors.emeraldHighlight + '55' : colors.borderSubtle,
+                },
+              ]}
+            >
               <Text style={[styles.contentText, { color: colors.mutedText }]}>{LESSON_PLACEHOLDER}</Text>
             </View>
           ) : null}
         </Card>
 
         {/* In-lesson quiz (v2) — only when the lesson has questions. */}
-        {lesson.has_quiz ? <LessonQuiz lessonId={lesson.id} /> : null}
+        {lesson.has_quiz ? (
+          <LessonQuiz
+            lessonId={lesson.id}
+            lessonTitle={lesson.title}
+            lessonContent={`${lesson.description ?? ''}\n${lesson.content ?? ''}`}
+          />
+        ) : null}
 
         {completion.isComplete ? (
           <RNView style={[styles.completedBadge, { backgroundColor: colors.emeraldMid + '15', borderColor: colors.emeraldMid + '30' }]}>
@@ -259,6 +281,7 @@ const styles = StyleSheet.create({
     marginTop: SPACING.md,
     padding: SPACING.md,
     borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   contentText: {
     fontFamily: FONT_FAMILY.body,
@@ -305,3 +328,82 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
 });
+
+function createMarkdownStyles(colors: ReturnType<typeof getColors>, isDark: boolean) {
+  const bodyColor = isDark ? colors.marbleBase : colors.bronzeText;
+  const mutedColor = isDark ? colors.mutedText : colors.mutedText;
+  const headingColor = isDark ? colors.goldHighlight : colors.emeraldShadow;
+
+  return {
+    body: {
+      color: bodyColor,
+      fontFamily: FONT_FAMILY.body,
+      fontSize: FONT_SIZES.base,
+      lineHeight: 24,
+    },
+    heading1: {
+      color: headingColor,
+      fontFamily: FONT_FAMILY.heading,
+      fontSize: FONT_SIZES.xl,
+      lineHeight: 28,
+      marginTop: 0,
+      marginBottom: SPACING.sm,
+    },
+    heading2: {
+      color: headingColor,
+      fontFamily: FONT_FAMILY.heading,
+      fontSize: FONT_SIZES.lg,
+      lineHeight: 26,
+      marginTop: SPACING.md,
+      marginBottom: SPACING.xs,
+    },
+    heading3: {
+      color: headingColor,
+      fontFamily: FONT_FAMILY.heading,
+      fontSize: FONT_SIZES.md,
+      lineHeight: 24,
+      marginTop: SPACING.md,
+      marginBottom: SPACING.xs,
+    },
+    paragraph: {
+      color: bodyColor,
+      marginTop: SPACING.xs,
+      marginBottom: SPACING.md,
+    },
+    strong: {
+      color: headingColor,
+      fontWeight: '700' as const,
+    },
+    bullet_list: {
+      marginBottom: SPACING.md,
+    },
+    ordered_list: {
+      marginBottom: SPACING.md,
+    },
+    list_item: {
+      color: bodyColor,
+      marginBottom: SPACING.xs,
+    },
+    fence: {
+      backgroundColor: isDark ? colors.emeraldShadow : colors.card,
+      color: bodyColor,
+      borderColor: isDark ? colors.emeraldHighlight : colors.border,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderRadius: 8,
+      padding: SPACING.sm,
+    },
+    code_inline: {
+      backgroundColor: isDark ? colors.emeraldShadow : colors.card,
+      color: bodyColor,
+      borderRadius: 4,
+      paddingHorizontal: SPACING.xs,
+    },
+    blockquote: {
+      backgroundColor: 'transparent',
+      borderLeftColor: colors.goldMid,
+      borderLeftWidth: 3,
+      paddingLeft: SPACING.sm,
+      color: mutedColor,
+    },
+  };
+}

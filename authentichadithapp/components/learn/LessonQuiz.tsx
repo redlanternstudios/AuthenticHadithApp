@@ -8,11 +8,17 @@ import { LearningQuizQuestion } from '@/types/hadith';
 import { supabase } from '@/lib/supabase/client';
 
 /**
- * In-lesson quiz (v2). Renders the `learning_quiz_questions` for a lesson:
+ * In-lesson quiz (v2). Renders relevant `learning_quiz_questions` for a lesson:
  * tap an option to lock it in, see correct/incorrect + the hint, and a running
  * score. Self-contained — no completion gating, no new dependencies.
  */
-export function LessonQuiz({ lessonId }: { lessonId: string }) {
+type LessonQuizProps = {
+  lessonId: string;
+  lessonTitle?: string;
+  lessonContent?: string;
+};
+
+export function LessonQuiz({ lessonId, lessonTitle = '', lessonContent = '' }: LessonQuizProps) {
   const { isDark } = useTheme();
   const colors = getColors(isDark);
   const [answers, setAnswers] = useState<Record<string, number>>({});
@@ -38,22 +44,24 @@ export function LessonQuiz({ lessonId }: { lessonId: string }) {
     enabled: !!lessonId,
   });
 
-  const score = useMemo(() => {
-    if (!questions?.length) return { correct: 0, total: 0 };
-    let correct = 0;
-    for (const q of questions) if (answers[q.id] === q.correct_index) correct += 1;
-    return { correct, total: questions.length };
-  }, [questions, answers]);
+  const relevantQuestions = useMemo(() => {
+    if (!questions?.length) return [];
+    return questions.filter((q) => isQuizQuestionRelevant(q, `${lessonTitle}\n${lessonContent}`));
+  }, [questions, lessonTitle, lessonContent]);
 
-  if (!questions?.length) return null;
+  if (!relevantQuestions.length) return null;
 
-  const answeredAll = Object.keys(answers).length === questions.length;
+  const answeredAll = relevantQuestions.every((q) => answers[q.id] !== undefined);
+  const visibleScore = {
+    correct: relevantQuestions.filter((q) => answers[q.id] === q.correct_index).length,
+    total: relevantQuestions.length,
+  };
 
   return (
     <View style={styles.wrap}>
       <Text style={[styles.heading, { color: colors.bronzeText }]}>📝 Check your understanding</Text>
 
-      {questions.map((q, qi) => {
+      {relevantQuestions.map((q, qi) => {
         const picked = answers[q.id];
         const isAnswered = picked !== undefined;
         return (
@@ -100,7 +108,7 @@ export function LessonQuiz({ lessonId }: { lessonId: string }) {
 
       {answeredAll ? (
         <Text style={[styles.scoreText, { color: colors.emeraldMid }]}>
-          Score: {score.correct} / {score.total}
+          Score: {visibleScore.correct} / {visibleScore.total}
         </Text>
       ) : null}
     </View>
@@ -146,3 +154,73 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
 });
+
+const QUIZ_STOP_WORDS = new Set([
+  'about',
+  'after',
+  'allah',
+  'also',
+  'answer',
+  'because',
+  'before',
+  'being',
+  'between',
+  'could',
+  'does',
+  'during',
+  'every',
+  'from',
+  'hadith',
+  'have',
+  'into',
+  'islam',
+  'lesson',
+  'more',
+  'most',
+  'muslim',
+  'only',
+  'other',
+  'over',
+  'prophet',
+  'question',
+  'should',
+  'than',
+  'that',
+  'their',
+  'there',
+  'these',
+  'they',
+  'this',
+  'through',
+  'understanding',
+  'what',
+  'when',
+  'where',
+  'which',
+  'while',
+  'with',
+  'would',
+  'your',
+]);
+
+function toKeywords(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter((word) => word.length > 3 && !QUIZ_STOP_WORDS.has(word));
+}
+
+function isQuizQuestionRelevant(question: LearningQuizQuestion, lessonContext: string) {
+  const context = new Set(toKeywords(lessonContext));
+  if (context.size < 3) return true;
+
+  const questionWords = toKeywords([
+    question.question_text,
+    question.hint_text ?? '',
+    ...(question.options ?? []),
+  ].join(' '));
+
+  const matches = questionWords.filter((word) => context.has(word));
+  return new Set(matches).size >= 2;
+}
