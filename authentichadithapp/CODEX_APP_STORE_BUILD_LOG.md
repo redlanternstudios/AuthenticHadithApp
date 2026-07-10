@@ -178,6 +178,22 @@ Guardrail: the hardcoded fallback is only the public iOS `appl_...` key. The pri
 - RevenueCat offering gate: `npm run qa:revenuecat` PASS.
 - RevenueCat diagnostics removal grep: no `rcDiag`, `rc-diagnostics`, `maskUserId`, hidden unlock, or `RC Diagnostics` references remain under live `app/` or `lib/` code.
 
+## 2026-07-09 iOS Upload Receipt
+
+- Build 104 finished but Apple rejected upload because app version `1.1.0` was already closed for new build submissions.
+- Fix commit `b260cd3` bumped the public app version to `1.1.1`.
+- Build 105 finished successfully.
+- Build id: `44463f0f-32a7-4580-8050-a16e98a0f308`.
+- App version: `1.1.1`.
+- Build number: `105`.
+- Commit: `b260cd3d181d05703f7b9bd1c9a723089b64cf1e`.
+- Submission id: `88349cc3-eb45-4ec0-a36f-f46fc4e7ba05`.
+- Result: binary uploaded to App Store Connect; Apple processing pending.
+- TestFlight URL: `https://appstoreconnect.apple.com/apps/6764673665/testflight/ios`.
+- Claudex screenshot evidence: `OPS/evidence/authentic_hadith_ios_submission_20260709/`, 39 simulator screenshots.
+
+Remaining truth gate: do not call the release App Review ready until App Store Connect confirms the seven day introductory offer on `ah_monthly_premium`, the build appears after Apple processing, and the RoPhone or TestFlight paywall and restore screenshots are attached.
+
 ## Transferable Pattern For Future Apps
 
 When configuring RevenueCat in another Expo app:
