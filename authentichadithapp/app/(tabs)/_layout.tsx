@@ -85,7 +85,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="assistant"
         options={{
-          title: 'Chat',
+          title: 'LanternAI',
           tabBarIcon: ({ color }) => (
             <IconSymbol size={LAYOUT.tabIconSize} name="sparkles" color={color} />
           ),

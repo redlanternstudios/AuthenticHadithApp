@@ -22,6 +22,9 @@ export function LessonQuiz({ lessonId, lessonTitle = '', lessonContent = '' }: L
   const { isDark } = useTheme();
   const colors = getColors(isDark);
   const [answers, setAnswers] = useState<Record<string, number>>({});
+  const optionDefaultBg = isDark ? colors.cardElevated : colors.marbleBase;
+  const optionCorrectBg = isDark ? colors.emeraldHighlight + '33' : colors.emeraldMid + '22';
+  const optionTextColor = isDark ? colors.marbleBase : colors.bronzeText;
 
   const { data: questions } = useQuery({
     queryKey: ['lesson-quiz', lessonId],
@@ -74,15 +77,15 @@ export function LessonQuiz({ lessonId, lessonTitle = '', lessonContent = '' }: L
               const isCorrect = oi === q.correct_index;
               const showState = isAnswered && (isPicked || isCorrect);
               const bg = !showState
-                ? colors.marbleBase
+                ? optionDefaultBg
                 : isCorrect
-                  ? colors.emeraldMid + '22'
-                  : colors.marbleBase;
+                  ? optionCorrectBg
+                  : optionDefaultBg;
               const border = showState
                 ? isCorrect
                   ? colors.emeraldMid
                   : isPicked
-                    ? colors.mutedText
+                    ? colors.goldMid
                     : 'transparent'
                 : 'transparent';
               return (
@@ -92,7 +95,7 @@ export function LessonQuiz({ lessonId, lessonTitle = '', lessonContent = '' }: L
                   onPress={() => setAnswers((a) => ({ ...a, [q.id]: oi }))}
                   style={[styles.option, { backgroundColor: bg, borderColor: border }]}
                 >
-                  <Text style={[styles.optionText, { color: colors.bronzeText }]}>
+                  <Text style={[styles.optionText, { color: optionTextColor }]}>
                     {showState ? (isCorrect ? '✅ ' : isPicked ? '❌ ' : '') : ''}
                     {opt}
                   </Text>

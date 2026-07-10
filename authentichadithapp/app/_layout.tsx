@@ -1,10 +1,10 @@
 import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack, usePathname, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, View, useColorScheme } from 'react-native';
+import { Pressable, StyleSheet, View, useColorScheme } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -109,6 +109,49 @@ function PushTokenSync() {
   }, [user?.id])
 
   return null
+}
+
+function GlobalNavControls() {
+  const { isDark } = useTheme()
+  const colors = getColors(isDark)
+  const router = useRouter()
+  const pathname = usePathname()
+  const segments = useSegments()
+
+  const firstSegment = segments[0]
+  const hiddenRoutes = firstSegment === 'auth' || firstSegment === 'onboarding' || firstSegment === 'paywall'
+  const isHome = pathname === '/' || pathname === '/(tabs)' || pathname === '/(tabs)/'
+
+  if (hiddenRoutes || isHome) return null
+
+  return (
+    <View pointerEvents="box-none" style={styles.globalNavWrap}>
+      <Pressable
+        onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
+        hitSlop={10}
+        accessibilityRole="button"
+        accessibilityLabel="Go back"
+        style={[
+          styles.globalNavButton,
+          { backgroundColor: colors.card + 'F2', borderColor: colors.border },
+        ]}
+      >
+        <Ionicons name="chevron-back" size={20} color={colors.goldMid} />
+      </Pressable>
+      <Pressable
+        onPress={() => router.replace('/(tabs)')}
+        hitSlop={10}
+        accessibilityRole="button"
+        accessibilityLabel="Go to Home"
+        style={[
+          styles.globalNavButton,
+          { backgroundColor: colors.card + 'F2', borderColor: colors.border },
+        ]}
+      >
+        <Ionicons name="home" size={18} color={colors.goldMid} />
+      </Pressable>
+    </View>
+  )
 }
 
 // Pure side-effect component — renders nothing, only redirects.
@@ -252,12 +295,35 @@ function AppContent() {
         <Stack.Screen name="shared/[token]" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
       </Stack>
+      <GlobalNavControls />
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <NavigationGate />
       <PushTokenSync />
     </NavigationThemeProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  globalNavWrap: {
+    position: 'absolute',
+    top: 0,
+    left: 12,
+    right: 12,
+    paddingTop: 58,
+    zIndex: 1000,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    pointerEvents: 'box-none',
+  },
+  globalNavButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+})
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
