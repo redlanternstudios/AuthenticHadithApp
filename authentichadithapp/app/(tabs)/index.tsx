@@ -62,6 +62,23 @@ const STUDY_STEPS = [
   },
 ];
 
+const HOME_FALLBACK_HADITH: Hadith = {
+  id: 'home-fallback-bukhari-1',
+  hadith_number: '1',
+  collection_slug: 'sahih-bukhari',
+  book_number: 1,
+  chapter_number: 1,
+  narrator: 'Umar bin Al-Khattab',
+  grade: 'sahih',
+  arabic_text:
+    'إِنَّمَا الأَعْمَالُ بِالنِّيَّاتِ، وَإِنَّمَا لِكُلِّ امْرِئٍ مَا نَوَى',
+  english_text:
+    'The reward of deeds depends upon the intentions, and every person will get the reward according to what he has intended.',
+  source: 'Sahih al-Bukhari',
+  created_at: '2026-07-09T00:00:00.000Z',
+  updated_at: '2026-07-09T00:00:00.000Z',
+};
+
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const IS_TABLET = SCREEN_WIDTH >= 768;
 
@@ -93,8 +110,15 @@ export default function HomeScreen() {
       if (HIDDEN_COLLECTION_FILTER) {
         countQuery = countQuery.not('collection_slug', 'in', HIDDEN_COLLECTION_FILTER);
       }
-      const { count } = await countQuery;
-      const total = count || 100;
+      const { count, error: countError } = await countQuery;
+      if (countError) {
+        __DEV__ && console.warn('[Home] Random hadith count failed:', countError.message);
+        return HOME_FALLBACK_HADITH;
+      }
+
+      const total = count || 0;
+      if (total <= 0) return HOME_FALLBACK_HADITH;
+
       const offset = Math.floor(Math.random() * total);
       let rowQuery = supabase
         .from('hadiths')
@@ -110,9 +134,13 @@ export default function HomeScreen() {
         .order('id', { ascending: false })
         .range(offset, offset)
         .maybeSingle();
-      if (error) throw error;
-      return data as Hadith;
+      if (error) {
+        __DEV__ && console.warn('[Home] Random hadith row failed:', error.message);
+        return HOME_FALLBACK_HADITH;
+      }
+      return (data as Hadith | null) ?? HOME_FALLBACK_HADITH;
     },
+    retry: false,
   });
 
   const { data: stats } = useQuery({
