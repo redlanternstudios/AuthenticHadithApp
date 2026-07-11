@@ -21,6 +21,7 @@ describe('onboarding and app access gates', () => {
       .map((match) => match[1])
 
     expect(completionRoutes).toContain('/paywall')
+    expect(onboardingSource).not.toContain("router.replace('/(tabs)')")
   })
 
   it('forces onboarded non subscribers to the paywall before interior routes', () => {

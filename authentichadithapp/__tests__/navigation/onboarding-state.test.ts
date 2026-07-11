@@ -1,7 +1,7 @@
 import { resolveOnboardingState } from '@/lib/onboarding/onboarding-state'
 
 describe('resolveOnboardingState', () => {
-  it('trusts the local completion flag first', async () => {
+  it('uses remote completion before stale local cache for signed in users', async () => {
     const fetchRemoteFlag = jest.fn()
     const setLocalFlag = jest.fn()
 
@@ -9,10 +9,23 @@ describe('resolveOnboardingState', () => {
       userId: 'user-1',
       getLocalFlag: jest.fn().mockResolvedValue('true'),
       setLocalFlag,
-      fetchRemoteFlag,
+      fetchRemoteFlag: fetchRemoteFlag.mockResolvedValue(false),
+    })).resolves.toBe(false)
+
+    expect(fetchRemoteFlag).toHaveBeenCalledWith('user-1')
+    expect(setLocalFlag).not.toHaveBeenCalled()
+  })
+
+  it('uses local completion only when remote onboarding lookup is unavailable', async () => {
+    const setLocalFlag = jest.fn()
+
+    await expect(resolveOnboardingState({
+      userId: 'user-1',
+      getLocalFlag: jest.fn().mockResolvedValue('true'),
+      setLocalFlag,
+      fetchRemoteFlag: jest.fn().mockResolvedValue(null),
     })).resolves.toBe(true)
 
-    expect(fetchRemoteFlag).not.toHaveBeenCalled()
     expect(setLocalFlag).not.toHaveBeenCalled()
   })
 
@@ -42,7 +55,7 @@ describe('resolveOnboardingState', () => {
     expect(setLocalFlag).not.toHaveBeenCalled()
   })
 
-  it('does not mark logged out users onboarded', async () => {
+  it('does not mark logged out users onboarded without a local completion flag', async () => {
     await expect(resolveOnboardingState({
       userId: null,
       getLocalFlag: jest.fn().mockResolvedValue(null),

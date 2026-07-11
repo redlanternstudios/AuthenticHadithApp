@@ -13,18 +13,22 @@ export async function resolveOnboardingState({
 }: ResolveOnboardingStateArgs): Promise<boolean> {
   const localValue = await getLocalFlag()
 
-  if (localValue === 'true') {
-    return true
-  }
-
   if (!userId || !fetchRemoteFlag) {
-    return false
+    return localValue === 'true'
   }
 
   const remoteValue = await fetchRemoteFlag(userId)
 
   if (remoteValue === true) {
     await setLocalFlag('true')
+    return true
+  }
+
+  if (remoteValue === false) {
+    return false
+  }
+
+  if (localValue === 'true') {
     return true
   }
 

@@ -77,8 +77,8 @@ export default function OnboardingScreen() {
 
   const handleComplete = async () => {
     if (!user) {
-      await AsyncStorage.setItem('onboarded', 'true')
-      router.replace('/(tabs)')
+      Alert.alert('Sign In Required', 'Please sign in again so we can save your profile before continuing.')
+      router.replace('/auth/login')
       return
     }
 
