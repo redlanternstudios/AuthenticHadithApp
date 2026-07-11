@@ -1,4 +1,5 @@
 import { LearningPath, Lesson } from '@/types/hadith';
+import { sanitizeLessonForSahihayn } from '@/lib/learning/sahihaynContentGuard';
 
 const CREATED_AT = '2026-05-30T00:00:00.000Z';
 
@@ -316,14 +317,14 @@ export const STATIC_PATH_LESSON_MAP = Object.entries(STATIC_PATH_LESSONS).flatMa
 
 export function getStaticLessonsForPath(pathId?: string | null): Lesson[] {
   if (!pathId) return [];
-  return STATIC_PATH_LESSONS[pathId] || [];
+  return (STATIC_PATH_LESSONS[pathId] || []).map(sanitizeLessonForSahihayn);
 }
 
 export function getStaticLesson(lessonId?: string | null): Lesson | null {
   if (!lessonId) return null;
   for (const lessons of Object.values(STATIC_PATH_LESSONS)) {
     const lesson = lessons.find((item) => item.id === lessonId);
-    if (lesson) return lesson;
+    if (lesson) return sanitizeLessonForSahihayn(lesson);
   }
   return null;
 }

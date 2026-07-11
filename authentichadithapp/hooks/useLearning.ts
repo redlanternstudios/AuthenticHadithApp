@@ -12,6 +12,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Lesson } from '@/types/hadith'
 import { supabase } from '@/lib/supabase/client'
+import { sanitizeLessonForSahihayn } from '@/lib/learning/sahihaynContentGuard'
 
 /** Ordered lessons for a path, served from Supabase (modules -> lessons). */
 export function usePathLessons(pathId: string | null | undefined) {
@@ -49,7 +50,7 @@ export function usePathLessons(pathId: string | null | undefined) {
         return mo !== 0 ? mo : (a.sort_order ?? 0) - (b.sort_order ?? 0)
       })
 
-      return ordered.map((r, i) => ({
+      return ordered.map((r, i) => sanitizeLessonForSahihayn({
         id: r.id,
         title: r.title,
         description: r.description ?? '',

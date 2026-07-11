@@ -202,7 +202,7 @@ export default function HomeScreen() {
         styles.content,
         {
           paddingTop: SPACING.md,
-          paddingBottom: insets.bottom + SPACING.xxl,
+          paddingBottom: insets.bottom + 112,
           alignSelf: 'center',
           width: '100%',
           maxWidth: contentMaxWidth,
@@ -531,7 +531,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     paddingHorizontal: 20,
     paddingTop: SPACING.md,
-    paddingBottom: 112,
+    paddingBottom: SPACING.xl,
     marginBottom: SPACING.lg,
   },
   studyTitle: {

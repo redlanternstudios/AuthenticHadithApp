@@ -9,12 +9,6 @@ import { SettingsSection } from '@/components/settings/SettingsSection';
 const COLLECTIONS = [
   { name: 'Sahih al-Bukhari', compiler: 'Imam Muhammad al-Bukhari (810–870 CE)' },
   { name: 'Sahih Muslim', compiler: 'Imam Muslim ibn al-Hajjaj (815–875 CE)' },
-  { name: 'Sunan Abu Dawud', compiler: 'Imam Abu Dawud as-Sijistani (817–889 CE)' },
-  { name: 'Jami at-Tirmidhi', compiler: 'Imam Muhammad at-Tirmidhi (824–892 CE)' },
-  { name: "Sunan an-Nasa'i", compiler: "Imam Ahmad an-Nasa'i (829–915 CE)" },
-  { name: 'Sunan Ibn Majah', compiler: 'Imam Muhammad ibn Majah (824–887 CE)' },
-  { name: 'Muwatta Malik', compiler: 'Imam Malik ibn Anas (711–795 CE)' },
-  { name: 'Musnad Ahmad', compiler: 'Imam Ahmad ibn Hanbal (780–855 CE)' },
 ];
 
 export default function CreditsScreen() {

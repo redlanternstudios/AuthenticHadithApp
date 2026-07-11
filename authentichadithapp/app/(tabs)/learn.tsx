@@ -21,6 +21,7 @@ export default function LearnScreen() {
   const { isDark } = useTheme();
   const colors = getColors(isDark);
   const insets = useSafeAreaInsets();
+  const listBottomInset = insets.bottom + 112;
 
   // V2: paths come from Supabase `learning_paths` (6 rows), ordered.
   const { data: paths, isLoading, isError, refetch } = useQuery({
@@ -178,7 +179,7 @@ export default function LearnScreen() {
             </PremiumGate>
           ) : null
         )}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: listBottomInset }]}
       />
     </View>
   );
@@ -206,7 +207,8 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
   },
   pathCard: {
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.sm,
+    paddingVertical: SPACING.md,
   },
   pathHeader: {
     flexDirection: 'row',
@@ -216,9 +218,10 @@ const styles = StyleSheet.create({
   },
   pathName: {
     fontFamily: FONT_FAMILY.headingMedium,
-    fontSize: FONT_SIZES.lg,
+    fontSize: FONT_SIZES.md,
     fontWeight: '600',
     flex: 1,
+    lineHeight: 22,
   },
   difficultyBadge: {
     fontFamily: FONT_FAMILY.bodySemiBold,
@@ -232,7 +235,8 @@ const styles = StyleSheet.create({
   },
   pathDescription: {
     fontFamily: FONT_FAMILY.body,
-    fontSize: FONT_SIZES.base,
+    fontSize: FONT_SIZES.sm,
+    lineHeight: 20,
     marginBottom: SPACING.sm,
   },
   pathDuration: {

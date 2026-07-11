@@ -17,12 +17,6 @@ export interface QuizQuestion {
 export const COLLECTION_DISPLAY: Record<string, string> = {
   'sahih-bukhari': 'Sahih al-Bukhari',
   'sahih-muslim': 'Sahih Muslim',
-  'sunan-abu-dawud': 'Sunan Abu Dawud',
-  'jami-tirmidhi': 'Jami at-Tirmidhi',
-  'sunan-nasai': "Sunan an-Nasa'i",
-  'sunan-ibn-majah': 'Sunan Ibn Majah',
-  'muwatta-malik': 'Muwatta Malik',
-  'musnad-ahmad': 'Musnad Ahmad',
 }
 
 // Narrator names arrive from the DB with transliteration marks ("Ibn `Umar",

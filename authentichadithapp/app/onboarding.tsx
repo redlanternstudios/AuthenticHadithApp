@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
 import { FONT_FAMILY } from '@/constants/theme'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 const TOTAL_STEPS = 3
 
@@ -44,6 +45,7 @@ export default function OnboardingScreen() {
   const { user } = useAuth()
   const { isDark } = useTheme()
   const colors = getColors(isDark)
+  const insets = useSafeAreaInsets()
   const { language, setLanguage, isRTL } = useLanguage()
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
@@ -157,7 +159,15 @@ export default function OnboardingScreen() {
     >
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={[styles.content, isRTL && styles.contentRTL]}
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={[
+        styles.content,
+        {
+          paddingTop: insets.top + SPACING.lg,
+          paddingBottom: insets.bottom + SPACING.xxl,
+        },
+        isRTL && styles.contentRTL,
+      ]}
     >
       <Stack.Screen options={{ headerShown: false }} />
 
@@ -198,6 +208,9 @@ export default function OnboardingScreen() {
               return (
                 <Pressable
                   key={lang.code}
+                  accessibilityRole="button"
+                  accessibilityLabel={lang.nativeLabel}
+                  accessibilityState={{ selected: isSelected }}
                   style={[
                     styles.langOption,
                     { backgroundColor: colors.card, borderColor: colors.border },
@@ -228,6 +241,11 @@ export default function OnboardingScreen() {
             autoCapitalize="words"
             autoCorrect={false}
             returnKeyType="done"
+            onSubmitEditing={() => {
+              if (data.name.trim().length >= 2) {
+                setCurrentStep(2)
+              }
+            }}
           />
 
           {/* School of Thought */}
@@ -236,6 +254,9 @@ export default function OnboardingScreen() {
             {SCHOOLS_OF_THOUGHT.map((school) => (
               <Pressable
                 key={school}
+                accessibilityRole="button"
+                accessibilityLabel={school}
+                accessibilityState={{ selected: data.schoolOfThought === school }}
                 style={[
                   styles.optionItem,
                   { backgroundColor: colors.card, borderColor: colors.border },
@@ -283,6 +304,9 @@ export default function OnboardingScreen() {
               return (
                 <Pressable
                   key={c.id}
+                  accessibilityRole="checkbox"
+                  accessibilityLabel={`${c.name}, ${c.count}`}
+                  accessibilityState={{ checked: isSelected }}
                   style={[
                     styles.collectionItem,
                     { backgroundColor: colors.card, borderColor: colors.border },
@@ -315,6 +339,9 @@ export default function OnboardingScreen() {
             {LEARNING_LEVELS.map((level) => (
               <Pressable
                 key={level}
+                accessibilityRole="button"
+                accessibilityLabel={level}
+                accessibilityState={{ selected: data.learningLevel === level }}
                 style={[
                   styles.levelOption,
                   data.learningLevel === level && { backgroundColor: colors.goldMid },
@@ -376,6 +403,9 @@ export default function OnboardingScreen() {
           </Card>
 
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={isArabic ? 'أفهم وأوافق على إرشادات السلامة' : 'I understand and agree to the safety guidelines'}
+            accessibilityState={{ checked: data.safetyAgreed }}
             style={[styles.agreementRow, isRTL && styles.agreementRowRTL]}
             onPress={() => updateData({ safetyAgreed: !data.safetyAgreed })}
           >
@@ -390,6 +420,9 @@ export default function OnboardingScreen() {
           </Pressable>
 
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={isArabic ? 'أوافق على شروط الخدمة وسياسة الخصوصية' : 'I agree to the Terms of Service and Privacy Policy'}
+            accessibilityState={{ checked: data.termsAgreed }}
             style={[styles.agreementRow, isRTL && styles.agreementRowRTL]}
             onPress={() => updateData({ termsAgreed: !data.termsAgreed })}
           >
@@ -455,7 +488,13 @@ export default function OnboardingScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { padding: SPACING.md, paddingTop: SPACING.xxl, paddingBottom: SPACING.xxl },
+  content: {
+    flexGrow: 1,
+    width: '100%',
+    maxWidth: 720,
+    alignSelf: 'center',
+    paddingHorizontal: SPACING.md,
+  },
   contentRTL: { direction: 'rtl' },
   textRTL: { textAlign: 'right', writingDirection: 'rtl' },
   progressRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: SPACING.sm },
@@ -466,11 +505,11 @@ const styles = StyleSheet.create({
   },
   progressCheck: { fontSize: 14, fontFamily: FONT_FAMILY.heading, fontWeight: '700' },
   progressLine: { width: 40, height: 2 },
-  stepLabel: { fontFamily: FONT_FAMILY.body, fontSize: FONT_SIZES.sm, textAlign: 'center', marginBottom: SPACING.xl },
-  stepContent: { marginBottom: SPACING.xl },
-  stepTitle: { fontFamily: FONT_FAMILY.heading, fontSize: FONT_SIZES.xxl, fontWeight: '700', textAlign: 'center', marginBottom: SPACING.sm },
-  stepSubtitle: { fontFamily: FONT_FAMILY.body, fontSize: FONT_SIZES.base, textAlign: 'center', marginBottom: SPACING.xl, lineHeight: 22 },
-  label: { fontFamily: FONT_FAMILY.bodySemiBold, fontSize: FONT_SIZES.base, fontWeight: '600', marginBottom: SPACING.xs, marginTop: SPACING.lg },
+  stepLabel: { fontFamily: FONT_FAMILY.body, fontSize: FONT_SIZES.sm, textAlign: 'center', marginBottom: SPACING.lg },
+  stepContent: { marginBottom: SPACING.lg },
+  stepTitle: { fontFamily: FONT_FAMILY.heading, fontSize: FONT_SIZES.xl, fontWeight: '700', textAlign: 'center', marginBottom: SPACING.sm, lineHeight: 32 },
+  stepSubtitle: { fontFamily: FONT_FAMILY.body, fontSize: FONT_SIZES.sm, textAlign: 'center', marginBottom: SPACING.lg, lineHeight: 20 },
+  label: { fontFamily: FONT_FAMILY.bodySemiBold, fontSize: FONT_SIZES.sm, fontWeight: '600', marginBottom: SPACING.xs, marginTop: SPACING.md },
   langHint: { fontFamily: FONT_FAMILY.body, fontSize: FONT_SIZES.sm, marginBottom: SPACING.sm },
   langRow: { flexDirection: 'row', gap: SPACING.sm, marginBottom: SPACING.md },
   langRowRTL: { flexDirection: 'row-reverse' },
@@ -496,7 +535,7 @@ const styles = StyleSheet.create({
   optionsList: { gap: SPACING.xs },
   optionItem: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    padding: SPACING.md, borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.sm, borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
   },
   optionItemRTL: { flexDirection: 'row-reverse' },
@@ -539,7 +578,7 @@ const styles = StyleSheet.create({
   linkText: { textDecorationLine: 'underline' },
   navRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingTop: SPACING.lg, borderTopWidth: 1,
+    paddingTop: SPACING.md, borderTopWidth: 1,
   },
   navRowRTL: { flexDirection: 'row-reverse' },
   skipText: { fontSize: FONT_SIZES.base, fontFamily: FONT_FAMILY.body },

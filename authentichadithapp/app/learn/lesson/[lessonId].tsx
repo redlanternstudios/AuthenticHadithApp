@@ -19,6 +19,8 @@ import { supabase } from '@/lib/supabase/client';
 import { scheduleLessonReminder, getLessonReminderEnabled } from '@/lib/notifications';
 import { QueryErrorBanner } from '@/components/common/QueryErrorBanner';
 import { buildLessonShareText } from '@/lib/share/shareContent';
+import { useDeviceLayout } from '@/lib/hooks/use-device-layout';
+import { sanitizeLessonForSahihayn } from '@/lib/learning/sahihaynContentGuard';
 
 export default function LessonDetailScreen() {
   const params = useLocalSearchParams<{ lessonId: string; pathId?: string }>();
@@ -31,6 +33,7 @@ export default function LessonDetailScreen() {
   const { user } = useAuth();
   const { isDark } = useTheme();
   const colors = getColors(isDark);
+  const { contentTop, contentBottom, pagePadding, maxContentWidth } = useDeviceLayout();
   const completion = useCompletionStatus('lesson', lessonId ?? null);
 
   // Shared ordered sequence (reuses the path screen's cached query). Neighbors
@@ -54,7 +57,7 @@ export default function LessonDetailScreen() {
         throw error;
       }
       if (!data) return null;
-      return {
+      return sanitizeLessonForSahihayn({
         id: data.id,
         title: data.title,
         description: data.description ?? '',
@@ -63,7 +66,7 @@ export default function LessonDetailScreen() {
         estimated_minutes: data.estimated_minutes ?? 0,
         created_at: '',
         has_quiz: data.has_quiz ?? false,
-      };
+      });
     },
     enabled: !!lessonId,
   });
@@ -111,11 +114,24 @@ export default function LessonDetailScreen() {
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      contentContainerStyle={[
+        styles.content,
+        {
+          paddingTop: contentTop,
+          paddingBottom: contentBottom,
+          paddingHorizontal: pagePadding,
+          alignSelf: 'center',
+          width: '100%',
+          maxWidth: maxContentWidth,
+        },
+      ]}
+    >
       {/* Native header owns title + back; binding lesson.title keeps the route
           literal "[lessonId]" from leaking. No redundant in-content back button. */}
       <Stack.Screen options={{ title: lesson.title }} />
-      <View style={styles.content}>
+      <View>
         <Card style={styles.lessonCard}>
           {neighbors.index !== -1 && (
             <Text style={[styles.position, { color: colors.emeraldMid }]}>
@@ -264,11 +280,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  content: {
-    padding: SPACING.md,
-  },
+  content: {},
   lessonCard: {
-    marginVertical: SPACING.lg,
+    marginBottom: SPACING.lg,
   },
   position: {
     fontFamily: FONT_FAMILY.heading,
@@ -282,6 +296,7 @@ const styles = StyleSheet.create({
     fontFamily: FONT_FAMILY.heading,
     fontSize: FONT_SIZES.xxl,
     fontWeight: '700',
+    lineHeight: 30,
     marginBottom: SPACING.sm,
   },
   duration: {
@@ -297,7 +312,7 @@ const styles = StyleSheet.create({
   },
   contentSection: {
     marginTop: SPACING.md,
-    padding: SPACING.md,
+    padding: SPACING.lg,
     borderRadius: 8,
     borderWidth: StyleSheet.hairlineWidth,
   },
@@ -356,7 +371,7 @@ function createMarkdownStyles(colors: ReturnType<typeof getColors>, isDark: bool
     body: {
       color: bodyColor,
       fontFamily: FONT_FAMILY.body,
-      fontSize: FONT_SIZES.base,
+      fontSize: FONT_SIZES.md,
       lineHeight: 24,
     },
     heading1: {
@@ -422,6 +437,31 @@ function createMarkdownStyles(colors: ReturnType<typeof getColors>, isDark: bool
       borderLeftWidth: 3,
       paddingLeft: SPACING.sm,
       color: mutedColor,
+    },
+    table: {
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+      borderRadius: 8,
+      overflow: 'hidden' as const,
+      marginVertical: SPACING.md,
+    },
+    tr: {
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+    },
+    th: {
+      flex: 1,
+      padding: SPACING.sm,
+      color: headingColor,
+      fontSize: FONT_SIZES.sm,
+      lineHeight: 18,
+    },
+    td: {
+      flex: 1,
+      padding: SPACING.sm,
+      color: bodyColor,
+      fontSize: FONT_SIZES.sm,
+      lineHeight: 19,
     },
   };
 }

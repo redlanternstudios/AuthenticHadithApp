@@ -84,7 +84,7 @@ function AssistantScreenInner() {
   // Markdown typography for AI bubbles — white text on chatAiBubble, gold accents
   // for headers per the premium theme. Built from getColors per Rule 017.
   const markdownStyles = {
-    body: { fontFamily: FONT_FAMILY.body, color: colors.white, fontSize: FONT_SIZES.base, lineHeight: 20 },
+    body: { fontFamily: FONT_FAMILY.body, color: colors.white, fontSize: FONT_SIZES.sm, lineHeight: 20 },
     paragraph: { marginTop: 0, marginBottom: SPACING.sm },
     heading1: { color: colors.goldHighlight, fontSize: FONT_SIZES.xl, fontWeight: '700' as const, marginBottom: SPACING.xs },
     heading2: { color: colors.goldHighlight, fontSize: FONT_SIZES.lg, fontWeight: '700' as const, marginBottom: SPACING.xs },
@@ -277,20 +277,22 @@ function AssistantScreenInner() {
           )}
         </ScrollView>
 
-        <View style={[styles.lanternBubble, { backgroundColor: colors.chatAiBubble }]}>
-          <View style={styles.bubbleHeader}>
-            <View style={[styles.avatarContainer, { backgroundColor: 'rgba(255,255,255,0.14)' }]}>
-              <Ionicons name="sparkles" size={16} color={colors.white} />
+        {messages.length === 0 ? (
+          <View style={[styles.lanternBubble, { backgroundColor: colors.chatAiBubble }]}>
+            <View style={styles.bubbleHeader}>
+              <View style={[styles.avatarContainer, { backgroundColor: 'rgba(255,255,255,0.14)' }]}>
+                <Ionicons name="sparkles" size={16} color={colors.white} />
+              </View>
+              <Text style={[styles.bubbleTitle, { color: colors.white }]}>LanternAI</Text>
             </View>
-            <Text style={[styles.bubbleTitle, { color: colors.white }]}>LanternAI</Text>
+            <Text style={[styles.bubbleText, { color: colors.white }]}>
+              AI guidance only. For rulings, consult a qualified scholar.
+            </Text>
+            <Text style={[styles.bubbleHint, { color: colors.white + 'CC' }]}>
+              Open LanternAI from the footer or the More menu whenever you need context.
+            </Text>
           </View>
-          <Text style={[styles.bubbleText, { color: colors.white }]}>
-            AI guidance only. For rulings, consult a qualified scholar.
-          </Text>
-          <Text style={[styles.bubbleHint, { color: colors.white + 'CC' }]}>
-            Open LanternAI from the footer or the More menu whenever you need context.
-          </Text>
-        </View>
+        ) : null}
 
         <View style={[styles.quotaBanner, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
           <Ionicons name="sparkles-outline" size={14} color={colors.mutedText} />
@@ -370,6 +372,7 @@ const styles = StyleSheet.create({
   },
   messagesContent: {
     padding: SPACING.md,
+    paddingBottom: SPACING.lg,
     gap: SPACING.sm,
   },
   emptyState: {
@@ -400,7 +403,7 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.md,
     marginBottom: SPACING.sm,
-    maxWidth: '85%',
+    maxWidth: '92%',
   },
   userBubble: {
     alignSelf: 'flex-end',
@@ -429,7 +432,7 @@ const styles = StyleSheet.create({
   },
   messageContent: {
     fontFamily: FONT_FAMILY.body,
-    fontSize: FONT_SIZES.base,
+    fontSize: FONT_SIZES.sm,
     lineHeight: 20,
   },
   errorContainer: {

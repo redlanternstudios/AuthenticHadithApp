@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { StyleSheet, View, Text, Alert, KeyboardAvoidingView, Platform, TextInput } from 'react-native';
+import { StyleSheet, View, Text, Alert, KeyboardAvoidingView, Platform, TextInput, ScrollView } from 'react-native';
 import { useRouter, Link, Stack } from 'expo-router';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import { Input } from '@/components/ui/Input';
@@ -10,12 +10,14 @@ import { useTheme } from '@/lib/theme/ThemeProvider';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Crypto from 'expo-crypto';
 import { supabase } from '@/lib/supabase/client';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function LoginScreen() {
   const router = useRouter();
   const { signIn } = useAuth();
   const { isDark } = useTheme();
   const colors = getColors(isDark);
+  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -104,68 +106,76 @@ export default function LoginScreen() {
     >
       {/* FIX-086: Hardcode header title to prevent raw route string display */}
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.bronzeText }]}>Welcome Back</Text>
-        <Text style={[styles.subtitle, { color: colors.mutedText }]}>Sign in to continue</Text>
-      </View>
-
-      <View style={styles.form}>
-        <Input
-          label="Email"
-          placeholder="your@email.com"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-          returnKeyType="next"
-          onSubmitEditing={() => passwordRef.current?.focus()}
-        />
-        <Input
-          ref={passwordRef}
-          label="Password"
-          placeholder="••••••••"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          autoCorrect={false}
-          returnKeyType="done"
-          onSubmitEditing={handleLogin}
-        />
-
-        <Button
-          title="Sign In"
-          onPress={handleLogin}
-          isLoading={isLoading}
-        />
-
-        {/* Divider */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 12 }}>
-          <View style={{ flex: 1, height: 1, backgroundColor: '#333' }} />
-          <Text style={{ color: '#888', marginHorizontal: 8, fontSize: 13 }}>or</Text>
-          <View style={{ flex: 1, height: 1, backgroundColor: '#333' }} />
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: insets.top + SPACING.xl, paddingBottom: insets.bottom + SPACING.xxl },
+        ]}
+      >
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: colors.bronzeText }]}>Welcome Back</Text>
+          <Text style={[styles.subtitle, { color: colors.mutedText }]}>Sign in to continue</Text>
         </View>
 
-        {/* Sign in with Apple */}
-        <AppleAuthentication.AppleAuthenticationButton
-          buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-          buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
-          cornerRadius={8}
-          style={{ width: '100%', height: 50 }}
-          onPress={handleAppleSignIn}
-        />
+        <View style={styles.form}>
+          <Input
+            label="Email"
+            placeholder="your@email.com"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="next"
+            onSubmitEditing={() => passwordRef.current?.focus()}
+          />
+          <Input
+            ref={passwordRef}
+            label="Password"
+            placeholder="••••••••"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            autoCorrect={false}
+            returnKeyType="done"
+            onSubmitEditing={handleLogin}
+          />
 
-        <Link href="/auth/forgot-password" style={styles.link}>
-          <Text style={[styles.linkText, { color: colors.emeraldMid }]}>Forgot password?</Text>
-        </Link>
-      </View>
+          <Button
+            title="Sign In"
+            onPress={handleLogin}
+            isLoading={isLoading}
+          />
 
-      <View style={styles.footer}>
-        <Text style={[styles.footerText, { color: colors.mutedText }]}>{"Don't have an account? "}</Text>
-        <Link href="/auth/signup">
-          <Text style={[styles.footerLink, { color: colors.emeraldMid }]}>Sign up</Text>
-        </Link>
-      </View>
+          {/* Divider */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 12 }}>
+            <View style={{ flex: 1, height: 1, backgroundColor: '#333' }} />
+            <Text style={{ color: '#888', marginHorizontal: 8, fontSize: 13 }}>or</Text>
+            <View style={{ flex: 1, height: 1, backgroundColor: '#333' }} />
+          </View>
+
+          {/* Sign in with Apple */}
+          <AppleAuthentication.AppleAuthenticationButton
+            buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+            buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
+            cornerRadius={8}
+            style={{ width: '100%', height: 50 }}
+            onPress={handleAppleSignIn}
+          />
+
+          <Link href="/auth/forgot-password" style={styles.link}>
+            <Text style={[styles.linkText, { color: colors.emeraldMid }]}>Forgot password?</Text>
+          </Link>
+        </View>
+
+        <View style={styles.footer}>
+          <Text style={[styles.footerText, { color: colors.mutedText }]}>{"Don't have an account? "}</Text>
+          <Link href="/auth/signup">
+            <Text style={[styles.footerLink, { color: colors.emeraldMid }]}>Sign up</Text>
+          </Link>
+        </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -173,10 +183,13 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: SPACING.xl,
+  },
+  content: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: SPACING.xl,
   },
   header: {
-    marginTop: SPACING.xxl,
     marginBottom: SPACING.xl,
   },
   title: {

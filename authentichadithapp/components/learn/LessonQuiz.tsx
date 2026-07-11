@@ -6,6 +6,7 @@ import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors';
 import { useTheme } from '@/lib/theme/ThemeProvider';
 import { LearningQuizQuestion } from '@/types/hadith';
 import { supabase } from '@/lib/supabase/client';
+import { isSahihaynSafeQuizText } from '@/lib/learning/sahihaynContentGuard';
 
 /**
  * In-lesson quiz (v2). Renders relevant `learning_quiz_questions` for a lesson:
@@ -49,7 +50,13 @@ export function LessonQuiz({ lessonId, lessonTitle = '', lessonContent = '' }: L
 
   const relevantQuestions = useMemo(() => {
     if (!questions?.length) return [];
-    return questions.filter((q) => isQuizQuestionRelevant(q, `${lessonTitle}\n${lessonContent}`));
+    return questions.filter((q) => (
+      isSahihaynSafeQuizText([
+        q.question_text,
+        q.hint_text ?? '',
+        ...(q.options ?? []),
+      ].join(' ')) && isQuizQuestionRelevant(q, `${lessonTitle}\n${lessonContent}`)
+    ));
   }, [questions, lessonTitle, lessonContent]);
 
   if (!relevantQuestions.length) return null;
@@ -144,6 +151,7 @@ const styles = StyleSheet.create({
   },
   optionText: {
     fontSize: FONT_SIZES.base,
+    lineHeight: 20,
   },
   hint: {
     fontSize: FONT_SIZES.sm,

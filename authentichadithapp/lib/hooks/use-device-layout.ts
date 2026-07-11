@@ -22,12 +22,15 @@ export function useDeviceLayout() {
   // Canonical page padding — wider on tablet for breathing room
   const pagePadding = isTablet ? 32 : LAYOUT.pagePadding
 
-  // Top inset for screen content (below status bar / notch)
-  // +8 gives a small visual gap beneath the status bar area
-  const contentTop = insets.top + (isTablet ? 12 : 8)
+  const globalNavReserve = 64
+  const tabBarReserve = 96
 
-  // Bottom inset for scrollable content (above home indicator + tab bar)
-  const contentBottom = insets.bottom + 24
+  // Top inset for screen content. Signed-in pages have floating Back and Home
+  // controls, so every scroll screen needs enough room before its first title.
+  const contentTop = insets.top + globalNavReserve
+
+  // Bottom inset for scrollable content above the tab bar and home indicator.
+  const contentBottom = insets.bottom + tabBarReserve
 
   return {
     width,
@@ -39,6 +42,8 @@ export function useDeviceLayout() {
     pagePadding,
     contentTop,
     contentBottom,
+    globalNavReserve,
+    tabBarReserve,
     // Convenience: content max-width centred on iPad
     maxContentWidth: isTablet ? LAYOUT.maxContentWidth : undefined,
   }

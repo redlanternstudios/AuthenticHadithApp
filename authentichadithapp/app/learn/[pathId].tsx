@@ -7,6 +7,8 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors';
 import { useTheme } from '@/lib/theme/ThemeProvider';
 import { supabase } from '@/lib/supabase/client';
+import { useDeviceLayout } from '@/lib/hooks/use-device-layout';
+import { sanitizeLessonForSahihayn } from '@/lib/learning/sahihaynContentGuard';
 
 type LessonRow = {
   id: string;
@@ -24,6 +26,7 @@ export default function LearningPathDetailScreen() {
   const router = useRouter();
   const { isDark } = useTheme();
   const colors = getColors(isDark);
+  const { contentTop, contentBottom, pagePadding, maxContentWidth } = useDeviceLayout();
 
   // V2: title + module/lesson tree come from Supabase. Modules are the new layer
   // (learning_modules) that groups the lessons (learning_lessons).
@@ -66,13 +69,24 @@ export default function LearningPathDetailScreen() {
       const sections: ModuleSection[] = mods.map((m) => {
         const data: LessonRow[] = lessons
           .filter((l) => l.module_id === m.id)
-          .map((l) => ({
-            id: l.id,
-            title: l.title,
-            description: l.description,
-            estimated_minutes: l.estimated_minutes,
-            globalIndex: running++,
-          }));
+          .map((l) => {
+            const safe = sanitizeLessonForSahihayn({
+              id: l.id,
+              title: l.title,
+              description: l.description ?? '',
+              content: undefined,
+              order_index: running,
+              estimated_minutes: l.estimated_minutes ?? 0,
+              created_at: '',
+            });
+            return {
+              id: l.id,
+              title: safe.title,
+              description: safe.description,
+              estimated_minutes: safe.estimated_minutes,
+              globalIndex: running++,
+            };
+          });
         return { title: m.title, moduleId: m.id, data };
       }).filter((s) => s.data.length > 0);
 
@@ -146,7 +160,17 @@ export default function LearningPathDetailScreen() {
           </Pressable>
         )}
         stickySectionHeadersEnabled={false}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingTop: contentTop,
+            paddingBottom: contentBottom,
+            paddingHorizontal: pagePadding,
+            alignSelf: 'center',
+            width: '100%',
+            maxWidth: maxContentWidth,
+          },
+        ]}
       />
     </View>
   );
@@ -156,9 +180,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  content: {
-    padding: SPACING.md,
-  },
+  content: {},
   moduleHeader: {
     fontSize: FONT_SIZES.sm,
     fontWeight: '700',
@@ -183,12 +205,13 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.sm,
   },
   lessonTitle: {
-    fontSize: FONT_SIZES.lg,
+    fontSize: FONT_SIZES.md,
     fontWeight: '600',
     marginBottom: SPACING.xs,
   },
   lessonDescription: {
-    fontSize: FONT_SIZES.base,
+    fontSize: FONT_SIZES.sm,
+    lineHeight: 20,
   },
   notFound: {
     flex: 1,

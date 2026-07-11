@@ -5,12 +5,6 @@ import type { Hadith } from '../../types/hadith'
 const STATIC_FALLBACK: Record<string, string> = {
   'sahih-bukhari': 'Sahih al-Bukhari',
   'sahih-muslim': 'Sahih Muslim',
-  'sunan-abu-dawud': 'Sunan Abu Dawud',
-  'jami-tirmidhi': 'Jami at-Tirmidhi',
-  'sunan-nasai': "Sunan an-Nasa'i",
-  'sunan-ibn-majah': 'Sunan Ibn Majah',
-  'muwatta-malik': 'Muwatta Malik',
-  'musnad-ahmad': 'Musnad Ahmad',
 }
 
 export type CollectionNameMap = Record<string, string>

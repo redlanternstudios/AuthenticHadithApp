@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { StyleSheet, View, Text, Alert, KeyboardAvoidingView, Platform, TextInput } from 'react-native';
+import { StyleSheet, View, Text, Alert, KeyboardAvoidingView, Platform, TextInput, ScrollView } from 'react-native';
 import { useRouter, Link, Stack } from 'expo-router';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import { Input } from '@/components/ui/Input';
@@ -7,10 +7,12 @@ import { Button } from '@/components/ui/Button';
 import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors';
 import { FONT_FAMILY } from '@/constants/theme';
 import { useTheme } from '@/lib/theme/ThemeProvider';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function SignupScreen() {
   const { isDark } = useTheme();
   const colors = getColors(isDark);
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { signUp } = useAuth();
   const [email, setEmail] = useState('');
@@ -50,59 +52,67 @@ export default function SignupScreen() {
     >
       {/* FIX-086: Hardcode header title to prevent raw route string display */}
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.bronzeText }]}>Create Account</Text>
-        <Text style={[styles.subtitle, { color: colors.mutedText }]}>Join the Authentic Hadith community</Text>
-      </View>
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: insets.top + SPACING.xl, paddingBottom: insets.bottom + SPACING.xxl },
+        ]}
+      >
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: colors.bronzeText }]}>Create Account</Text>
+          <Text style={[styles.subtitle, { color: colors.mutedText }]}>Join the Authentic Hadith community</Text>
+        </View>
 
-      <View style={styles.form}>
-        <Input
-          label="Full Name (Optional)"
-          placeholder="Your name"
-          value={fullName}
-          onChangeText={setFullName}
-          autoCapitalize="words"
-          autoCorrect={false}
-          returnKeyType="next"
-          onSubmitEditing={() => emailRef.current?.focus()}
-        />
-        <Input
-          ref={emailRef}
-          label="Email"
-          placeholder="your@email.com"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-          returnKeyType="next"
-          onSubmitEditing={() => passwordRef.current?.focus()}
-        />
-        <Input
-          ref={passwordRef}
-          label="Password"
-          placeholder="••••••••"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          autoCorrect={false}
-          returnKeyType="done"
-          onSubmitEditing={handleSignup}
-        />
+        <View style={styles.form}>
+          <Input
+            label="Full Name (Optional)"
+            placeholder="Your name"
+            value={fullName}
+            onChangeText={setFullName}
+            autoCapitalize="words"
+            autoCorrect={false}
+            returnKeyType="next"
+            onSubmitEditing={() => emailRef.current?.focus()}
+          />
+          <Input
+            ref={emailRef}
+            label="Email"
+            placeholder="your@email.com"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="next"
+            onSubmitEditing={() => passwordRef.current?.focus()}
+          />
+          <Input
+            ref={passwordRef}
+            label="Password"
+            placeholder="••••••••"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            autoCorrect={false}
+            returnKeyType="done"
+            onSubmitEditing={handleSignup}
+          />
 
-        <Button
-          title="Create Account"
-          onPress={handleSignup}
-          isLoading={isLoading}
-        />
-      </View>
+          <Button
+            title="Create Account"
+            onPress={handleSignup}
+            isLoading={isLoading}
+          />
+        </View>
 
-      <View style={styles.footer}>
-        <Text style={[styles.footerText, { color: colors.mutedText }]}>Already have an account? </Text>
-        <Link href="/auth/login">
-          <Text style={[styles.footerLink, { color: colors.emeraldMid }]}>Sign in</Text>
-        </Link>
-      </View>
+        <View style={styles.footer}>
+          <Text style={[styles.footerText, { color: colors.mutedText }]}>Already have an account? </Text>
+          <Link href="/auth/login">
+            <Text style={[styles.footerLink, { color: colors.emeraldMid }]}>Sign in</Text>
+          </Link>
+        </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -110,10 +120,13 @@ export default function SignupScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: SPACING.xl,
+  },
+  content: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: SPACING.xl,
   },
   header: {
-    marginTop: SPACING.xxl,
     marginBottom: SPACING.xl,
   },
   title: {
