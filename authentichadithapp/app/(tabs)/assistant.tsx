@@ -8,6 +8,7 @@ import { useTheme } from '@/lib/theme/ThemeProvider';
 import { usePremiumStatus } from '@/hooks/usePremiumStatus';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import { ChatMessage, sendChatMessage, AI_REQUEST_FAILED } from '@/lib/api/groq';
+import { useSchoolOfThought } from '@/hooks/useSchoolOfThought';
 import { Ionicons } from '@expo/vector-icons';
 import Markdown from 'react-native-markdown-display';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
@@ -37,6 +38,7 @@ function AssistantScreenInner() {
   const insets = useSafeAreaInsets();
   const { isPremium } = usePremiumStatus();
   const { user } = useAuth();
+  const { schoolOfThought } = useSchoolOfThought();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -131,7 +133,7 @@ function AssistantScreenInner() {
     setError(null);
 
     try {
-      const response = await sendChatMessage([...messages, userMessage]);
+      const response = await sendChatMessage([...messages, userMessage], { schoolOfThought });
 
       const aiMessage: ChatMessage = {
         id: generateMessageId(),
@@ -207,6 +209,15 @@ function AssistantScreenInner() {
               <Text style={[styles.emptySubtext, { color: colors.mutedText }]}>
                 Ask anything about Islamic teachings, hadith interpretations, or specific narrators
               </Text>
+
+              {schoolOfThought ? (
+                <View style={[styles.contextLens, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <Ionicons name="compass-outline" size={16} color={colors.goldMid} />
+                  <Text style={[styles.contextLensText, { color: colors.mutedText }]}>
+                    Study lens: {schoolOfThought}
+                  </Text>
+                </View>
+              ) : null}
 
               <View style={styles.suggestedGrid}>
                 {SUGGESTED_PROMPTS.map((prompt, idx) => (
@@ -398,6 +409,21 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     textAlign: 'center',
     paddingHorizontal: SPACING.lg,
+  },
+  contextLens: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+    borderWidth: 1,
+    borderRadius: BORDER_RADIUS.full,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
+    marginTop: SPACING.md,
+  },
+  contextLensText: {
+    fontFamily: FONT_FAMILY.bodySemiBold,
+    fontSize: FONT_SIZES.xs,
+    fontWeight: '600',
   },
   messageBubble: {
     borderRadius: BORDER_RADIUS.lg,

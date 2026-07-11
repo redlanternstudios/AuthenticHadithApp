@@ -50,6 +50,24 @@ Response format:
 - Always cite sources when mentioning specific hadith` +
   ISLAMIC_ETHICS_ADDENDUM
 
+const SCHOOL_OF_THOUGHT_LABELS: Record<string, string> = {
+  hanafi: 'Hanafi',
+  maliki: 'Maliki',
+  shafii: "Shafi'i",
+  "shafi'i": "Shafi'i",
+  hanbali: 'Hanbali',
+}
+
+function getSchoolOfThoughtInstruction(value: unknown) {
+  if (typeof value !== 'string') return null
+
+  const normalized = value.trim().toLowerCase()
+  const label = SCHOOL_OF_THOUGHT_LABELS[normalized]
+  if (!label) return null
+
+  return `The user selected ${label} as their school of thought during onboarding. Use this only as a juristic context lens when the user asks about practice or application. Do not alter hadith text, authenticity, grades, citations, or translations based on this preference. Do not invent ${label} rulings. If a school-specific answer is requested and you are not certain, say that clearly and advise consulting a qualified scholar.`
+}
+
 export async function POST(request: Request) {
   try {
     // Server-side env check — runs only when route is invoked, never at module load.
@@ -67,7 +85,8 @@ export async function POST(request: Request) {
     const groq = createGroq({ apiKey })
 
     const body = await request.json()
-    const { messages } = body
+    const { messages, userContext } = body
+    const schoolInstruction = getSchoolOfThoughtInstruction(userContext?.schoolOfThought)
 
     // Validate input
     if (!Array.isArray(messages) || messages.length === 0) {
@@ -90,6 +109,7 @@ export async function POST(request: Request) {
       model: groq('llama-3.3-70b-versatile'),
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
+        ...(schoolInstruction ? [{ role: 'system' as const, content: schoolInstruction }] : []),
         ...messages,
       ],
       maxTokens: 1024,

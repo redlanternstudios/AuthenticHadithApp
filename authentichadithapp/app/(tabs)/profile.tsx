@@ -23,6 +23,7 @@ import { CustomerCenterScreen } from '@/components/premium/CustomerCenterScreen'
 import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS, LAYOUT } from '@/lib/styles/colors';
 import { FONT_FAMILY } from '@/constants/theme';
 import { useDeviceLayout } from '@/lib/hooks/use-device-layout';
+import { useSchoolOfThought } from '@/hooks/useSchoolOfThought';
 
 interface SettingsRowProps {
   icon: React.ComponentProps<typeof Ionicons>['name'];
@@ -68,6 +69,7 @@ export default function ProfileScreen() {
   const colors = getColors(isDark);
   const { contentTop, contentBottom, pagePadding, maxContentWidth } = useDeviceLayout();
   const { isPremium } = usePremiumStatus();
+  const { schoolOfThought } = useSchoolOfThought();
   const { restorePurchases, expirationDate, productIdentifier } = useRevenueCatSubscription();
   const { purchasesAvailable } = useRevenueCat();
   const [showPaywall, setShowPaywall] = React.useState(false);
@@ -246,6 +248,18 @@ export default function ProfileScreen() {
           icon="card-outline"
           label="Subscription"
           onPress={() => router.push('/settings/subscription')}
+        />
+        <SettingsRow
+          icon="compass-outline"
+          label="School of Thought"
+          value={schoolOfThought || 'Not set'}
+          showChevron={false}
+          onPress={() => {
+            Alert.alert(
+              'School of Thought',
+              'This preference guides LanternAI context when you ask about practice. It does not change hadith text, authenticity, or citations.'
+            );
+          }}
         />
         {!isPremium && (
         <SettingsRow

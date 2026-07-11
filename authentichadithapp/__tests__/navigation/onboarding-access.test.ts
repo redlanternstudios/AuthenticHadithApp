@@ -16,20 +16,19 @@ describe('onboarding and app access gates', () => {
     expect(collectionBlock).not.toContain('Ibn Majah')
   })
 
-  it('sends completed onboarding users into the app instead of the paywall', () => {
+  it('sends completed onboarding users to the trial paywall before the app', () => {
     const completionRoutes = [...onboardingSource.matchAll(/router\.replace\('([^']+)'\)/g)]
       .map((match) => match[1])
 
-    expect(completionRoutes).toContain('/(tabs)')
-    expect(completionRoutes).not.toContain('/paywall')
+    expect(completionRoutes).toContain('/paywall')
   })
 
-  it('does not force onboarded non subscribers to the paywall on every launch', () => {
+  it('forces onboarded non subscribers to the paywall before interior routes', () => {
     const gateSource = layoutSource.match(/function NavigationGate\(\)[\s\S]*?return null\n\}/)?.[0] ?? ''
 
-    expect(gateSource).not.toContain('router.replace(\'/paywall\')')
-    expect(gateSource).not.toContain('!isPro')
-    expect(layoutSource).toContain('Subscription remains optional')
+    expect(gateSource).toContain("router.replace('/paywall')")
+    expect(gateSource).toContain('!isPro')
+    expect(layoutSource).toContain('trial paywall before app interior')
   })
 
   it('describes the visible corpus as Sahihayn only on the optional support screen', () => {

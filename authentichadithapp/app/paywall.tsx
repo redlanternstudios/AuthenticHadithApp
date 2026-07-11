@@ -57,17 +57,29 @@ function getAnnualPackage(packages: PurchasesPackage[]): PurchasesPackage | null
   return packages.find((p) => p.packageType === 'ANNUAL') ?? null
 }
 
+function getMonthlyPackage(packages: PurchasesPackage[]): PurchasesPackage | null {
+  return packages.find((p) => p.packageType === 'MONTHLY') ?? null
+}
+
 function getPlanDescription(packageType: string): string {
   switch (packageType) {
     case 'MONTHLY':
-      return 'Optional monthly support for premium tools. The Sahihayn library remains available in the app.'
+      return 'Start with a 7 day free trial, then monthly premium access. Cancel anytime.'
     case 'ANNUAL':
-      return 'Optional annual support for premium tools and continued app development.'
+      return 'Annual premium access for deeper study tools and continued app development.'
     case 'LIFETIME':
       return 'One-time support for premium tools without a recurring subscription.'
     default:
       return 'Full access to Authentic Hadith and all features.'
   }
+}
+
+function getPlanPrice(pkg: PurchasesPackage): string {
+  const cadence = PACKAGE_CADENCE[pkg.packageType] !== undefined ? PACKAGE_CADENCE[pkg.packageType] : ''
+  if (pkg.packageType === 'MONTHLY') {
+    return `7 days free, then ${pkg.product.priceString}${cadence}`
+  }
+  return `${pkg.product.priceString}${cadence}`
 }
 
 // ─── Billing cadence map (Apple 3.1.2 — billing term must appear next to price) ──
@@ -90,11 +102,12 @@ export default function PaywallScreen() {
   const [purchasing, setPurchasing] = useState(false)
   const [restoring, setRestoring] = useState(false)
 
-  // Auto-select ANNUAL on mount / when packages load
+  // Auto-select MONTHLY on mount so the seven day trial is the default path.
   useEffect(() => {
     if (packages.length > 0 && selectedPackage === null) {
+      const monthly = getMonthlyPackage(packages)
       const annual = getAnnualPackage(packages)
-      setSelectedPackage(annual ?? packages[0])
+      setSelectedPackage(monthly ?? annual ?? packages[0])
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [packages])
@@ -224,7 +237,7 @@ export default function PaywallScreen() {
           Support Authentic Hadith
         </Text>
         <Text style={[styles.subtitle, { color: colors.mutedText }]}>
-          The Sahih Bukhari and Sahih Muslim library is available without a required purchase.
+          Start with a 7 day free trial to enter the Sahihayn study experience.
         </Text>
       </View>
 
@@ -254,7 +267,7 @@ export default function PaywallScreen() {
 
       {/* ── Plan Cards ── */}
       <View style={styles.plansSection}>
-        <Text style={[styles.plansLabel, { color: colors.bronzeText }]}>Optional Support Plans</Text>
+        <Text style={[styles.plansLabel, { color: colors.bronzeText }]}>Choose Your Plan</Text>
         {packages.map((pkg) => {
           const isSelected = selectedPackage?.identifier === pkg.identifier
           const isAnnual = pkg.packageType === 'ANNUAL'
@@ -299,7 +312,7 @@ export default function PaywallScreen() {
                     </Text>
                   </View>
                   <Text style={[styles.planPrice, { color: isSelected ? colors.goldMid : colors.bronzeText }]}>
-                    {pkg.product.priceString}{PACKAGE_CADENCE[pkg.packageType] !== undefined ? PACKAGE_CADENCE[pkg.packageType] : ''}
+                    {getPlanPrice(pkg)}
                   </Text>
                 </View>
                 {/* Description — full text, no truncation */}

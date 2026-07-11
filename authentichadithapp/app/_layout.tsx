@@ -4,7 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, View, useColorScheme } from 'react-native';
+import { DeviceEventEmitter, Pressable, StyleSheet, View, useColorScheme } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -155,14 +155,26 @@ function GlobalNavControls() {
 }
 
 // Pure side-effect component — renders nothing, only redirects.
-// Enforces auth → onboarding on every launch. Subscription remains optional.
+// Enforces auth → onboarding → trial paywall before app interior.
 function NavigationGate() {
   const { user, isLoading: authLoading } = useAuth()
+  const { isPro, isLoading: revenueCatLoading } = useRevenueCat()
   const router = useRouter()
   const segments = useSegments()
   const [onboarded, setOnboarded] = useState<boolean | null>(null)
 
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('ah:onboarding-complete', () => {
+      setOnboarded(true)
+    })
+
+    return () => subscription.remove()
+  }, [])
+
   // Resolve onboarding from local cache first, then Supabase for signed in users.
+  // Keep this keyed to the user only. Including route segments causes a fresh
+  // remote lookup during the completion redirect, which can bounce first-time
+  // users back to onboarding for one frame before the local flag is observed.
   useEffect(() => {
     let cancelled = false
 
@@ -198,7 +210,7 @@ function NavigationGate() {
     return () => {
       cancelled = true
     }
-  }, [segments, user?.id])
+  }, [user?.id])
 
   useEffect(() => {
     // Wait until auth and AsyncStorage have both resolved.
@@ -207,6 +219,7 @@ function NavigationGate() {
     const inAuth = segments[0] === 'auth'
     const inShared = segments[0] === 'shared'
     const inOnboarding = segments[0] === 'onboarding'
+    const inPaywall = segments[0] === 'paywall'
 
     // FIX-115 B4: SCREENSHOT-BYPASS reverted — all three gates restored for
     // production. These were commented out temporarily during App Store screenshot
@@ -223,8 +236,13 @@ function NavigationGate() {
       return
     }
 
-    // All required gates passed. Stay on the current app route.
-  }, [authLoading, onboarded, user, segments, router])
+    if (revenueCatLoading) return
+
+    if (!isPro && !inPaywall) {
+      router.replace('/paywall')
+      return
+    }
+  }, [authLoading, isPro, onboarded, revenueCatLoading, user, segments, router])
 
   return null
 }

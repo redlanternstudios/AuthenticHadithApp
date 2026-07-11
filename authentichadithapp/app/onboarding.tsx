@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { StyleSheet, View, ScrollView, Text, Pressable, TextInput, Alert, Linking, KeyboardAvoidingView, Platform } from 'react-native'
+import { DeviceEventEmitter, StyleSheet, View, ScrollView, Text, Pressable, TextInput, Alert, Linking, KeyboardAvoidingView, Platform } from 'react-native'
 import { Stack, useRouter } from 'expo-router'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { supabase } from '@/lib/supabase/client'
@@ -122,7 +122,8 @@ export default function OnboardingScreen() {
       }
 
       await AsyncStorage.setItem('onboarded', 'true')
-      router.replace('/(tabs)')
+      DeviceEventEmitter.emit('ah:onboarding-complete')
+      router.replace('/paywall')
     } catch {
       Alert.alert('Error', 'Something went wrong. Please try again.')
     } finally {

@@ -8,6 +8,10 @@ export interface ChatMessage {
   timestamp: string
 }
 
+export interface ChatUserContext {
+  schoolOfThought?: string | null
+}
+
 // User-facing error string. Raw server/network errors must never reach the
 // chat UI — they can leak token/model/url details and confuse users. The
 // caller surfaces this exact text in the red banner.
@@ -23,7 +27,7 @@ const REQUEST_TIMEOUT_MS = 12_000
  * client-side before any network call so the assistant has a guardrail even
  * when the backend route is down or the server-side filter regresses.
  */
-export async function sendChatMessage(messages: ChatMessage[]): Promise<string> {
+export async function sendChatMessage(messages: ChatMessage[], userContext?: ChatUserContext): Promise<string> {
   const safety = checkInputSafety(
     messages.map(m => ({ role: m.role, content: m.content })),
   )
@@ -43,7 +47,8 @@ export async function sendChatMessage(messages: ChatMessage[]): Promise<string> 
         messages: messages.map(m => ({
           role: m.role,
           content: m.content
-        }))
+        })),
+        userContext,
       }),
       signal: controller.signal,
     })
