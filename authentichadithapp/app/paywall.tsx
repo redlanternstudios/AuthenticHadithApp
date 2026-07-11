@@ -94,7 +94,7 @@ export default function PaywallScreen() {
   const router = useRouter()
   const { isDark } = useTheme()
   const colors = getColors(isDark)
-  const { currentOffering, isLoading, restorePurchases } = useRevenueCat()
+  const { currentOffering, isLoading, isPro, restorePurchases } = useRevenueCat()
 
   const packages = currentOffering?.availablePackages ?? []
 
@@ -111,6 +111,12 @@ export default function PaywallScreen() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [packages])
+
+  useEffect(() => {
+    if (isPro) {
+      router.replace('/(tabs)')
+    }
+  }, [isPro, router])
 
   // ─── Purchase ───────────────────────────────────────────────────────────────
   const handlePurchase = async () => {
@@ -149,27 +155,10 @@ export default function PaywallScreen() {
     }
   }
 
-  // ─── Loading state ──────────────────────────────────────────────────────────
-  const handleDismiss = () => {
-    if (router.canGoBack()) {
-      router.back()
-    } else {
-      router.replace('/(tabs)')
-    }
-  }
-
   if (isLoading) {
     return (
       <View style={[styles.centered, { backgroundColor: colors.background }]}>
         <Stack.Screen options={{ headerShown: false }} />
-        <Pressable
-          style={styles.closeButton}
-          onPress={handleDismiss}
-          accessibilityRole="button"
-          accessibilityLabel="Close paywall"
-        >
-          <Text style={[styles.closeButtonText, { color: colors.mutedText }]}>✕</Text>
-        </Pressable>
         <ActivityIndicator size="large" color={colors.goldMid} />
       </View>
     )
@@ -180,14 +169,6 @@ export default function PaywallScreen() {
     return (
       <View style={[styles.centered, { backgroundColor: colors.background }]}>
         <Stack.Screen options={{ headerShown: false }} />
-        <Pressable
-          style={styles.closeButton}
-          onPress={handleDismiss}
-          accessibilityRole="button"
-          accessibilityLabel="Close paywall"
-        >
-          <Text style={[styles.closeButtonText, { color: colors.mutedText }]}>✕</Text>
-        </Pressable>
         <Text style={[styles.unavailableTitle, { color: colors.bronzeText }]}>
           Plans Temporarily Unavailable
         </Text>
@@ -217,16 +198,6 @@ export default function PaywallScreen() {
       showsVerticalScrollIndicator={false}
     >
       <Stack.Screen options={{ headerShown: false }} />
-
-      {/* ── Dismiss button ── */}
-      <Pressable
-        style={styles.closeButton}
-        onPress={handleDismiss}
-        accessibilityRole="button"
-        accessibilityLabel="Close paywall"
-      >
-        <Text style={[styles.closeButtonText, { color: colors.mutedText }]}>✕</Text>
-      </Pressable>
 
       {/* ── Header ── */}
       <View style={styles.headerSection}>
@@ -295,9 +266,8 @@ export default function PaywallScreen() {
               )}
 
               <View style={styles.planCardInner}>
-                {/* Top row: radio + label + price */}
                 <View style={styles.planCardRow}>
-                  <View style={styles.planCardLeft}>
+                  <View style={styles.planTopLine}>
                     <View
                       style={[
                         styles.radioCircle,
@@ -311,7 +281,10 @@ export default function PaywallScreen() {
                       {getPlanLabel(pkg.packageType)}
                     </Text>
                   </View>
-                  <Text style={[styles.planPrice, { color: isSelected ? colors.goldMid : colors.bronzeText }]}>
+                  <Text
+                    style={[styles.planPrice, { color: isSelected ? colors.goldMid : colors.bronzeText }]}
+                    numberOfLines={2}
+                  >
                     {getPlanPrice(pkg)}
                   </Text>
                 </View>
@@ -486,16 +459,15 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
   },
   planCardRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
     marginBottom: SPACING.xs,
   },
-  planCardLeft: {
+  planTopLine: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.sm,
-    flex: 1,
+    marginBottom: SPACING.xs,
   },
   badge: {
     alignSelf: 'flex-end',
@@ -540,8 +512,11 @@ const styles = StyleSheet.create({
   },
   planPrice: {
     fontFamily: FONT_FAMILY.heading,
-    fontSize: FONT_SIZES.lg,
+    fontSize: FONT_SIZES.md,
     fontWeight: '700',
+    lineHeight: 22,
+    paddingLeft: 30,
+    flexShrink: 1,
   },
 
   // CTA section

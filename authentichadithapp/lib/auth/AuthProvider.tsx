@@ -35,6 +35,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   // Track whether a session existed before a SIGNED_OUT event fires
   const hadSessionRef = useRef(false)
+  const suppressNextSignOutAlertRef = useRef(false)
 
   useEffect(() => {
     // Get initial session
@@ -52,7 +53,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (event === 'SIGNED_OUT') {
         queryClient.clear()               // clear private user cache immediately
         AsyncStorage.removeItem('onboarded')
-        if (hadSessionRef.current) {
+        if (suppressNextSignOutAlertRef.current) {
+          suppressNextSignOutAlertRef.current = false
+        } else if (hadSessionRef.current) {
           Alert.alert('Session Expired', 'Please sign in again.')
         }
       }
@@ -89,6 +92,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // broken BEFORE INSERT trigger on profiles). Any client-side INSERT hits that
     // broken trigger ("permission denied for table users") and throws, causing the
     // signup glitch. Name is saved in onboarding via UPDATE (FIX-159).
+    if (data.session) {
+      suppressNextSignOutAlertRef.current = true
+      const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' })
+      if (signOutError) throw signOutError
+      setSession(null)
+      setUser(null)
+      hadSessionRef.current = false
+    }
   }
 
   const signOut = async () => {
