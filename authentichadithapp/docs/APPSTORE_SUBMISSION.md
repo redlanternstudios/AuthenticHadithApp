@@ -10,8 +10,10 @@
 <!-- SUBMISSION:START -->
 
 ## Current Submission Status
-- **LIVE** on the App Store: version **1.0**, released **2026-06-18** (Apple lookup, Free). Seller "By red llc".
-- **In flight: v1.1.0 — STAGED, awaiting device QA + submit.** Learn v2 committed `93f567a`; **build 44** (EAS `2ff84ece`) VALID in TestFlight; ASC version 1.1.0 (`5b82b9d6`) created, build 44 attached, What's New set, state `PREPARE_FOR_SUBMISSION`. REMAINING (KP-only): device QA on build 44 (Rule 040, physical iPhone) → Submit for Review. Server-side pieces (muqaddimah fill, AI Sahihayn lock) already live for 1.0 users.
+- **LIVE / prior distribution page:** version **1.1.0** is marked **Ready for Distribution** in App Store Connect. Do not use it for the Day 1 refinement submission.
+- **Current submission binary:** version **1.1.1**, build **107**, EAS build `86473f82-d0a8-4b45-ad00-522ffb97ff79`, source commit `e9f1bfd`.
+- **State:** build 107 finished on EAS and EAS scheduled App Store Connect upload/submission `a3a777e1-e138-49d7-a1ca-ea34f58dcabd`.
+- **Remaining Apple gate:** in App Store Connect, create or open iOS version **1.1.1**, select build **107**, verify `ah_monthly_premium` has the seven day free trial, attach screenshots, and submit for review.
 
 ## Icon & Binary
 - 1024×1024, opaque, no alpha. Verify the SHIPPED icon by decoding `AppIcon60x60@2x.png` from the IPA (CgBI → `sips`), not the source/sim.
@@ -33,7 +35,9 @@
 - Supabase prod project = `nqklipakrfuwebkdnhwg`.
 
 ## Build & State
-- **v1.1.0 = build 44** (EAS build `2ff84ece-0c1a-4718-823b-1cd6a51c60aa`, commit `93f567a`) — uploaded to ASC 2026-06-23, **processing into TestFlight** (submission `f0939eef`). Next: KP device QA (Rule 040) → Submit for Review.
+- **v1.1.1 = build 107** (EAS build `86473f82-d0a8-4b45-ad00-522ffb97ff79`, commit `e9f1bfd`) — finished on EAS 2026-07-10 and queued for App Store Connect submission through EAS submission `a3a777e1-e138-49d7-a1ca-ea34f58dcabd`.
+- **Screenshots:** Day 1 evidence is saved in Claudex at `OPS/evidence/authentic_hadith_ios_submission_day_1_20260710/`.
+- **Apple blocker:** App Store Connect still must show the seven day free trial on `ah_monthly_premium`; RevenueCat offering is verified but Apple intro offer proof is still human gated.
 - v1.0 = build 41, commit `da32e0f`. Submit the PINNED build by `--id`, never `--latest`.
 - AI backend served by the SEPARATE web repo `v0-authentic-hadith` at `www.authentichadith.app` (`/api/mobile-chat`), locked to Sahihayn (commit `993bfd2`).
 
