@@ -11,9 +11,9 @@
 
 ## Current Submission Status
 - **LIVE / prior distribution page:** version **1.1.0** is marked **Ready for Distribution** in App Store Connect. Do not use it for the Day 1 refinement submission.
-- **Current submission binary:** version **1.1.1**, build **107**, EAS build `86473f82-d0a8-4b45-ad00-522ffb97ff79`, source commit `e9f1bfd`.
-- **State:** build 107 finished on EAS and EAS scheduled App Store Connect upload/submission `a3a777e1-e138-49d7-a1ca-ea34f58dcabd`.
-- **Remaining Apple gate:** in App Store Connect, create or open iOS version **1.1.1**, select build **107**, verify `ah_monthly_premium` has the seven day free trial, attach screenshots, and submit for review.
+- **Current submission binary:** version **1.1.1**, build **108**, EAS build `fb6b8087-1852-4dc0-bb1b-73b26a9d9585`, source commit `d6fca16`.
+- **State:** build 108 finished on EAS.
+- **Remaining Apple gate:** in App Store Connect, create or open iOS version **1.1.1**, select build **108**, verify `ah_monthly_premium` has the seven day free trial, attach screenshots, and submit for review.
 
 ## Icon & Binary
 - 1024×1024, opaque, no alpha. Verify the SHIPPED icon by decoding `AppIcon60x60@2x.png` from the IPA (CgBI → `sips`), not the source/sim.
@@ -35,7 +35,7 @@
 - Supabase prod project = `nqklipakrfuwebkdnhwg`.
 
 ## Build & State
-- **v1.1.1 = build 107** (EAS build `86473f82-d0a8-4b45-ad00-522ffb97ff79`, commit `e9f1bfd`) — finished on EAS 2026-07-10 and queued for App Store Connect submission through EAS submission `a3a777e1-e138-49d7-a1ca-ea34f58dcabd`.
+- **v1.1.1 = build 108** (EAS build `fb6b8087-1852-4dc0-bb1b-73b26a9d9585`, commit `d6fca16`) — finished on EAS 2026-07-12 and ready for App Store Connect submission.
 - **Screenshots:** Day 1 evidence is saved in Claudex at `OPS/evidence/authentic_hadith_ios_submission_day_1_20260710/`.
 - **Apple blocker:** App Store Connect still must show the seven day free trial on `ah_monthly_premium`; RevenueCat offering is verified but Apple intro offer proof is still human gated.
 - v1.0 = build 41, commit `da32e0f`. Submit the PINNED build by `--id`, never `--latest`.
