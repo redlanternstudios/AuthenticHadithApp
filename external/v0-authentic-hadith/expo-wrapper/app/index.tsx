@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import {
   View,
   StyleSheet,
@@ -8,10 +8,12 @@ import {
   Text,
   Linking,
 } from "react-native";
-import { WebView } from "react-native-webview";
+import { WebView, WebViewMessageEvent } from "react-native-webview";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Constants from "expo-constants";
-import { useEffect } from "react";
+import Purchases from "react-native-purchases";
+import RevenueCatUI, { PAYWALL_RESULT } from "react-native-purchases-ui";
+import { useRevenueCat } from "../providers/RevenueCatProvider";
 
 const WEB_APP_URL =
   Constants.expoConfig?.extra?.webAppUrl ||
@@ -23,6 +25,7 @@ export default function AppScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const insets = useSafeAreaInsets();
+  const { isPro, restorePurchases, refreshCustomerInfo } = useRevenueCat();
 
   // Handle Android back button
   useEffect(() => {
@@ -38,6 +41,103 @@ export default function AppScreen() {
 
     return () => handler.remove();
   }, [canGoBack]);
+
+  // Send subscription status to webview whenever it changes
+  useEffect(() => {
+    if (webViewRef.current) {
+      webViewRef.current.injectJavaScript(`
+        window.__NATIVE_SUBSCRIPTION_STATUS__ = ${JSON.stringify({ isPro })};
+        window.dispatchEvent(new CustomEvent('nativeSubscriptionUpdate', { detail: { isPro: ${isPro} } }));
+        true;
+      `);
+    }
+  }, [isPro]);
+
+  // Handle messages from the WebView (purchase requests, restore, etc.)
+  const handleWebViewMessage = useCallback(
+    async (event: WebViewMessageEvent) => {
+      try {
+        const data = JSON.parse(event.nativeEvent.data);
+
+        switch (data.type) {
+          case "SHOW_PAYWALL": {
+            // Present RevenueCat's native paywall
+            const result = await RevenueCatUI.presentPaywallIfNeeded({
+              requiredEntitlementIdentifier: "byRed Pro",
+            });
+
+            const success =
+              result === PAYWALL_RESULT.PURCHASED ||
+              result === PAYWALL_RESULT.RESTORED;
+
+            // Notify webview of result
+            webViewRef.current?.injectJavaScript(`
+              window.dispatchEvent(new CustomEvent('nativePaywallResult', { detail: { success: ${success} } }));
+              true;
+            `);
+            break;
+          }
+
+          case "RESTORE_PURCHASES": {
+            const restored = await restorePurchases();
+            webViewRef.current?.injectJavaScript(`
+              window.dispatchEvent(new CustomEvent('nativeRestoreResult', { detail: { success: ${restored} } }));
+              true;
+            `);
+            break;
+          }
+
+          case "CHECK_SUBSCRIPTION": {
+            await refreshCustomerInfo();
+            webViewRef.current?.injectJavaScript(`
+              window.__NATIVE_SUBSCRIPTION_STATUS__ = ${JSON.stringify({ isPro })};
+              window.dispatchEvent(new CustomEvent('nativeSubscriptionUpdate', { detail: { isPro: ${isPro} } }));
+              true;
+            `);
+            break;
+          }
+
+          case "USER_LOGIN": {
+            // Sync Supabase user ID to RevenueCat for webhook linking
+            if (data.userId) {
+              try {
+                await Purchases.logIn(data.userId);
+                await refreshCustomerInfo();
+              } catch (err) {
+                console.error("[RevenueCat] Login error:", err);
+              }
+            }
+            break;
+          }
+
+          case "USER_LOGOUT": {
+            try {
+              await Purchases.logOut();
+            } catch (err) {
+              console.error("[RevenueCat] Logout error:", err);
+            }
+            break;
+          }
+
+          case "PAGE_LOADED": {
+            // Send initial subscription status when page loads
+            webViewRef.current?.injectJavaScript(`
+              window.__NATIVE_SUBSCRIPTION_STATUS__ = ${JSON.stringify({ isPro })};
+              window.__IS_NATIVE_APP__ = true;
+              true;
+            `);
+            break;
+          }
+
+          default:
+            break;
+        }
+      } catch {
+        // Not a JSON message or unhandled type, ignore
+      }
+    },
+    [isPro, restorePurchases, refreshCustomerInfo]
+  );
 
   const handleNavigationStateChange = useCallback(
     (navState: { canGoBack: boolean; url: string }) => {
@@ -65,6 +165,9 @@ export default function AppScreen() {
         }
       \`;
       document.head.appendChild(style);
+      
+      // Mark as native app for the web code to detect
+      window.__IS_NATIVE_APP__ = true;
       
       // Notify React Native when page is ready
       window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'PAGE_LOADED' }));
@@ -124,6 +227,7 @@ export default function AppScreen() {
         style={styles.webview}
         onNavigationStateChange={handleNavigationStateChange}
         onShouldStartLoadWithRequest={handleShouldStartLoadWithRequest}
+        onMessage={handleWebViewMessage}
         injectedJavaScript={injectedJS}
         onLoadStart={() => setIsLoading(true)}
         onLoadEnd={() => setIsLoading(false)}

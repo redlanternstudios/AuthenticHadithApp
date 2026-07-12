@@ -62,23 +62,28 @@
 }
 
 .dark {
+  --marble-base: #0a2a1f;
+  --marble-vein: #1f6b4e;
+  --marble-vein-light: #153d2e;
+  --marble-shadow: #0f3529;
+
   --background: #0a2a1f;
-  --foreground: #f8f6f2;
-  --card: #0f3529;
-  --card-foreground: #f8f6f2;
-  --popover: #0f3529;
-  --popover-foreground: #f8f6f2;
+  --foreground: #f0ede7;
+  --card: #122f24;
+  --card-foreground: #f0ede7;
+  --popover: #122f24;
+  --popover-foreground: #f0ede7;
   --primary: #4a9973;
   --primary-foreground: #0a2a1f;
   --secondary: #e8c77d;
   --secondary-foreground: #0a2a1f;
   --muted: #1b5e43;
-  --muted-foreground: #d4cfc7;
+  --muted-foreground: #c9c2b5;
   --accent: #c5a059;
   --accent-foreground: #0a2a1f;
   --destructive: #ef4444;
-  --destructive-foreground: #f8f6f2;
-  --border: #2d7a5b;
+  --destructive-foreground: #f0ede7;
+  --border: #1f6b4e;
   --input: #1b5e43;
   --ring: #e8c77d;
   --chart-1: #4a9973;
@@ -87,12 +92,12 @@
   --chart-4: #c5a059;
   --chart-5: #1b5e43;
   --sidebar: #0f3529;
-  --sidebar-foreground: #f8f6f2;
+  --sidebar-foreground: #f0ede7;
   --sidebar-primary: #4a9973;
   --sidebar-primary-foreground: #0a2a1f;
   --sidebar-accent: #1b5e43;
-  --sidebar-accent-foreground: #f8f6f2;
-  --sidebar-border: #2d7a5b;
+  --sidebar-accent-foreground: #f0ede7;
+  --sidebar-border: #1f6b4e;
   --sidebar-ring: #e8c77d;
 }
 
@@ -100,6 +105,7 @@
   --font-sans: "Cinzel", "Geist", serif;
   --font-serif: "Cinzel", serif;
   --font-mono: "Geist Mono", monospace;
+  --font-arabic: "Amiri", "Noto Naskh Arabic", "Traditional Arabic", serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -149,7 +155,7 @@
 
 /* Premium marble background with veining effect */
 .marble-bg {
-  background-color: var(--marble-base);
+  background-color: var(--background);
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.02' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E"),
     linear-gradient(
       135deg,
@@ -173,6 +179,30 @@
   }
 }
 
+.dark .marble-bg {
+  background-image: none;
+  background-color: var(--background);
+}
+
+/* Dark mode premium card */
+.dark .premium-card {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(45, 122, 91, 0.3);
+}
+
+.dark .gold-border {
+  background: linear-gradient(var(--card), var(--card)) padding-box,
+    linear-gradient(
+      135deg,
+      var(--gold-shadow) 0%,
+      var(--gold-mid) 25%,
+      var(--gold-highlight) 50%,
+      var(--gold-specular) 75%,
+      var(--gold-mid) 100%
+    )
+    border-box;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(252, 238, 181, 0.1);
+}
+
 /* Gold gradient text effect */
 .gold-text {
   background: linear-gradient(
@@ -186,7 +216,39 @@
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  text-shadow: 0 2px 4px rgba(138, 110, 58, 0.2);
+  -webkit-text-stroke: 0.3px rgba(44, 36, 22, 0.35);
+  paint-order: stroke fill;
+  text-shadow: none;
+}
+
+/* Headings get a slightly heavier stroke for readability at large sizes */
+h1 .gold-text,
+h2 .gold-text,
+.gold-text-heading {
+  -webkit-text-stroke: 0.5px rgba(44, 36, 22, 0.4);
+}
+
+/* Dark mode: brighter gold gradient, no dark stroke */
+.dark .gold-text {
+  background: linear-gradient(
+    135deg,
+    var(--gold-mid) 0%,
+    var(--gold-highlight) 30%,
+    var(--gold-specular) 60%,
+    var(--gold-highlight) 80%,
+    var(--gold-mid) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: 0;
+  text-shadow: none;
+}
+
+.dark h1 .gold-text,
+.dark h2 .gold-text,
+.dark .gold-text-heading {
+  -webkit-text-stroke: 0;
 }
 
 /* Gold gradient border */
@@ -286,6 +348,12 @@
   box-shadow: 0 0 0 3px rgba(197, 160, 89, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
+.dark .premium-input {
+  background-color: var(--card);
+  border-color: var(--border);
+  color: var(--foreground);
+}
+
 /* Card with premium shadow depth */
 .premium-card {
   background: var(--card);
@@ -337,6 +405,11 @@
   border: 1px solid rgba(197, 160, 89, 0.3);
 }
 
+.dark .gold-icon-bg {
+  background: linear-gradient(135deg, rgba(197, 160, 89, 0.25) 0%, rgba(232, 199, 125, 0.15) 100%);
+  border: 1px solid rgba(197, 160, 89, 0.4);
+}
+
 /* Gold success icon */
 .gold-success-icon {
   background: linear-gradient(135deg, var(--gold-mid) 0%, var(--gold-highlight) 100%);
@@ -353,8 +426,8 @@
     to right,
     var(--gold-mid) 0%,
     var(--gold-highlight) var(--slider-progress, 50%),
-    #e5e7eb var(--slider-progress, 50%),
-    #e5e7eb 100%
+    var(--muted) var(--slider-progress, 50%),
+    var(--muted) 100%
   );
   outline: none;
   cursor: pointer;

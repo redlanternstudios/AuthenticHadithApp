@@ -1,4 +1,5 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server"
+import { SAHIHAYN } from "@/lib/api/hadith-grounding"
 
 /**
  * GET /api/daily-hadith
@@ -24,11 +25,14 @@ export async function GET() {
     }
     const seed = Math.abs(hash)
 
-    // Get total count of sahih hadiths
+    // Get total count of sahih hadiths. Scoped to the Sahihayn so the daily
+    // pick is always a hadith the assistant can resolve and the app's "2
+    // collections / 14,444" story stays consistent.
     const { count } = await supabase
       .from("hadiths")
       .select("id", { count: "exact", head: true })
       .eq("grade", "sahih")
+      .in("collection", SAHIHAYN as unknown as string[])
 
     if (!count || count === 0) {
       return Response.json({ error: "No hadiths available" }, { status: 404 })
@@ -41,6 +45,7 @@ export async function GET() {
       .from("hadiths")
       .select("id, hadith_number, collection, book_number, arabic_text, english_translation, narrator, grade, reference")
       .eq("grade", "sahih")
+      .in("collection", SAHIHAYN as unknown as string[])
       .range(offset, offset)
       .single()
 
@@ -50,6 +55,7 @@ export async function GET() {
         .from("hadiths")
         .select("id, hadith_number, collection, book_number, arabic_text, english_translation, narrator, grade, reference")
         .eq("grade", "sahih")
+        .in("collection", SAHIHAYN as unknown as string[])
         .limit(1)
         .single()
 
@@ -91,12 +97,6 @@ function cleanHadith(h: any) {
   const collectionNames: Record<string, string> = {
     "sahih-bukhari": "Sahih al-Bukhari",
     "sahih-muslim": "Sahih Muslim",
-    "sunan-abu-dawud": "Sunan Abu Dawud",
-    "jami-tirmidhi": "Jami at-Tirmidhi",
-    "sunan-nasai": "Sunan an-Nasai",
-    "sunan-ibn-majah": "Sunan Ibn Majah",
-    "muwatta-malik": "Muwatta Malik",
-    "musnad-ahmad": "Musnad Ahmad",
   }
 
   return {

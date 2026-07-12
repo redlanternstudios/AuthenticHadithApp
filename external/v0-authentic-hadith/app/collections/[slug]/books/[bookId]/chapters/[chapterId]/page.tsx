@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { ChevronLeft, BookOpen } from "lucide-react"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
-import { BottomNavigation } from "@/components/home/bottom-navigation"
+
 import { Breadcrumb } from "@/components/collections/breadcrumb"
 import { HadithCardCondensed } from "@/components/collections/hadith-card-condensed"
 
@@ -37,6 +37,10 @@ interface Hadith {
   narrator: string
   hadith_number: number
   is_saved?: boolean
+  summary_line?: string
+  key_teaching_en?: string
+  category?: { slug: string; name_en: string } | null
+  tags?: Array<{ slug: string; name_en: string }>
 }
 
 export default function ChapterDetailPage() {
@@ -110,15 +114,52 @@ export default function ChapterDetailPage() {
               savedHadithIds = savedData?.map((s) => s.hadith_id) || []
             }
 
-            // Merge hadith data with hadith_number and saved status
+            // Batch-fetch enrichment data for all hadiths
+            const { data: enrichments } = await supabase
+              .from("hadith_enrichment")
+              .select("hadith_id, summary_line, key_teaching_en, category_id, category:categories!category_id(slug, name_en)")
+              .in("hadith_id", hadithIds)
+              .eq("status", "published")
+
+            const { data: allTags } = await supabase
+              .from("hadith_tags")
+              .select("hadith_id, tag:tags!tag_id(slug, name_en)")
+              .in("hadith_id", hadithIds)
+              .eq("status", "published")
+
+            // Build enrichment lookup maps
+            const enrichmentMap = new Map<string, { summary_line: string | null; key_teaching_en: string | null; category: { slug: string; name_en: string } | null }>()
+            for (const e of enrichments || []) {
+              enrichmentMap.set(e.hadith_id, {
+                summary_line: e.summary_line,
+                key_teaching_en: e.key_teaching_en,
+                category: e.category as { slug: string; name_en: string } | null,
+              })
+            }
+
+            const tagsMap = new Map<string, Array<{ slug: string; name_en: string }>>()
+            for (const t of allTags || []) {
+              const tag = t.tag as { slug: string; name_en: string } | null
+              if (!tag) continue
+              const existing = tagsMap.get(t.hadith_id) || []
+              existing.push(tag)
+              tagsMap.set(t.hadith_id, existing)
+            }
+
+            // Merge hadith data with hadith_number, saved status, and enrichment
             const mergedHadiths = collectionHadiths
               .map((ch) => {
                 const hadith = hadithsData.find((h) => h.id === ch.hadith_id)
                 if (!hadith) return null
+                const enrichment = enrichmentMap.get(hadith.id)
                 return {
                   ...hadith,
                   hadith_number: ch.hadith_number,
                   is_saved: savedHadithIds.includes(hadith.id),
+                  summary_line: enrichment?.summary_line || undefined,
+                  key_teaching_en: enrichment?.key_teaching_en || undefined,
+                  category: enrichment?.category || undefined,
+                  tags: tagsMap.get(hadith.id) || undefined,
                 }
               })
               .filter(Boolean) as Hadith[]
@@ -163,17 +204,17 @@ export default function ChapterDetailPage() {
   return (
     <div className="min-h-screen marble-bg pb-20 md:pb-0">
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-[#e5e7eb] bg-[#F8F6F2]/95 backdrop-blur-sm">
+      <header className="sticky top-0 z-40 border-b border-border bg-muted/95 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center gap-4 mb-2">
             <button
               onClick={() => router.push(`/collections/${slug}/books/${bookId}`)}
-              className="w-10 h-10 rounded-full bg-[#F8F6F2] border border-[#e5e7eb] flex items-center justify-center hover:border-[#C5A059] transition-colors"
+              className="w-10 h-10 rounded-full bg-muted border border-border flex items-center justify-center hover:border-[#C5A059] transition-colors"
             >
-              <ChevronLeft className="w-5 h-5 text-[#6b7280]" />
+              <ChevronLeft className="w-5 h-5 text-muted-foreground" />
             </button>
             <div className="flex items-center gap-3 md:hidden">
-              <h1 className="text-lg font-semibold text-[#1a1f36] truncate">Chapter {chapter.number}</h1>
+              <h1 className="text-lg font-semibold text-foreground truncate">Chapter {chapter.number}</h1>
             </div>
           </div>
           <Breadcrumb
@@ -188,12 +229,12 @@ export default function ChapterDetailPage() {
       </header>
 
       {/* Chapter Header */}
-      <section className="border-b border-[#e5e7eb]">
+      <section className="border-b border-border">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 md:py-8">
           <span className="text-sm font-bold text-[#1B5E43] uppercase tracking-wider mb-2 block">
             Chapter {chapter.number}
           </span>
-          <h1 className="text-xl md:text-2xl font-bold text-[#1a1f36] mb-2" style={{ fontFamily: "Cinzel, serif" }}>
+          <h1 className="text-xl md:text-2xl font-bold text-foreground mb-2" style={{ fontFamily: "Cinzel, serif" }}>
             {chapter.name_en}
           </h1>
           <p className="text-lg text-[#C5A059] mb-4 font-arabic" dir="rtl">
@@ -228,7 +269,6 @@ export default function ChapterDetailPage() {
         )}
       </section>
 
-      <BottomNavigation />
     </div>
   )
 }

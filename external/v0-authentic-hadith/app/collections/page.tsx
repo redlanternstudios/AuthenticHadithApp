@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { Search, ChevronLeft, ChevronRight, BookOpen } from "lucide-react"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
-import { BottomNavigation } from "@/components/home/bottom-navigation"
+
 import { CollectionCard } from "@/components/collections/collection-card"
 import { CollectionFilters } from "@/components/collections/collection-filters"
 
@@ -50,7 +50,7 @@ function CollectionsContent() {
         .limit(4)
 
       // Fetch all collections
-      const { data: all } = await supabase.from("collections").select("*").order("name_en", { ascending: true })
+      const { data: all } = await supabase.from("collections").select("*").eq("is_featured", true).order("name_en", { ascending: true })
 
       if (featured) setFeaturedCollections(featured)
       if (all) {
@@ -124,13 +124,13 @@ function CollectionsContent() {
   return (
     <div className="min-h-screen marble-bg pb-20 md:pb-0">
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-[#e5e7eb] bg-[#F8F6F2]/95 backdrop-blur-sm">
+      <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-4">
           <button
             onClick={() => router.push("/home")}
-            className="md:hidden w-10 h-10 rounded-full bg-[#F8F6F2] border border-[#e5e7eb] flex items-center justify-center hover:border-[#C5A059] transition-colors"
+            className="md:hidden w-10 h-10 rounded-full bg-background border border-border flex items-center justify-center hover:border-[#C5A059] transition-colors"
           >
-            <ChevronLeft className="w-5 h-5 text-[#6b7280]" />
+            <ChevronLeft className="w-5 h-5 text-muted-foreground" />
           </button>
           <div className="flex items-center gap-3">
             <div className="relative w-8 h-8">
@@ -141,13 +141,13 @@ function CollectionsContent() {
                 className="object-contain"
               />
             </div>
-            <h1 className="text-lg font-semibold text-[#1a1f36]">Collections</h1>
+            <h1 className="text-lg font-semibold text-foreground">Collections</h1>
           </div>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden border-b border-[#e5e7eb]">
+      <section className="relative overflow-hidden border-b border-border">
         {/* Subtle geometric pattern overlay */}
         <div className="absolute inset-0 opacity-[0.05]">
           <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
@@ -159,7 +159,7 @@ function CollectionsContent() {
         </div>
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-8 md:py-12">
-          <h2 className="text-2xl md:text-3xl font-bold text-[#1a1f36] mb-2" style={{ fontFamily: "Cinzel, serif" }}>
+          <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2" style={{ fontFamily: "Cinzel, serif" }}>
             Islamic Literature Collections
           </h2>
           <p className="text-sm md:text-base text-muted-foreground mb-6">
@@ -173,7 +173,7 @@ function CollectionsContent() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search collections, books, or topics..."
-              className="w-full px-4 py-3 pl-12 rounded-xl border border-[#d4cfc7] bg-white text-sm focus:border-[#C5A059] focus:ring-2 focus:ring-[#C5A059]/20 outline-none transition-all"
+              className="w-full px-4 py-3 pl-12 rounded-xl border border-border bg-card text-sm focus:border-[#C5A059] focus:ring-2 focus:ring-[#C5A059]/20 outline-none transition-all"
             />
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           </form>
@@ -182,20 +182,20 @@ function CollectionsContent() {
 
       {/* Featured Collections */}
       {featuredCollections.length > 0 && (
-        <section className="py-6 md:py-8 border-b border-[#e5e7eb]" aria-label="Featured Collections">
+        <section className="py-6 md:py-8 border-b border-border" aria-label="Featured Collections">
           <div className="max-w-7xl mx-auto px-4 sm:px-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-[#1a1f36]">Featured Collections</h3>
+              <h3 className="text-lg font-bold text-foreground">Featured Collections</h3>
               <div className="hidden md:flex items-center gap-2">
                 <button
                   onClick={() => scrollCarousel("left")}
-                  className="w-8 h-8 rounded-full border border-[#d4cfc7] flex items-center justify-center hover:border-[#C5A059] transition-colors"
+                  className="w-8 h-8 rounded-full border border-border flex items-center justify-center hover:border-[#C5A059] transition-colors"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => scrollCarousel("right")}
-                  className="w-8 h-8 rounded-full border border-[#d4cfc7] flex items-center justify-center hover:border-[#C5A059] transition-colors"
+                  className="w-8 h-8 rounded-full border border-border flex items-center justify-center hover:border-[#C5A059] transition-colors"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
@@ -232,7 +232,7 @@ function CollectionsContent() {
           {/* Collections Grid */}
           <div className="flex-1">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-[#1a1f36]">All Collections</h3>
+              <h3 className="text-lg font-bold text-foreground">All Collections</h3>
               <span className="text-sm text-muted-foreground">{filteredCollections.length} collections</span>
             </div>
 
@@ -258,7 +258,6 @@ function CollectionsContent() {
         </div>
       </section>
 
-      <BottomNavigation />
     </div>
   )
 }

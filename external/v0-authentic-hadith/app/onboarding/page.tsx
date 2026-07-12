@@ -1,18 +1,20 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { Suspense, useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import Image from "next/image"
 import { Loader2, ArrowLeft, ArrowRight } from "lucide-react"
 import { ProgressIndicator } from "@/components/onboarding/progress-indicator"
+import { StepLanguage } from "@/components/onboarding/step-language"
 import { StepProfile } from "@/components/onboarding/step-profile"
 import { StepPreferences } from "@/components/onboarding/step-preferences"
 import { StepSafety } from "@/components/onboarding/step-safety"
+import { StepPlan } from "@/components/onboarding/step-plan"
 import { SuccessAnimation } from "@/components/onboarding/success-animation"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
 
-const TOTAL_STEPS = 3
+const TOTAL_STEPS = 5
 
 interface OnboardingData {
   // Step 1
@@ -27,11 +29,45 @@ interface OnboardingData {
   // Step 3
   safetyAgreed: boolean
   termsAgreed: boolean
+  // Step 4
+  selectedPlanId: string | null
 }
 
 export default function OnboardingPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen marble-bg flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#C5A059]" />
+      </div>
+    }>
+      <OnboardingContent />
+    </Suspense>
+  )
+}
+
+function OnboardingContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const postOnboardingRedirect = searchParams.get("redirect")
   const supabase = getSupabaseBrowserClient()
+
+  // Guard: if the user is already onboarded, send them home.
+  // Prevents back-swipe in the iOS WebView from re-triggering onboarding.
+  useEffect(() => {
+    async function checkAlreadyOnboarded() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return // Not logged in — let them go through onboarding (sign-up flow)
+      const { data: prefs } = await supabase
+        .from("user_preferences")
+        .select("onboarded")
+        .eq("user_id", user.id)
+        .single()
+      if (prefs?.onboarded) {
+        router.replace(postOnboardingRedirect ? decodeURIComponent(postOnboardingRedirect) : "/home")
+      }
+    }
+    checkAlreadyOnboarded()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
@@ -48,6 +84,7 @@ export default function OnboardingPage() {
     learningLevel: "Intermediate",
     safetyAgreed: false,
     termsAgreed: false,
+    selectedPlanId: null,
   })
 
   const updateData = (updates: Partial<OnboardingData>) => {
@@ -57,11 +94,15 @@ export default function OnboardingPage() {
   const canProceed = () => {
     switch (currentStep) {
       case 1:
-        return data.name.trim().length >= 2 && /^[a-zA-Z\s\-']+$/.test(data.name)
+        return !!data.language // Language selection (always true since default exists)
       case 2:
-        return true // All optional
+        return data.name.trim().length >= 2 && /^[a-zA-Z\s\-']+$/.test(data.name)
       case 3:
+        return true // Preferences - all optional
+      case 4:
         return data.safetyAgreed && data.termsAgreed
+      case 5:
+        return true // Free plan (null) or a paid plan
       default:
         return false
     }
@@ -82,9 +123,9 @@ export default function OnboardingPage() {
   }
 
   const handleSkip = () => {
-    // Set onboarded cookie and route to pricing for plan selection
-    document.cookie = "qbos_onboarded=1; path=/; max-age=31536000; SameSite=Lax"
-    router.push("/pricing")
+    // Skip to safety step -- safety agreement is required before entering the app
+    setSlideDirection("left")
+    setCurrentStep(4)
   }
 
   const handleComplete = async () => {
@@ -136,7 +177,7 @@ export default function OnboardingPage() {
           .eq("user_id", user.id)
 
         if (profileError) {
-          console.log("[v0] Profile update error:", profileError)
+          console.error("[onboarding] profile update failed:", profileError)
         }
       } else {
         const { error: profileError } = await supabase.from("profiles").insert({
@@ -147,7 +188,7 @@ export default function OnboardingPage() {
         })
 
         if (profileError) {
-          console.log("[v0] Profile insert error:", profileError)
+          console.error("[onboarding] profile insert failed:", profileError)
         }
       }
 
@@ -174,25 +215,57 @@ export default function OnboardingPage() {
             .eq("user_id", user.id)
         : await supabase.from("user_preferences").insert(prefsPayload)
 
+      // Fail loudly: this write carries `onboarded: true`, which the route guard
+      // reads to decide whether to show onboarding. If it silently fails we'd
+      // route the user to success now, then bounce them back into onboarding on
+      // next launch — the reported completion loop (BUG 02). Don't mark complete
+      // unless the flag actually persisted; surface the error and let them retry.
       if (prefsError) {
-        console.log("[v0] Preferences upsert error:", prefsError)
+        throw new Error(`Could not save your preferences: ${prefsError.message}`)
       }
 
-      // Set onboarded cookie
-      document.cookie = "qbos_onboarded=1; path=/; max-age=31536000; SameSite=Lax"
+      // Set onboarded + safety agreed cookies
+      document.cookie = "ah_onboarded=1; path=/; max-age=31536000; SameSite=Lax"
+      document.cookie = "ah_safety_agreed=1; path=/; max-age=31536000; SameSite=Lax"
 
-      // Show success animation
+      // If the user was redirected from pricing (e.g. after sign-up), send them back there
+      if (postOnboardingRedirect) {
+        const destination = postOnboardingRedirect.startsWith("%") 
+          ? decodeURIComponent(postOnboardingRedirect) 
+          : postOnboardingRedirect
+        window.location.href = destination
+        return
+      }
+
+      // If user selected a paid plan during onboarding, handle checkout
+      if (data.selectedPlanId) {
+        const { isNativeApp, showNativePaywall } = await import("@/lib/native-bridge")
+        if (isNativeApp()) {
+          // In native app, show RevenueCat paywall
+          const success = await showNativePaywall()
+          if (success) {
+            setShowSuccess(true)
+            return
+          }
+          // If cancelled, still show success and go to home
+        } else {
+          // On web, redirect to pricing page with selected plan to show Stripe checkout
+          window.location.href = `/pricing?plan=${data.selectedPlanId}`
+          return
+        }
+      }
+
+      // Show success animation (free plan or checkout failed gracefully)
       setShowSuccess(true)
     } catch (error) {
-      console.error("[v0] Onboarding error:", error)
+      console.error("Onboarding error:", error)
       alert("Something went wrong. Please try again.")
       setLoading(false)
     }
   }
 
   const handleSuccessComplete = () => {
-    // Route new users to pricing so they can choose a plan (free or paid)
-    router.push("/pricing")
+    router.push(postOnboardingRedirect ? decodeURIComponent(postOnboardingRedirect) : "/home")
   }
 
   return (
@@ -258,6 +331,12 @@ export default function OnboardingPage() {
             )}
           >
             {currentStep === 1 && (
+              <StepLanguage
+                language={data.language}
+                onUpdate={(language) => updateData({ language })}
+              />
+            )}
+            {currentStep === 2 && (
               <StepProfile
                 data={{
                   name: data.name,
@@ -268,7 +347,7 @@ export default function OnboardingPage() {
                 onUpdate={updateData}
               />
             )}
-            {currentStep === 2 && (
+            {currentStep === 3 && (
               <StepPreferences
                 data={{
                   language: data.language,
@@ -278,7 +357,7 @@ export default function OnboardingPage() {
                 onUpdate={updateData}
               />
             )}
-            {currentStep === 3 && (
+            {currentStep === 4 && (
               <StepSafety
                 data={{
                   safetyAgreed: data.safetyAgreed,
@@ -287,24 +366,30 @@ export default function OnboardingPage() {
                 onUpdate={updateData}
               />
             )}
+            {currentStep === 5 && (
+              <StepPlan
+                selectedPlanId={data.selectedPlanId}
+                onSelect={(planId) => updateData({ selectedPlanId: planId })}
+              />
+            )}
           </div>
 
           {/* Navigation Buttons */}
-          <div className="flex items-center justify-between mt-8 pt-6 border-t border-[#e5e7eb]">
-            {/* Skip Link (Step 1 only) */}
-            {currentStep === 1 ? (
+          <div className="flex items-center justify-between mt-8 pt-6 border-t border-border">
+            {/* Skip Link (Step 1 or 2 only) */}
+            {currentStep <= 2 ? (
               <button
                 type="button"
                 onClick={handleSkip}
-                className="text-sm text-muted-foreground hover:text-[#2C2416] transition-colors"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-[#C5A059] transition-colors text-sm font-medium"
               >
-                Skip for now
+                Skip to essentials
               </button>
             ) : (
               <button
                 type="button"
                 onClick={handleBack}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#C5A059] text-[#C5A059] hover:bg-[#F8F6F2] transition-colors text-sm font-medium"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#C5A059] text-[#C5A059] hover:bg-muted transition-colors text-sm font-medium"
               >
                 <ArrowLeft className="w-4 h-4" />
                 Back
@@ -319,7 +404,7 @@ export default function OnboardingPage() {
                 disabled={!canProceed()}
                 className={cn(
                   "flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-semibold tracking-wide transition-all",
-                  canProceed() ? "gold-button" : "bg-[#e5e7eb] text-[#9ca3af] cursor-not-allowed",
+                  canProceed() ? "gold-button" : "bg-[#e5e7eb] text-muted-foreground cursor-not-allowed",
                 )}
               >
                 Next
@@ -332,7 +417,7 @@ export default function OnboardingPage() {
                 disabled={!canProceed() || loading}
                 className={cn(
                   "flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-semibold tracking-wide transition-all",
-                  canProceed() && !loading ? "gold-button" : "bg-[#e5e7eb] text-[#9ca3af] cursor-not-allowed",
+                  canProceed() && !loading ? "gold-button" : "bg-[#e5e7eb] text-muted-foreground cursor-not-allowed",
                 )}
               >
                 {loading ? (
