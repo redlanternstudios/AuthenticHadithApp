@@ -120,11 +120,14 @@ export default function LoginScreen() {
 
         <View style={styles.form}>
           <Input
+            testID="login-email"
             label="Email"
             placeholder="your@email.com"
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
+            autoComplete="email"
+            textContentType="emailAddress"
             autoCapitalize="none"
             autoCorrect={false}
             returnKeyType="next"
@@ -132,11 +135,14 @@ export default function LoginScreen() {
           />
           <Input
             ref={passwordRef}
+            testID="login-password"
             label="Password"
             placeholder="••••••••"
             value={password}
             onChangeText={setPassword}
             secureTextEntry
+            autoComplete="off"
+            textContentType="none"
             autoCorrect={false}
             returnKeyType="done"
             onSubmitEditing={handleLogin}
@@ -144,6 +150,7 @@ export default function LoginScreen() {
 
           <Button
             title="Sign In"
+            testID="login-submit"
             onPress={handleLogin}
             isLoading={isLoading}
           />
@@ -161,6 +168,7 @@ export default function LoginScreen() {
             buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
             cornerRadius={8}
             style={{ width: '100%', height: 50 }}
+            testID="login-apple"
             onPress={handleAppleSignIn}
           />
 

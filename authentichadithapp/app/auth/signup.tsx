@@ -66,6 +66,7 @@ export default function SignupScreen() {
 
         <View style={styles.form}>
           <Input
+            testID="signup-full-name"
             label="Full Name (Optional)"
             placeholder="Your name"
             value={fullName}
@@ -77,11 +78,14 @@ export default function SignupScreen() {
           />
           <Input
             ref={emailRef}
+            testID="signup-email"
             label="Email"
             placeholder="your@email.com"
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
+            autoComplete="email"
+            textContentType="emailAddress"
             autoCapitalize="none"
             autoCorrect={false}
             returnKeyType="next"
@@ -89,11 +93,14 @@ export default function SignupScreen() {
           />
           <Input
             ref={passwordRef}
+            testID="signup-password"
             label="Password"
             placeholder="••••••••"
             value={password}
             onChangeText={setPassword}
             secureTextEntry
+            autoComplete="off"
+            textContentType="none"
             autoCorrect={false}
             returnKeyType="done"
             onSubmitEditing={handleSignup}
@@ -101,6 +108,7 @@ export default function SignupScreen() {
 
           <Button
             title="Create Account"
+            testID="signup-submit"
             onPress={handleSignup}
             isLoading={isLoading}
           />
@@ -109,7 +117,12 @@ export default function SignupScreen() {
         <View style={styles.footer}>
           <Text style={[styles.footerText, { color: colors.mutedText }]}>Already have an account? </Text>
           <Link href="/auth/login">
-            <Text style={[styles.footerLink, { color: colors.emeraldMid }]}>Sign in</Text>
+            <Text
+              style={[styles.footerLink, { color: colors.emeraldMid }]}
+              testID="signup-go-login"
+            >
+              Sign in
+            </Text>
           </Link>
         </View>
       </ScrollView>

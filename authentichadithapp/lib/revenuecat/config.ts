@@ -20,11 +20,11 @@ export const PRODUCT_IDS = {
 export const ENTITLEMENT_ID = 'premium'
 
 /**
- * Apple App Review demo account(s). Premium is force-granted in-app for these
- * exact emails ONLY, so the reviewer can always evaluate premium features even
- * if RevenueCat fails to resolve their promotional entitlement live. This is a
- * read-side client override — it writes nothing to RevenueCat and grants
- * nothing to any other user. Value is the ASC `demoAccountName`
+ * Apple App Review and QA demo accounts. Premium is force-granted in-app for
+ * these exact emails ONLY, so reviewers and QA can evaluate premium features
+ * even if RevenueCat fails to resolve their promotional entitlement live.
+ * This is a read-side client override — it writes nothing to RevenueCat and
+ * grants nothing to any other user. Value is the ASC `demoAccountName`
  * (App Store Connect → App Review Information); keep in sync if it changes.
  */
 export const REVIEWER_EMAILS = [
@@ -36,6 +36,9 @@ export const REVIEWER_EMAILS = [
   // tester path is auditable and cannot be guessed by regular users.
   'testflight.qa@authentichadith.app',
   'codex.sim.20260711.1333@authentichadith.test',
+  'qa.review.01@authentichadith.app',
+  'qa.review.02@authentichadith.app',
+  'qa.device.01@authentichadith.app',
   // Internal lifetime accounts (KP-authorized 2026-06-12). Exact-match only;
   // resolve as lifetime premium through the same canonical path as the
   // reviewer accounts. Emails only — never passwords.

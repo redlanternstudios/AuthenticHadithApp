@@ -232,6 +232,7 @@ export default function OnboardingScreen() {
           {/* Name */}
           <Text style={[styles.label, { color: colors.bronzeText }, isRTL && styles.textRTL]}>{stepLabels.nameLabel}</Text>
           <TextInput
+            testID="onboarding-name"
             style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.bronzeText }, isRTL && styles.inputRTL]}
             placeholder={stepLabels.namePlaceholder}
             placeholderTextColor={colors.mutedText}
@@ -254,6 +255,7 @@ export default function OnboardingScreen() {
           <View style={styles.optionsList}>
             {SCHOOLS_OF_THOUGHT.map((school) => (
               <Pressable
+                testID={`onboarding-school-${school.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}
                 key={school}
                 accessibilityRole="button"
                 accessibilityLabel={school}
@@ -303,10 +305,11 @@ export default function OnboardingScreen() {
             {COLLECTIONS.map((c) => {
               const isSelected = data.collections.includes(c.id)
               return (
-                <Pressable
-                  key={c.id}
-                  accessibilityRole="checkbox"
-                  accessibilityLabel={`${c.name}, ${c.count}`}
+              <Pressable
+                testID={`onboarding-collection-${c.id}`}
+                key={c.id}
+                accessibilityRole="checkbox"
+                accessibilityLabel={`${c.name}, ${c.count}`}
                   accessibilityState={{ checked: isSelected }}
                   style={[
                     styles.collectionItem,
@@ -339,6 +342,7 @@ export default function OnboardingScreen() {
           <View style={[styles.levelToggle, { backgroundColor: colors.border + '50' }]}>
             {LEARNING_LEVELS.map((level) => (
               <Pressable
+                testID={`onboarding-level-${level.toLowerCase()}`}
                 key={level}
                 accessibilityRole="button"
                 accessibilityLabel={level}
@@ -404,6 +408,7 @@ export default function OnboardingScreen() {
           </Card>
 
           <Pressable
+            testID="onboarding-safety-agree"
             accessibilityRole="button"
             accessibilityLabel={isArabic ? 'أفهم وأوافق على إرشادات السلامة' : 'I understand and agree to the safety guidelines'}
             accessibilityState={{ checked: data.safetyAgreed }}
@@ -421,6 +426,7 @@ export default function OnboardingScreen() {
           </Pressable>
 
           <Pressable
+            testID="onboarding-terms-agree"
             accessibilityRole="button"
             accessibilityLabel={isArabic ? 'أوافق على شروط الخدمة وسياسة الخصوصية' : 'I agree to the Terms of Service and Privacy Policy'}
             accessibilityState={{ checked: data.termsAgreed }}
@@ -459,6 +465,7 @@ export default function OnboardingScreen() {
             title={stepLabels.back}
             variant="outline"
             size="medium"
+            testID="onboarding-back"
             onPress={() => setCurrentStep((s) => s - 1)}
           />
         )}
@@ -468,6 +475,7 @@ export default function OnboardingScreen() {
             title={stepLabels.next}
             variant="primary"
             size="medium"
+            testID="onboarding-next"
             onPress={() => setCurrentStep((s) => s + 1)}
             disabled={!canProceed()}
           />
@@ -476,6 +484,7 @@ export default function OnboardingScreen() {
             title={stepLabels.complete}
             variant="primary"
             size="medium"
+            testID="onboarding-complete"
             onPress={handleComplete}
             disabled={!canProceed()}
             isLoading={loading}

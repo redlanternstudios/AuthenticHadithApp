@@ -163,11 +163,14 @@ describe('Paywall — all three tiers present in offerings', () => {
 })
 
 describe('isReviewerEmail — Apple reviewer premium bypass (Build 29)', () => {
-  it('grants premium ONLY for the exact Apple reviewer demo email (case-insensitive)', () => {
+  it('keeps the allowlist exact and case-insensitive for the shipped QA set', () => {
     const { isReviewerEmail } = require('@/lib/revenuecat/config')
     expect(isReviewerEmail('apple.reviewer+20260604@authentichadith.app')).toBe(true)
     // case-insensitive + trims surrounding whitespace
     expect(isReviewerEmail('  APPLE.REVIEWER+20260604@AuthenticHadith.app ')).toBe(true)
+    expect(isReviewerEmail('qa.review.01@authentichadith.app')).toBe(true)
+    expect(isReviewerEmail('qa.review.02@authentichadith.app')).toBe(true)
+    expect(isReviewerEmail('qa.device.01@authentichadith.app')).toBe(true)
   })
 
   it('grants premium for the legacy reviewer demo email (Profile/Subscription consistency)', () => {
@@ -189,6 +192,23 @@ describe('isReviewerEmail — Apple reviewer premium bypass (Build 29)', () => {
     expect(isReviewerEmail(null)).toBe(false)
     expect(isReviewerEmail(undefined)).toBe(false)
     expect(isReviewerEmail('')).toBe(false)
+  })
+
+  it('keeps the allowlist at the documented 10 account set', () => {
+    const { REVIEWER_EMAILS } = require('@/lib/revenuecat/config')
+    expect(REVIEWER_EMAILS).toHaveLength(10)
+    expect(REVIEWER_EMAILS).toEqual(expect.arrayContaining([
+      'apple.reviewer+20260604@authentichadith.app',
+      'apple.reviewer@authentichadith.app',
+      'testflight.qa@authentichadith.app',
+      'codex.sim.20260711.1333@authentichadith.test',
+      'qa.review.01@authentichadith.app',
+      'qa.review.02@authentichadith.app',
+      'qa.device.01@authentichadith.app',
+      'roryleesemeah@icloud.com',
+      'g.homira@gmail.com',
+      'clashon64@gmail.com',
+    ]))
   })
 })
 

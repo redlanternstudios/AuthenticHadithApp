@@ -244,6 +244,7 @@ export default function PaywallScreen() {
           const isAnnual = pkg.packageType === 'ANNUAL'
           return (
             <Pressable
+              testID={`paywall-package-${pkg.packageType.toLowerCase()}`}
               key={pkg.identifier}
               style={[
                 styles.planCard,
@@ -304,6 +305,7 @@ export default function PaywallScreen() {
           title={purchasing ? 'Processing...' : 'Continue'}
           variant="primary"
           size="large"
+          testID="paywall-continue"
           onPress={handlePurchase}
           disabled={!selectedPackage || purchasing}
           isLoading={purchasing}
@@ -311,6 +313,7 @@ export default function PaywallScreen() {
 
         {/* ── Restore Link ── */}
         <Pressable
+          testID="paywall-restore"
           onPress={handleRestore}
           disabled={restoring}
           style={styles.restoreButton}

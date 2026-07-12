@@ -6,6 +6,7 @@
 - Password: AppleReview2026!
 - Account type: Premium (full access)
 - Setup: KP must run docs/appstore/DEMO_ACCOUNT.sql in the Supabase SQL Editor, then grant the "premium" RevenueCat Promotional Entitlement to App User ID `00000000-0000-0000-0000-000000000001` in the RevenueCat dashboard before the review window opens.
+- Full reviewer and QA allowlist: see `docs/appstore/QA_ALLOWLIST_ACCOUNTS.md`.
 
 ## App Overview
 
