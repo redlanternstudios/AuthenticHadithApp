@@ -17,7 +17,7 @@ import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colo
 import { FONT_FAMILY } from '@/constants/theme'
 import { Button } from '@/components/ui/Button'
 import { useRevenueCat } from '@/lib/revenuecat/RevenueCatProvider'
-import { ENTITLEMENT_ID } from '@/lib/revenuecat/config'
+import { ENTITLEMENT_ID, PRODUCT_IDS } from '@/lib/revenuecat/config'
 import { VISIBLE_COLLECTION_COUNT, VISIBLE_HADITH_TOTAL } from '@/lib/hadith/visibleCollections'
 
 // ─── Value Props ──────────────────────────────────────────────────────────────
@@ -61,19 +61,6 @@ function getMonthlyPackage(packages: PurchasesPackage[]): PurchasesPackage | nul
   return packages.find((p) => p.packageType === 'MONTHLY') ?? null
 }
 
-function getPlanDescription(packageType: string): string {
-  switch (packageType) {
-    case 'MONTHLY':
-      return 'Start with a 7 day free trial, then monthly premium access. Cancel anytime.'
-    case 'ANNUAL':
-      return 'Annual premium access for deeper study tools and continued app development.'
-    case 'LIFETIME':
-      return 'One-time support for premium tools without a recurring subscription.'
-    default:
-      return 'Full access to Authentic Hadith and all features.'
-  }
-}
-
 function getPlanPrice(pkg: PurchasesPackage): string {
   const cadence = PACKAGE_CADENCE[pkg.packageType] !== undefined ? PACKAGE_CADENCE[pkg.packageType] : ''
   if (pkg.packageType === 'MONTHLY') {
@@ -81,6 +68,40 @@ function getPlanPrice(pkg: PurchasesPackage): string {
   }
   return `${pkg.product.priceString}${cadence}`
 }
+
+type PaywallPlanId = typeof PRODUCT_IDS[keyof typeof PRODUCT_IDS]
+
+type PaywallPlanMeta = {
+  id: PaywallPlanId
+  packageType: 'MONTHLY' | 'ANNUAL' | 'LIFETIME'
+  title: string
+  description: string
+  fallbackLabel: string
+}
+
+const PLAN_ORDER: PaywallPlanMeta[] = [
+  {
+    id: PRODUCT_IDS.MONTHLY_PREMIUM,
+    packageType: 'MONTHLY',
+    title: 'Monthly',
+    description: 'Start with a 7 day free trial, then monthly premium access. Cancel anytime.',
+    fallbackLabel: '7 days free, then monthly premium access',
+  },
+  {
+    id: PRODUCT_IDS.ANNUAL_PREMIUM,
+    packageType: 'ANNUAL',
+    title: 'Annual',
+    description: 'Annual premium access for deeper study tools and continued app development.',
+    fallbackLabel: 'Annual premium access',
+  },
+  {
+    id: PRODUCT_IDS.LIFETIME,
+    packageType: 'LIFETIME',
+    title: 'Lifetime',
+    description: 'One-time support for premium tools without a recurring subscription.',
+    fallbackLabel: 'One-time support for premium tools',
+  },
+]
 
 // ─── Billing cadence map (Apple 3.1.2 — billing term must appear next to price) ──
 const PACKAGE_CADENCE: Record<string, string> = {
@@ -96,7 +117,14 @@ export default function PaywallScreen() {
   const colors = getColors(isDark)
   const { currentOffering, isLoading, isPro, restorePurchases } = useRevenueCat()
 
-  const packages = currentOffering?.availablePackages ?? []
+  const packages = React.useMemo(() => currentOffering?.availablePackages ?? [], [currentOffering])
+  const packagesByProductId = React.useMemo(() => {
+    return packages.reduce<Record<string, PurchasesPackage>>((acc, pkg) => {
+      const id = pkg?.product?.identifier
+      if (id) acc[id] = pkg
+      return acc
+    }, {})
+  }, [packages])
 
   const [selectedPackage, setSelectedPackage] = useState<PurchasesPackage | null>(null)
   const [purchasing, setPurchasing] = useState(false)
@@ -105,12 +133,13 @@ export default function PaywallScreen() {
   // Auto-select MONTHLY on mount so the seven day trial is the default path.
   useEffect(() => {
     if (packages.length > 0 && selectedPackage === null) {
-      const monthly = getMonthlyPackage(packages)
-      const annual = getAnnualPackage(packages)
-      setSelectedPackage(monthly ?? annual ?? packages[0])
+      const monthly = packagesByProductId[PRODUCT_IDS.MONTHLY_PREMIUM] ?? getMonthlyPackage(packages)
+      const annual = packagesByProductId[PRODUCT_IDS.ANNUAL_PREMIUM] ?? getAnnualPackage(packages)
+      const lifetime = packagesByProductId[PRODUCT_IDS.LIFETIME]
+      setSelectedPackage(monthly ?? annual ?? lifetime ?? packages[0])
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [packages])
+  }, [packages, packagesByProductId])
 
   useEffect(() => {
     if (isPro) {
@@ -239,13 +268,15 @@ export default function PaywallScreen() {
       {/* ── Plan Cards ── */}
       <View style={styles.plansSection}>
         <Text style={[styles.plansLabel, { color: colors.bronzeText }]}>Choose Your Plan</Text>
-        {packages.map((pkg) => {
-          const isSelected = selectedPackage?.identifier === pkg.identifier
-          const isAnnual = pkg.packageType === 'ANNUAL'
+        {PLAN_ORDER.map((plan) => {
+          const pkg = packagesByProductId[plan.id] ?? null
+          const isSelected = selectedPackage?.product?.identifier === plan.id
+          const isAnnual = plan.packageType === 'ANNUAL'
+          const isAvailable = Boolean(pkg)
           return (
             <Pressable
-              testID={`paywall-package-${pkg.packageType.toLowerCase()}`}
-              key={pkg.identifier}
+              testID={`paywall-package-${plan.packageType.toLowerCase()}`}
+              key={plan.id}
               style={[
                 styles.planCard,
                 { backgroundColor: colors.card, borderColor: colors.border },
@@ -253,11 +284,16 @@ export default function PaywallScreen() {
                   borderColor: colors.goldMid,
                   backgroundColor: colors.goldMid + '10',
                 },
+                !isAvailable && {
+                  opacity: 0.7,
+                },
               ]}
-              onPress={() => setSelectedPackage(pkg)}
+              onPress={() => {
+                if (pkg) setSelectedPackage(pkg)
+              }}
               accessibilityRole="radio"
-              accessibilityState={{ checked: isSelected }}
-              accessibilityLabel={`Select ${getPlanLabel(pkg.packageType)} plan`}
+              accessibilityState={{ checked: isSelected, disabled: !isAvailable }}
+              accessibilityLabel={`Select ${getPlanLabel(plan.packageType)} plan`}
             >
               {/* Best Value badge */}
               {isAnnual && (
@@ -279,19 +315,19 @@ export default function PaywallScreen() {
                       {isSelected && <View style={[styles.radioInner, { backgroundColor: colors.white }]} />}
                     </View>
                     <Text style={[styles.planName, { color: isSelected ? colors.goldMid : colors.bronzeText }]}>
-                      {getPlanLabel(pkg.packageType)}
+                      {getPlanLabel(plan.packageType)}
                     </Text>
                   </View>
                   <Text
                     style={[styles.planPrice, { color: isSelected ? colors.goldMid : colors.bronzeText }]}
                     numberOfLines={2}
                   >
-                    {getPlanPrice(pkg)}
+                    {pkg ? getPlanPrice(pkg) : plan.fallbackLabel}
                   </Text>
                 </View>
                 {/* Description — full text, no truncation */}
                 <Text style={[styles.planDescription, { color: colors.mutedText }]}>
-                  {getPlanDescription(pkg.packageType)}
+                  {plan.description}
                 </Text>
               </View>
             </Pressable>
