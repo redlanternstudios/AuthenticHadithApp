@@ -172,14 +172,14 @@ export default function LoginScreen() {
             onPress={handleAppleSignIn}
           />
 
-          <Link href="/auth/forgot-password" style={styles.link}>
+          <Link href="/auth/forgot-password" style={styles.link} testID="login-forgot-password">
             <Text style={[styles.linkText, { color: colors.emeraldMid }]}>Forgot password?</Text>
           </Link>
         </View>
 
         <View style={styles.footer}>
           <Text style={[styles.footerText, { color: colors.mutedText }]}>{"Don't have an account? "}</Text>
-          <Link href="/auth/signup">
+          <Link href="/auth/signup" testID="login-signup-link">
             <Text style={[styles.footerLink, { color: colors.emeraldMid }]}>Sign up</Text>
           </Link>
         </View>
