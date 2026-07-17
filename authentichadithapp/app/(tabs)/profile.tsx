@@ -32,14 +32,20 @@ interface SettingsRowProps {
   onPress: () => void;
   tint?: string;
   showChevron?: boolean;
+  testID?: string;
 }
 
-function SettingsRow({ icon, label, value, onPress, tint, showChevron = true }: SettingsRowProps) {
+function SettingsRow({ icon, label, value, onPress, tint, showChevron = true, testID }: SettingsRowProps) {
   const { isDark } = useTheme();
   const colors = getColors(isDark);
+  const accessibilityLabel = value ? `${label}, ${value}` : label;
 
   return (
     <Pressable
+      accessible
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      testID={testID}
       style={({ pressed }) => [
         styles.settingsRow,
         { borderBottomColor: colors.borderSubtle, opacity: pressed ? 0.7 : 1 },
@@ -247,6 +253,7 @@ export default function ProfileScreen() {
         <SettingsRow
           icon="card-outline"
           label="Subscription"
+          testID="profile-subscription-row"
           onPress={() => router.push('/settings/subscription')}
         />
         <SettingsRow

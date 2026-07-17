@@ -111,7 +111,7 @@ describe('Paywall — all three tiers present in offerings', () => {
         product: {
           identifier: 'ah_monthly_premium',
           title: 'Premium Monthly',
-          priceString: '$4.99/mo',
+          priceString: '$9.99/mo',
           description: 'Monthly subscription',
         },
       },
@@ -120,7 +120,7 @@ describe('Paywall — all three tiers present in offerings', () => {
         product: {
           identifier: 'ah_annual_premium',
           title: 'Premium Annual',
-          priceString: '$39.99/yr',
+          priceString: '$49.99/yr',
           description: 'Annual subscription',
         },
       },
