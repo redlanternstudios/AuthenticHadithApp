@@ -10,17 +10,18 @@ A comprehensive **monorepo** containing both mobile and web applications for acc
 
 This repository contains:
 - **🌐 Web App** (`external/v0-authentic-hadith/`) — **Next.js, Production-Ready**, deployed at [authentichadith.app](https://authentichadith.app)
-- **📱 Mobile App** (`authentichadithapp/`) — **React Native/Expo, Early Development Stage**
+- **📱 Mobile App** (`authentichadithapp/`) — **Live on the Apple App Store**; the source tree remains under active development
 - **🗄️ Shared Backend** — **Supabase** with 36,000+ authentic hadiths from 6 major collections
 
 Both applications share the same Supabase backend infrastructure for a unified experience across platforms.
-📱 **React Native mobile app** (in development) + 🌐 **Production web platform** (live at [authentichadith.app](https://authentichadith.app))
+
+> **Production status:** [Authentic Hadith is available on the Apple App Store](https://apps.apple.com/us/app/authentic-hadith/id6764673665). The `authentichadithapp/` directory contains the actively developed mobile source tree and may include work that is not yet reflected in the current App Store release.
 
 ## Overview
 
 This repository contains two applications sharing a unified Supabase backend:
 
-- **Mobile App** (`authentichadithapp/`) — React Native with Expo SDK 54, early-stage development
+- **Mobile App** (`authentichadithapp/`) — Live iOS app with an actively developed React Native/Expo source tree
 - **Web App** (`external/v0-authentic-hadith/`) — Next.js 16, production-ready and fully deployed
 - **Shared Backend** — Supabase PostgreSQL with 36,000+ verified hadiths across 6 major collections
 
@@ -115,11 +116,13 @@ Visit `http://localhost:3000`
 
 ---
 
-## 📱 Mobile Application (In Development)
+## 📱 Mobile Application
 
-Located in `authentichadithapp/`, the mobile app is being developed with React Native and Expo.
+Located in `authentichadithapp/`, the mobile app is built with React Native and Expo.
 
-**Current Status:** 🚧 **Early Development** (Foundation in place)
+**Current Status:** ✅ **Live on the [Apple App Store](https://apps.apple.com/us/app/authentic-hadith/id6764673665)**
+
+The repository remains under active development. Features and source code in this directory may represent work in progress and are not, by themselves, a statement of the current public release status.
 
 ✅ **Completed:**
 - Expo SDK 54 setup
@@ -129,16 +132,11 @@ Located in `authentichadithapp/`, the mobile app is being developed with React N
 - Haptic feedback integration
 Cross-platform mobile app built with React Native and Expo, designed to integrate with the existing Supabase backend.
 
-### Current Status
+### Development Status
 
-- ✅ Expo SDK 54 starter template
-- ✅ File-based routing with Expo Router
-- ✅ Dark mode support
-- ✅ Themed UI components
-- ✅ Haptic feedback
-- ⏳ Supabase integration (planned)
-- ⏳ Hadith browsing (planned)
-- ⏳ Offline-first architecture (planned)
+- ✅ iOS app available on the Apple App Store
+- 🔧 React Native/Expo source tree remains under active development
+- ℹ️ Refer to the App Store listing for the current public release status
 
 **Planned Features:**
 - Supabase authentication integration
@@ -161,7 +159,7 @@ Cross-platform mobile app built with React Native and Expo, designed to integrat
 | Web App | ✅ **Production** | Next.js 16, Vercel | `external/v0-authentic-hadith/` |
 | Backend Database | ✅ **Production** | Supabase PostgreSQL | Shared by both apps |
 | Hadith Data | ✅ **Production** | 36,000+ hadiths seeded | Supabase database |
-| Mobile App | 🚧 **Development** | Expo SDK 54 | `authentichadithapp/` |
+| Mobile App | ✅ **Live on App Store; active development continues** | Expo SDK 54 | `authentichadithapp/` |
 - 📚 Access to all 36,000+ hadiths from shared backend
 - 🌐 Bilingual Arabic/English with RTL support
 - 📥 Offline-first with local caching
@@ -362,7 +360,7 @@ Changes to the web app can be contributed to either repository. The `external/v0
 |-----------|--------|-------------|
 | **Web App** | ✅ **Production** | Live at authentichadith.app, fully functional |
 | **Supabase Backend** | ✅ **Production** | 36K+ hadiths, user profiles, subscriptions |
-| **Mobile App** | 🚧 **Early Development** | Starter template, integration in progress |
+| **Mobile App** | ✅ **Live on App Store** | Production iOS release; active source development continues |
 
 ---
 
@@ -386,7 +384,7 @@ vercel
 
 ### Mobile App → App Stores
 
-Mobile deployment is planned for future releases:
+For local iOS builds and App Store submissions:
 
 ```bash
 cd authentichadithapp
@@ -396,7 +394,7 @@ eas submit --platform ios
 
 | Directory | What It Is |
 |---|---|
-| **`authentichadithapp/`** | React Native / Expo native app (future incremental native screens) |
+| **`authentichadithapp/`** | React Native / Expo native app (active development and future native enhancements) |
 | **`.github/workflows/`** | CI/CD for EAS Build & Submit (iOS + Android) |
 
 ### Related Repository
@@ -559,7 +557,7 @@ Contributions are welcome! Please feel free to submit a Pull Request for:
 ---
 
 *The web application is in **production** and live at [authentichadith.app](https://authentichadith.app).  
-The mobile application is in **early development**.*
+The iOS application is **live on the [Apple App Store](https://apps.apple.com/us/app/authentic-hadith/id6764673665)**; its source tree remains under active development.*
 ### Required GitHub Secrets
 
 | Secret | Description |
