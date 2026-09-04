@@ -3896,7 +3896,7 @@ npx tsc --noEmit → exit 0 (zero errors, 2026-06-24)
 
 **Root cause (three separate failures, one shared pattern — docs said GO, production said NO)**:
 1. Reviewer account `apple.reviewer@authentichadith.app` returned HTTP 400 `invalid_credentials` on login probe. GoTrue admin bulk list (`/auth/v1/admin/users?page=1&per_page=50`) returned HTTP 500 "Database error finding users" — masked the account's existence. Fixed with filter param: `GET /auth/v1/admin/users?filter=apple.reviewer%40authentichadith.app` returned the account with UUID `a1433858-cdce-4dbe-9a83-26ecb0022979`.
-2. Password mismatch: a prior session had logged in with a different password. Fixed via GoTrue admin `PUT /auth/v1/admin/users/{uuid}` with `{"password":"ReviewerPass2024!","email_confirm":true}` — HTTP 200, email_confirmed_at updated.
+2. Password mismatch: a prior session had logged in with a different password. Fixed via GoTrue admin `PUT /auth/v1/admin/users/{uuid}` with `{"password":"[REDACTED_REVIEWER_SECRET]","email_confirm":true}` — HTTP 200, email_confirmed_at updated.
 3. RevenueCat `premium` entitlement was not granted to reviewer UUID. Fixed via `POST https://api.revenuecat.com/v1/subscribers/{uuid}/entitlements/premium/promotional` with `{"duration":"lifetime"}` — HTTP 201. Entitlement active, expires ~2226.
 
 **Receipts (all 3 Rule 034 gates)**:

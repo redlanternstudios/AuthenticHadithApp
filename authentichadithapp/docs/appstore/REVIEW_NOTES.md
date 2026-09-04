@@ -3,7 +3,7 @@
 ## Demo Credentials
 
 - Email: apple.reviewer@authentichadith.app
-- Password: AppleReview2026!
+- Password: [STORED_SECURELY_IN_APP_STORE_CONNECT_REVIEW_NOTES]
 - Account type: Premium (full access)
 - Setup: KP must run docs/appstore/DEMO_ACCOUNT.sql in the Supabase SQL Editor, then grant the "premium" RevenueCat Promotional Entitlement to App User ID `00000000-0000-0000-0000-000000000001` in the RevenueCat dashboard before the review window opens.
 

@@ -15,7 +15,7 @@
 --
 -- Credentials the reviewer will use:
 --   Email:    apple.reviewer@authentichadith.app
---   Password: AppleReview2026!
+--   Password: [STORED_SECURELY_IN_PASSWORD_MANAGER]
 --
 -- PREMIUM NOTE:
 --   The app checks premium status exclusively via RevenueCat
@@ -53,11 +53,11 @@ VALUES (
   'authenticated',
   'authenticated',
   'apple.reviewer@authentichadith.app',
-  -- Password hashed inline via pgcrypto. No placeholder, no two-step.
+  -- Password hashed inline via pgcrypto. Provide your rotated password in the placeholder below.
   -- Supabase ships pgcrypto enabled; crypt()+gen_salt('bf') = bcrypt hash GoTrue accepts.
   -- If you hit "function crypt does not exist", prefix with the schema: extensions.crypt(...).
-  -- Rotate this password after each review cycle.
-  crypt('AppleReview2026!', gen_salt('bf')),
+  -- Rotate this password after each review cycle and store in secure password manager.
+  crypt('<ENTER_SECURE_ROTATED_REVIEWER_PASSWORD>', gen_salt('bf')),
   now(),
   now(),
   now(),

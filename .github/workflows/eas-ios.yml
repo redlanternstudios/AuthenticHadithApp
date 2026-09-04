@@ -1,4 +1,4 @@
-name: EAS iOS Build & Submit
+name: EAS iOS Build & TestFlight Submit
 
 on:
   push:
@@ -8,28 +8,23 @@ on:
 jobs:
   build_and_submit:
     name: Build and Submit iOS to TestFlight
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./v0-authentic-hadith/expo-wrapper
+        working-directory: ./authentichadithapp
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Checkout v0-authentic-hadith (WebView wrapper source)
-        uses: actions/checkout@v4
-        with:
-          repository: redlanternstudios/v0-authentic-hadith
-          path: v0-authentic-hadith
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: "npm"
+          cache-dependency-path: ./authentichadithapp/package-lock.json
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Install EAS CLI
         run: npm install -g eas-cli
@@ -41,14 +36,16 @@ jobs:
 
       - name: Set RevenueCat API keys
         run: |
-          # Update app.json with production RevenueCat keys from secrets
+          # Update app.json with production RevenueCat keys from secrets if provided
           node -e "
             const fs = require('fs');
             const config = JSON.parse(fs.readFileSync('app.json', 'utf8'));
             if (process.env.REVENUECAT_API_KEY_APPLE) {
+              if (!config.expo.extra) config.expo.extra = {};
               config.expo.extra.revenueCatApiKeyApple = process.env.REVENUECAT_API_KEY_APPLE;
             }
             if (process.env.REVENUECAT_API_KEY_GOOGLE) {
+              if (!config.expo.extra) config.expo.extra = {};
               config.expo.extra.revenueCatApiKeyGoogle = process.env.REVENUECAT_API_KEY_GOOGLE;
             }
             fs.writeFileSync('app.json', JSON.stringify(config, null, 2));
@@ -62,7 +59,7 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
         run: eas whoami || true
 
-      - name: Build iOS (EAS)
+      - name: Build iOS via EAS Cloud
         env:
           EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
         run: eas build -p ios --profile production --non-interactive
@@ -71,8 +68,10 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
         run: |
-          if [ -f ./appstoreconnect.json ]; then
+          if [ -f ./appstoreconnect.json ] && [ -s ./appstoreconnect.json ]; then
+            echo "Submitting using App Store Connect API key"
             eas submit -p ios --latest --apple-api-key-path ./appstoreconnect.json --non-interactive
           else
+            echo "Submitting using Apple ID and Team ID fallback"
             eas submit -p ios --latest --non-interactive --apple-id "${{ secrets.APPLE_ID }}" --apple-team-id "${{ secrets.APPLE_TEAM_ID }}"
           fi

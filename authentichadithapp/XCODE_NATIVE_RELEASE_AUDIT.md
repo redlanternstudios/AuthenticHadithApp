@@ -119,7 +119,7 @@ C-02, C-03, and M-01 are resolved at the config layer. **C-01 has been INVALIDAT
 
 ### M-03: Demo account for Apple review not yet created
 - **File:** `APPSTORE_METADATA.md` line 61
-- **Root Cause:** The metadata doc says "NOTE: You must create this account in your Supabase dashboard before submitting." The review credentials (applereview@byredllc.com / AppleReview2026!) must actually exist and work.
+- **Root Cause:** The metadata doc says "NOTE: You must create this account in your Supabase dashboard before submitting." The review credentials (applereview@byredllc.com / [STORED_IN_ASC_REVIEW_NOTES]) must actually exist and work.
 - **Risk:** Apple reviewer cannot log in. Immediate rejection.
 - **Fix Location:** Supabase dashboard (external)
 - **Fix:** Create the demo account in Supabase Auth. Verify login works. Set it to premium tier so reviewers can test all features.

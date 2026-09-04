@@ -6,7 +6,7 @@ API/production level (receipts in `docs/SUBMISSION_BLOCKER_LEDGER.md`) — this 
 human confirmation that the UX wires through. Check each box on your phone.
 
 **Reviewer demo account (what Apple uses — test with THIS to replicate review):**
-`apple.reviewer@authentichadith.app` / `AppleReview2026!` (premium comp'd). The ASC-listed reviewer
+`apple.reviewer@authentichadith.app` / `[PASSWORD_STORED_IN_ASC_REVIEW_INFO]` (premium comp'd). The ASC-listed reviewer
 account `apple.reviewer+20260604@authentichadith.app` (password in ASC → App Review Information) also works.
 
 ---
