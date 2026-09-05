@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
   StyleSheet,
   View,
@@ -10,7 +10,6 @@ import {
   Linking,
 } from 'react-native'
 import { Stack, useRouter } from 'expo-router'
-import AsyncStorage from '@react-native-async-storage/async-storage'
 import { PurchasesPackage } from 'react-native-purchases'
 import { purchasePackage as safePurchasePackage } from '../lib/purchases/revenuecat'
 import { useTheme } from '@/lib/theme/ThemeProvider'
@@ -82,9 +81,9 @@ export default function PaywallScreen() {
   const router = useRouter()
   const { isDark } = useTheme()
   const colors = getColors(isDark)
-  const { currentOffering, isLoading, restorePurchases } = useRevenueCat()
+  const { currentOffering, isLoading, restorePurchases, refreshCustomerInfo } = useRevenueCat()
 
-  const packages = currentOffering?.availablePackages ?? []
+  const packages = useMemo(() => currentOffering?.availablePackages ?? [], [currentOffering])
 
   const [selectedPackage, setSelectedPackage] = useState<PurchasesPackage | null>(null)
   const [purchasing, setPurchasing] = useState(false)
@@ -96,7 +95,7 @@ export default function PaywallScreen() {
       const annual = getAnnualPackage(packages)
       setSelectedPackage(annual ?? packages[0])
     }
-  }, [packages])
+  }, [packages, selectedPackage])
 
   // ─── Purchase ───────────────────────────────────────────────────────────────
   const handlePurchase = async () => {
@@ -105,6 +104,7 @@ export default function PaywallScreen() {
     try {
       const success = await safePurchasePackage(selectedPackage)
       if (success) {
+        await refreshCustomerInfo()
         router.replace('/(tabs)')
       }
     } catch (error: any) {

@@ -11,7 +11,7 @@
     "lint": "expo lint",
     "test": "jest --passWithNoTests",
     "qa:routes": "jest __tests__/navigation/route-integrity.test.ts --verbose",
-    "qa:types": "npx tsc --noEmit",
+    "qa:types": "tsc --noEmit",
     "qa:lint": "expo lint",
     "qa:test": "jest --verbose --coverage",
     "qa:release-guard": "node scripts/qa-release-guard.mjs",

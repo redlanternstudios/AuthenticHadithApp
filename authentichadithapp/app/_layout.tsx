@@ -133,9 +133,8 @@ function NavigationGate() {
     const inOnboarding = segments[0] === 'onboarding'
     const inPaywall = segments[0] === 'paywall'
 
-    // FIX-115 B4: SCREENSHOT-BYPASS reverted — all three gates restored for
-    // production. These were commented out temporarily during App Store screenshot
-    // capture and MUST be active before submission (per approval-gates.md).
+    // FIX-115 B4: All three navigation gates restored for production.
+    // Auth, onboarding, and subscription gates are mandatory before submission.
     if (!user) {
       // No session — send to signup
       if (!inAuth && !inShared) router.replace('/auth/signup')

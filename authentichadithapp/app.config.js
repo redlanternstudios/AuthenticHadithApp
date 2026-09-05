@@ -41,9 +41,25 @@ module.exports = ({ config }) => ({
     // RevenueCat (client-safe iOS / Android keys)
     // Both naming patterns are populated because two files in the codebase
     // read different keys. Unify in a follow-up cleanup.
-    revenueCatApiKey: process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_IOS,
-    revenueCatApiKeyIos: process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_IOS,
-    revenueCatApiKeyAndroid: process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID,
+    revenueCatApiKey:
+      process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_IOS ??
+      config.extra?.revenueCatApiKey ??
+      config.extra?.revenueCatApiKeyIos ??
+      config.extra?.revenueCatApiKeyApple,
+    revenueCatApiKeyIos:
+      process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_IOS ??
+      config.extra?.revenueCatApiKeyIos ??
+      config.extra?.revenueCatApiKeyApple ??
+      config.extra?.revenueCatApiKey,
+    revenueCatApiKeyApple:
+      process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_IOS ??
+      config.extra?.revenueCatApiKeyApple ??
+      config.extra?.revenueCatApiKeyIos ??
+      config.extra?.revenueCatApiKey,
+    revenueCatApiKeyAndroid:
+      process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID ??
+      config.extra?.revenueCatApiKeyAndroid ??
+      config.extra?.revenueCatApiKeyGoogle,
 
     // EAS project linkage (set when you run `eas init`)
     eas: {

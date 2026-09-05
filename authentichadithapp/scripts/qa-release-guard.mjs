@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 const ROOT = process.cwd()
-const TARGETS = ['app', 'components', 'lib', 'app.config.js', 'app.json']
+const TARGETS = ['app', 'components', 'hooks', 'lib', 'constants', 'types', 'app.config.js', 'app.json', 'eas.json']
 const SOURCE_EXTENSIONS = new Set(['.js', '.jsx', '.ts', '.tsx', '.json'])
 
 const forbidden = [
@@ -16,7 +16,7 @@ const forbidden = [
   },
   {
     label: 'forced premium entitlement',
-    pattern: /\bconst\s+isPro\s*=\s*true\b/,
+    pattern: /\b(?:const|let|var)\s+(?:isPro|isPremium)\s*=\s*true\b/,
   },
   {
     label: 'disabled RevenueCat retry/init marker',

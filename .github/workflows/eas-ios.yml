@@ -52,10 +52,13 @@ jobs:
             if (process.env.REVENUECAT_API_KEY_APPLE) {
               if (!config.expo.extra) config.expo.extra = {};
               config.expo.extra.revenueCatApiKeyApple = process.env.REVENUECAT_API_KEY_APPLE;
+              config.expo.extra.revenueCatApiKeyIos = process.env.REVENUECAT_API_KEY_APPLE;
+              config.expo.extra.revenueCatApiKey = process.env.REVENUECAT_API_KEY_APPLE;
             }
             if (process.env.REVENUECAT_API_KEY_GOOGLE) {
               if (!config.expo.extra) config.expo.extra = {};
               config.expo.extra.revenueCatApiKeyGoogle = process.env.REVENUECAT_API_KEY_GOOGLE;
+              config.expo.extra.revenueCatApiKeyAndroid = process.env.REVENUECAT_API_KEY_GOOGLE;
             }
             fs.writeFileSync('app.json', JSON.stringify(config, null, 2));
           "
