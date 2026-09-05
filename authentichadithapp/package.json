@@ -24,6 +24,8 @@
     "qa:audit:report": "node scripts/qa-audit-report.mjs",
     "qa:revenuecat": "node scripts/verify-revenuecat-offerings.mjs",
     "qa:truthserum": "npm run qa:release-guard && npm run qa:audit:env && npm run qa:audit:routes && npm run qa:audit:deps && npm run qa:audit:report",
+    "qa:credentials:inspect": "node scripts/inspect-credentials.mjs",
+    "qa:credentials:remediate": "node scripts/manage-credentials.mjs",
     "worker:health": "test -f CLAUDE.md && test -d .claude/commands && test -d .claude/rules && echo 'worker:health OK'"
   },
   "dependencies": {

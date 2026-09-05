@@ -71,6 +71,13 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
         run: eas whoami || true
 
+      - name: Remediate and Align Signing Credentials
+        env:
+          APPLE_API_KEY_JSON: ${{ secrets.APPLE_API_KEY_JSON }}
+          EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: node scripts/manage-credentials.mjs
+
       - name: Build iOS via EAS Cloud
         env:
           EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
