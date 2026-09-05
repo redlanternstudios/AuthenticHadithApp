@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      inspect_build_id:
+        description: 'EAS Build ID to inspect (skips build)'
+        required: false
+        default: ''
 
 jobs:
   build_and_submit:
@@ -71,7 +76,15 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
         run: eas whoami || true
 
+      - name: Inspect Remote Build Logs
+        if: "${{ github.event.inputs.inspect_build_id != '' }}"
+        env:
+          EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
+          BUILD_ID: ${{ github.event.inputs.inspect_build_id }}
+        run: node scripts/fetch-build-log.mjs "$BUILD_ID"
+
       - name: Remediate and Align Signing Credentials
+        if: "${{ github.event.inputs.inspect_build_id == '' }}"
         env:
           APPLE_API_KEY_JSON: ${{ secrets.APPLE_API_KEY_JSON }}
           EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
@@ -79,11 +92,13 @@ jobs:
         run: node scripts/manage-credentials.mjs
 
       - name: Build iOS via EAS Cloud
+        if: "${{ github.event.inputs.inspect_build_id == '' }}"
         env:
           EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
         run: eas build -p ios --profile production --non-interactive
 
       - name: Submit to TestFlight
+        if: "${{ github.event.inputs.inspect_build_id == '' }}"
         env:
           EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
         run: |
