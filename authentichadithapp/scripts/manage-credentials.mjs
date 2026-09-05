@@ -267,6 +267,8 @@ async function main() {
                 validityNotBefore
                 validityNotAfter
                 developerPortalIdentifier
+                certificateP12
+                certificatePassword
                 appleTeam {
                   id
                   appleTeamIdentifier
@@ -303,6 +305,8 @@ async function main() {
       validityNotBefore: node.validityNotBefore,
       validityNotAfter: node.validityNotAfter,
       developerPortalIdentifier: node.developerPortalIdentifier,
+      certificateP12: node.certificateP12,
+      certificatePassword: node.certificatePassword,
       teamId: node.appleTeam?.appleTeamIdentifier,
       teamName: node.appleTeam?.appleTeamName,
       usedByApps: apps,
@@ -411,6 +415,7 @@ async function main() {
 
   let chosenDistCert = null; // { id (EAS), developerPortalIdentifier (Apple), serialNumber, expirationDate }
   let remediationStrategy = '';
+  let oldStaleEasCertIdToDelete = null;
 
   // Check Option A: Can we reuse an existing valid distribution certificate from EAS?
   const reusableEasCert = easCerts.find((ec) => {
@@ -422,24 +427,93 @@ async function main() {
   });
 
   if (reusableEasCert) {
-    remediationStrategy = 'Option A (Reuse Existing Valid Certificate)';
+    remediationStrategy = 'Option A (Refresh Existing Certificate Payload to Legacy P12)';
     console.log(`[+] Selected Strategy: ${remediationStrategy}`);
-    console.log(`    Reusing EAS Distribution Certificate: ${reusableEasCert.id}`);
-    console.log(`    Apple Developer Cert ID:              ${reusableEasCert.developerPortalIdentifier || 'N/A'}`);
+    console.log(`    Reusing Apple Certificate:            ${reusableEasCert.developerPortalIdentifier || 'N/A'}`);
     console.log(`    Serial Number:                        ${reusableEasCert.serialNumber}`);
     console.log(`    Expires:                              ${reusableEasCert.validityNotAfter}`);
-    console.log(`    Apps currently sharing:               ${reusableEasCert.usedByApps.join(', ') || 'None'}`);
+    console.log(`    Current EAS Cert ID:                  ${reusableEasCert.id}`);
 
     const matchingAppleCert = validDistCertsInApple.find(
       (ac) => ac.serialNumber === reusableEasCert.serialNumber || ac.id === reusableEasCert.developerPortalIdentifier
     );
+    const appleCertId = matchingAppleCert?.id || reusableEasCert.developerPortalIdentifier;
 
-    chosenDistCert = {
-      easId: reusableEasCert.id,
-      appleCertId: matchingAppleCert?.id || reusableEasCert.developerPortalIdentifier,
-      serialNumber: reusableEasCert.serialNumber,
-      expirationDate: reusableEasCert.validityNotAfter,
-    };
+    if (reusableEasCert.certificateP12) {
+      console.log('[*] Extracting private key & certificate from existing EAS P12 payload...');
+      const tempInPath = path.resolve(process.cwd(), 'temp_in.p12');
+      const tempPemPath = path.resolve(process.cwd(), 'temp_extracted.pem');
+      const tempLegacyPath = path.resolve(process.cwd(), 'temp_legacy.p12');
+
+      fs.writeFileSync(tempInPath, Buffer.from(reusableEasCert.certificateP12, 'base64'));
+
+      // OpenSSL extracts both private key and cert into PEM (can decrypt OpenSSL 3 PBES2/PBKDF2)
+      execSync(
+        `openssl pkcs12 -in "${tempInPath}" -passin pass:${reusableEasCert.certificatePassword || ''} -nodes -out "${tempPemPath}"`,
+        { stdio: 'pipe' }
+      );
+
+      // Re-package as macOS-compatible legacy PKCS#12 (3DES / RC2)
+      const newP12Password = crypto.randomBytes(16).toString('hex');
+      execSync(
+        `openssl pkcs12 -export -legacy -in "${tempPemPath}" -passout pass:${newP12Password} -out "${tempLegacyPath}"`,
+        { stdio: 'pipe' }
+      );
+
+      const legacyP12Base64 = fs.readFileSync(tempLegacyPath).toString('base64');
+      fs.unlinkSync(tempInPath);
+      fs.unlinkSync(tempPemPath);
+      fs.unlinkSync(tempLegacyPath);
+
+      console.log('[*] Registering refreshed legacy P12 distribution certificate in EAS...');
+      const createEasCertMutation = `
+        mutation CreateAppleDistributionCertificate($input: AppleDistributionCertificateInput!, $accountId: ID!) {
+          appleDistributionCertificate {
+            createAppleDistributionCertificate(appleDistributionCertificateInput: $input, accountId: $accountId) {
+              id
+              serialNumber
+              validityNotBefore
+              validityNotAfter
+              developerPortalIdentifier
+            }
+          }
+        }
+      `;
+
+      const easCertResult = await fetchExpoGraphql(
+        createEasCertMutation,
+        {
+          input: {
+            certP12: legacyP12Base64,
+            certPassword: newP12Password,
+            developerPortalIdentifier: appleCertId,
+            appleTeamId: primaryIosCred.appleTeam?.id,
+          },
+          accountId: accountId,
+        },
+        easToken
+      );
+
+      const createdEasCert = easCertResult?.appleDistributionCertificate?.createAppleDistributionCertificate;
+      console.log(`[+] Registered refreshed legacy certificate in EAS with ID: ${createdEasCert?.id}`);
+
+      oldStaleEasCertIdToDelete = reusableEasCert.id;
+
+      chosenDistCert = {
+        easId: createdEasCert?.id,
+        appleCertId: appleCertId,
+        serialNumber: reusableEasCert.serialNumber,
+        expirationDate: reusableEasCert.validityNotAfter,
+      };
+    } else {
+      console.log(`    (No P12 stored in EAS record, keeping ID ${reusableEasCert.id})`);
+      chosenDistCert = {
+        easId: reusableEasCert.id,
+        appleCertId: appleCertId,
+        serialNumber: reusableEasCert.serialNumber,
+        expirationDate: reusableEasCert.validityNotAfter,
+      };
+    }
   } else {
     // Option B: Create a new certificate
     remediationStrategy = 'Option B (Generate Fresh Distribution Certificate)';
@@ -730,6 +804,26 @@ async function main() {
       easToken
     );
     console.log(`[+] EAS: Created and bound new build credentials`);
+  }
+
+  // Clean up old superseded EAS certificate if replaced
+  if (oldStaleEasCertIdToDelete && oldStaleEasCertIdToDelete !== chosenDistCert.easId) {
+    console.log(`[*] Safely removing superseded EAS distribution certificate ${oldStaleEasCertIdToDelete}...`);
+    try {
+      const deleteCertMutation = `
+        mutation DeleteDistCert($id: ID!) {
+          appleDistributionCertificate {
+            deleteAppleDistributionCertificate(id: $id) {
+              id
+            }
+          }
+        }
+      `;
+      await fetchExpoGraphql(deleteCertMutation, { id: oldStaleEasCertIdToDelete }, easToken);
+      console.log(`[+] Successfully removed superseded EAS distribution certificate ${oldStaleEasCertIdToDelete}`);
+    } catch (delErr) {
+      console.warn(`[WARN] Could not delete superseded EAS certificate ${oldStaleEasCertIdToDelete}: ${delErr.message}`);
+    }
   }
 
   // =========================================================================
