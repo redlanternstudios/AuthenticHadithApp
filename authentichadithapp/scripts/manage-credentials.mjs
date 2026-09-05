@@ -337,7 +337,7 @@ async function main() {
             iosAppBuildCredentialsList {
               id
               iosDistributionType
-              appleDistributionCertificate {
+              distributionCertificate {
                 id
                 serialNumber
                 validityNotBefore
@@ -348,7 +348,7 @@ async function main() {
                 id
                 developerPortalIdentifier
                 status
-                expirationDate
+                expiration
               }
             }
           }
@@ -372,7 +372,7 @@ async function main() {
   console.log(`    - Account:               ${EAS_ACCOUNT}`);
   console.log(`    - Bundle:                ${BUNDLE_ID}`);
   console.log(`    - Apple Team ID:         ${resolvedTeamId}`);
-  console.log(`    - Assigned Dist Cert ID: ${appBuildCred?.appleDistributionCertificate?.id || 'None'} (serial: ${appBuildCred?.appleDistributionCertificate?.serialNumber || 'N/A'})`);
+  console.log(`    - Assigned Dist Cert ID: ${appBuildCred?.distributionCertificate?.id || 'None'} (serial: ${appBuildCred?.distributionCertificate?.serialNumber || 'N/A'})`);
   console.log(`    - Assigned Profile ID:   ${appBuildCred?.provisioningProfile?.developerPortalIdentifier || appBuildCred?.provisioningProfile?.id || 'None'}`);
 
   // 6. Inspect Stale Certificate
