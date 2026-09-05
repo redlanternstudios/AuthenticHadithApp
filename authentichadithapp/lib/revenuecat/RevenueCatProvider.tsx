@@ -48,15 +48,14 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
   const [isConfigured, setIsConfigured] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
-  // Apple reviewer bypass: the exact demo account is always premium so the
-  // reviewer can evaluate premium features even if RevenueCat doesn't resolve
-  // their entitlement live. Exact-email-match only — no effect on any other
-  // user, who still needs a real RevenueCat `premium` entitlement (via IAP).
-  // SCREENSHOT-BYPASS (TEMP — REVERT BEFORE COMMIT): force Pro so App Store screenshots
-  // replicate the previous Premium-user set (no upsell footers) on the simulator.
-  // Restore with: git checkout lib/revenuecat/RevenueCatProvider.tsx
-  const isPro = true
-  // const isPro = isReviewerEmail(user?.email) || customerInfo?.entitlements.active[ENTITLEMENT_ID]?.isActive === true
+  // Exact reviewer/internal allowlist accounts may resolve premium without a
+  // live RC entitlement. Every other user must have an active RevenueCat
+  // `premium` entitlement. Never replace this expression with `true` for
+  // screenshots or local QA; that bypasses the production paywall gate.
+  const isPro =
+    isReviewerEmail(user?.email) ||
+    customerInfo?.entitlements.active[ENTITLEMENT_ID]?.isActive === true
+
   // Purchases is available iff configure() has succeeded. Until then no
   // default-instance call (getCustomerInfo, getOfferings, restorePurchases,
   // addCustomerInfoUpdateListener) is safe.
@@ -99,18 +98,40 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
   }, [])
 
   useEffect(() => {
+    let cancelled = false
+
     async function init() {
-      // SCREENSHOT-BYPASS (TEMP — REVERT BEFORE COMMIT): skip RevenueCat configure entirely
-      // so the SDK never renders anonymous-logout / sync-error debug toasts over App Store
-      // screenshots on the simulator. isPro is force-true above; paywall/restore aren't captured.
-      // Restore with: git checkout lib/revenuecat/RevenueCatProvider.tsx
-      Purchases.setLogLevel(LOG_LEVEL.ERROR)
-      setIsLoading(false)
+      // Keep useful RevenueCat diagnostics in development while avoiding noisy
+      // debug logging in production/TestFlight.
+      Purchases.setLogLevel(__DEV__ ? LOG_LEVEL.DEBUG : LOG_LEVEL.WARN)
+
+      try {
+        const configured = await configureRevenueCat(user?.id)
+        if (cancelled) return
+
+        const ready = configured && isRevenueCatConfigured()
+        setIsConfigured(ready)
+
+        if (ready) {
+          setError(null)
+          await runPostConfigure()
+        } else {
+          setError(new Error('In-app purchases are temporarily unavailable.'))
+        }
+      } catch (err) {
+        if (cancelled) return
+        const normalized = err instanceof Error ? err : new Error('RevenueCat initialization failed.')
+        setError(normalized)
+        setIsConfigured(false)
+      } finally {
+        if (!cancelled) setIsLoading(false)
+      }
     }
 
     init()
 
     return () => {
+      cancelled = true
       if (listenerAttachedRef.current && listenerRef.current) {
         try {
           Purchases.removeCustomerInfoUpdateListener(listenerRef.current)
@@ -119,29 +140,29 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
         }
       }
     }
-    // Intentionally omits user?.id — mount-once init; the retry useEffect below
-    // handles user?.id transitions with bounded retry logic.
+    // Mount-once initialization. Auth hydration/identity transitions are handled
+    // by the bounded retry and identity-sync effects below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runPostConfigure])
 
-  // Bounded retry: if the mount-time configure failed (e.g. user?.id was not
-  // yet hydrated, or a transient SDK error), attempt one recovery when
-  // user?.id transitions to a real value. attemptConfigureRetry is bounded
-  // to a single retry per app session.
+  // Bounded retry: if the mount-time configure failed, attempt one recovery when
+  // user?.id transitions to a real value. attemptConfigureRetry is bounded to a
+  // single retry per app session.
   useEffect(() => {
-    return // SCREENSHOT-BYPASS (TEMP — REVERT): no RC retry on sim, avoids debug toasts
-    // eslint-disable-next-line no-unreachable
     if (isConfigured) return
     if (!user?.id) return
+
     let cancelled = false
     ;(async () => {
-      const ok = await attemptConfigureRetry(user?.id)
+      const ok = await attemptConfigureRetry(user.id)
       if (cancelled) return
       if (ok && isRevenueCatConfigured()) {
         setIsConfigured(true)
+        setError(null)
         await runPostConfigure()
       }
     })()
+
     return () => {
       cancelled = true
     }
@@ -149,12 +170,11 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
 
   // Keep RevenueCat's App User ID in sync with the Supabase session. Init runs
   // once on mount with the user at that instant; auth hydration is async, so
-  // this effect catches login, logout, and any later identity swap. Required
-  // so the demo reviewer's Supabase UUID can be located in the RC dashboard
-  // when granting Promotional Entitlements.
+  // this effect catches login, logout, and any later identity swap.
   useEffect(() => {
     if (!isConfigured) return
     let cancelled = false
+
     ;(async () => {
       try {
         if (user?.id) {
@@ -172,6 +192,7 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
         __DEV__ && console.warn('[RC] identity sync failed:', e?.message)
       }
     })()
+
     return () => {
       cancelled = true
     }
