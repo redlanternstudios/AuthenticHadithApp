@@ -513,7 +513,7 @@ async function main() {
 
     const p12Password = crypto.randomBytes(16).toString('hex');
     execSync(
-      `openssl pkcs12 -export -out "${tempP12Path}" -inkey "${tempKeyPath}" -in "${tempCerPath}" -passout pass:${p12Password}`,
+      `openssl pkcs12 -export -legacy -out "${tempP12Path}" -inkey "${tempKeyPath}" -in "${tempCerPath}" -passout pass:${p12Password}`,
       { stdio: 'pipe' }
     );
 
