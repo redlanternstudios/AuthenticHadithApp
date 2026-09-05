@@ -649,7 +649,7 @@ async function main() {
           id
           developerPortalIdentifier
           status
-          expirationDate
+          expiration
         }
       }
     }

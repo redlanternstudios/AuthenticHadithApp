@@ -340,7 +340,7 @@ async function main() {
                 iosAppBuildCredentialsList {
                   id
                   iosDistributionType
-                  appleDistributionCertificate {
+                  distributionCertificate {
                     id
                     serialNumber
                     validityNotBefore
@@ -351,7 +351,7 @@ async function main() {
                     id
                     developerPortalIdentifier
                     status
-                    expirationDate
+                    expiration
                   }
                 }
               }
@@ -417,7 +417,7 @@ async function main() {
       console.log(`   - Bundle: ${bundle}, Team: ${team}`);
       for (const b of cred.iosAppBuildCredentialsList || []) {
         console.log(`     Distribution Type: ${b.iosDistributionType}`);
-        console.log(`     Assigned Dist Cert ID: ${b.appleDistributionCertificate?.id || 'None'} (serial: ${b.appleDistributionCertificate?.serialNumber || 'N/A'})`);
+        console.log(`     Assigned Dist Cert ID: ${b.distributionCertificate?.id || 'None'} (serial: ${b.distributionCertificate?.serialNumber || 'N/A'})`);
         console.log(`     Assigned Profile ID:   ${b.provisioningProfile?.developerPortalIdentifier || b.provisioningProfile?.id || 'None'} (status: ${b.provisioningProfile?.status || 'N/A'})`);
       }
     }
