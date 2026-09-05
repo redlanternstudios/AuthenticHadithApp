@@ -96,6 +96,7 @@ Before modifying code, Claude Code must read:
 7. `AI_OPERATOR_HANDOFF_PROTOCOL.md`
 8. `CURRENT_MODEL_ASSIGNMENTS.md`
 9. `WORKFLOW_ROUTER.md`
+10. `../RELEASE_ENGINEERING_SOP.md` (Mandatory canonical release engineering lifecycle & state model)
 
 Claude Code must not modify app code until the full mandatory startup review is complete.
 
@@ -275,11 +276,12 @@ Claude Code may recommend assignment changes, but must not update `CURRENT_MODEL
 7. `AI_OPERATOR_HANDOFF_PROTOCOL.md` → multi-LLM routing rules
 8. `CURRENT_MODEL_ASSIGNMENTS.md` → current operator/tool mapping
 9. `WORKFLOW_ROUTER.md` → tool routing: VS Code vs Expo vs Xcode
-10. `MODEL_AUDIT_LOG.md` → historical model assignment decisions, only when model/tool assignment review is relevant
-11. `package.json` → dependency truth
-12. `app.json` → static config
-13. `app.config.js` → dynamic config
-14. `eas.json` → build profiles
+10. `../RELEASE_ENGINEERING_SOP.md` → canonical enterprise release engineering SOP & 8-state model
+11. `MODEL_AUDIT_LOG.md` → historical model assignment decisions, only when model/tool assignment review is relevant
+12. `package.json` → dependency truth
+13. `app.json` → static config
+14. `app.config.js` → dynamic config
+15. `eas.json` → build profiles
 
 ---
 

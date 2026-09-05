@@ -15,6 +15,7 @@
     "qa:lint": "expo lint",
     "qa:test": "jest --verbose --coverage",
     "qa:release-guard": "node scripts/qa-release-guard.mjs",
+    "qa:release": "npm run qa:release-guard && npm run qa:types && npm run qa:lint && npm run qa:test && npm run qa:audit:routes && npm run qa:audit:deps && node scripts/qa-audit-report.mjs",
     "qa:build": "npx eas-cli build --platform ios --profile production --non-interactive --no-wait",
     "qa:report": "npm run qa:types 2>&1; npm run qa:lint 2>&1; npm run qa:test 2>&1; echo '--- QA Complete ---'",
     "qa:audit:env": "node scripts/qa-audit-env.mjs",

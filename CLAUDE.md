@@ -12,3 +12,12 @@ Before product instructions:
 7. Never create a product local bridge or copy secret values.
 
 <!-- CLAUDEX:END -->
+
+## Release Engineering Standard Operating Protocol (MANDATORY)
+
+Before implementing, building, packaging, or authorizing any release:
+1. Read `RELEASE_ENGINEERING_SOP.md` (the canonical release operating system).
+2. Adhere strictly to the 8-state release model: `STATE 0 (ISSUE CONFIRMED)` through `STATE 8 (SHIP APPROVED)`.
+3. Never equate code completion, passing local tests, or successful builds with a release.
+4. Run `npm run qa:release` in `authentichadithapp/` before pushing any release candidate branch.
+5. All AI agents must format handoffs using the mandatory 10-point Agent Handoff Protocol.

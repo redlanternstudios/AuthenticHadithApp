@@ -14,13 +14,19 @@ Every coding agent, developer, or AI assistant working on this project must read
 
 # Core Principle
 
+> **Canonical Engineering Invariant:**  
+> **Code completion ≠ engineering completion.**  
+> A change is complete only when the expected behavior has been demonstrated with empirical evidence in the environment where users actually experience it.  
+> Full release governance is defined in `../RELEASE_ENGINEERING_SOP.md`.
+
 No issue is considered fully fixed until:
 
 1. The root cause is identified.
 2. The exact files changed are documented.
-3. The fix is verified through a build or test.
+3. The fix is verified through the canonical release gate chain (`npm run qa:release`).
 4. The lesson is added to `BUILD_FIX_LOG.md`.
-5. Any recurring pattern is converted into a permanent rule.
+5. Any recurring pattern is converted into a permanent rule or automated gate.
+6. The state advances through the 8-state model to `PHYSICAL DEVICE VERIFIED` before any `SHIP APPROVED` decision.
 
 ---
 
