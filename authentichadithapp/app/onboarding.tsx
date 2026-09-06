@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
-import { StyleSheet, View, ScrollView, Text, Pressable, TextInput, Alert, Linking } from 'react-native'
+import { StyleSheet, View, ScrollView, Text, Pressable, TextInput, Linking } from 'react-native'
 import { Stack, useRouter } from 'expo-router'
-import AsyncStorage from '@react-native-async-storage/async-storage'
 import { supabase } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth/AuthProvider'
 import { useTheme } from '@/lib/theme/ThemeProvider'
@@ -10,6 +9,7 @@ import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
 import { FONT_FAMILY } from '@/constants/theme'
+import { syncOnboardingProfile } from '@/lib/sync/onboardingSync'
 
 const TOTAL_STEPS = 3
 
@@ -18,13 +18,16 @@ const SCHOOLS_OF_THOUGHT = ['Hanafi', 'Maliki', "Shafi'i", 'Hanbali', 'Other / P
 // Counts reflect actual production rows per V1_CONTENT_AI_AUDIT.md (not
 // aspirational corpus totals). Do not edit these without re-querying the
 // `collections.total_hadiths` column.
+// Counts reflect actual production rows per V1_CONTENT_AI_AUDIT.md and visibleCollections.ts.
+// In V1, only Sahih al-Bukhari and Sahih Muslim are active (14,444 total).
+// The 4 Sunan collections are explicitly badged as Coming Soon (v1.2).
 const COLLECTIONS = [
-  { id: 'bukhari', name: 'Sahih Bukhari', count: '7,277 hadiths' },
-  { id: 'muslim', name: 'Sahih Muslim', count: '7,167 hadiths' },
-  { id: 'tirmidhi', name: 'Sunan at-Tirmidhi', count: '3,241 hadiths' },
-  { id: 'abudawud', name: 'Sunan Abu Dawud', count: '3,751 hadiths' },
-  { id: 'nasai', name: "Sunan an-Nasa'i", count: '5,045 hadiths' },
-  { id: 'ibnmajah', name: 'Sunan Ibn Majah', count: '3,524 hadiths' },
+  { id: 'bukhari', name: 'Sahih Bukhari', count: '7,277 hadiths', available: true },
+  { id: 'muslim', name: 'Sahih Muslim', count: '7,167 hadiths', available: true },
+  { id: 'tirmidhi', name: 'Sunan at-Tirmidhi', count: '3,241 hadiths', available: false },
+  { id: 'abudawud', name: 'Sunan Abu Dawud', count: '3,751 hadiths', available: false },
+  { id: 'nasai', name: "Sunan an-Nasa'i", count: '5,045 hadiths', available: false },
+  { id: 'ibnmajah', name: 'Sunan Ibn Majah', count: '3,524 hadiths', available: false },
 ]
 
 const LEARNING_LEVELS = ['Beginner', 'Intermediate', 'Advanced']
@@ -54,7 +57,7 @@ export default function OnboardingScreen() {
   const [data, setData] = useState<OnboardingData>({
     name: '',
     schoolOfThought: '',
-    collections: [],
+    collections: ['bukhari', 'muslim'],
     learningLevel: 'Intermediate',
     safetyAgreed: false,
     termsAgreed: false,
@@ -78,49 +81,15 @@ export default function OnboardingScreen() {
   }
 
   const handleComplete = async () => {
-    if (!user) {
-      await AsyncStorage.setItem('onboarded', 'true')
-      router.replace('/paywall')
-      return
-    }
-
     setLoading(true)
     try {
-      // Live `profiles` schema: `name` (NOT full_name), `user_id` NOT NULL and is the
-      // key the app reads by. FIX-064 — full_name/missing user_id broke onboarding save.
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: user.id,
-          user_id: user.id,
-          name: data.name,
-          school_of_thought: data.schoolOfThought || null,
-        }, { onConflict: 'user_id' })
-
-      if (profileError) {
-        Alert.alert('Setup Error', 'Could not save your profile. Please try again.')
-        return
-      }
-
-      const { error: prefError } = await supabase
-        .from('user_preferences')
-        .upsert({
-          user_id: user.id,
-          learning_level: data.learningLevel.toLowerCase(),
-          collections_of_interest: data.collections,
-          onboarded: true,
-          safety_agreed_at: new Date().toISOString(),
-        })
-
-      if (prefError) {
-        Alert.alert('Setup Error', 'Could not save your preferences. Please try again.')
-        return
-      }
-
-      await AsyncStorage.setItem('onboarded', 'true')
+      // Resilient sync: persists locally immediately, attempts server sync,
+      // and records sync_pending retry state if server returns RLS/constraint error.
+      await syncOnboardingProfile(supabase, user, data)
       router.replace('/paywall')
-    } catch {
-      Alert.alert('Error', 'Something went wrong. Please try again.')
+    } catch (err) {
+      console.warn('[Onboarding] Error in handleComplete:', err)
+      router.replace('/paywall')
     } finally {
       setLoading(false)
     }
@@ -262,6 +231,15 @@ export default function OnboardingScreen() {
               : 'Set your preferences to personalize your learning journey'}
           </Text>
 
+          {/* Corpus Scope Clarity Banner */}
+          <View style={[styles.scopeBanner, { backgroundColor: colors.card, borderColor: colors.goldMid + '30' }]}>
+            <Text style={[styles.scopeBannerText, { color: colors.goldShadow }, isRTL && styles.textRTL]}>
+              {isArabic
+                ? 'الإصدار 1.1 يشتمل على 14,444 حديثاً موثقاً من صحيحي البخاري ومسلم'
+                : 'Version 1.1 includes 14,444 verified authentic hadiths from Sahih al-Bukhari and Sahih Muslim.'}
+            </Text>
+          </View>
+
           <Text style={[styles.label, { color: colors.bronzeText }, isRTL && styles.textRTL]}>
             {isArabic ? 'المجموعات المفضلة' : 'Collections of Interest'}
           </Text>
@@ -287,9 +265,20 @@ export default function OnboardingScreen() {
                   <View style={[styles.checkbox, { borderColor: colors.border }, isSelected && { backgroundColor: colors.goldMid, borderColor: colors.goldMid }]}>
                     {isSelected && <Text style={[styles.checkboxCheck, { color: colors.white }]}>✓</Text>}
                   </View>
-                  <View>
-                    <Text style={[styles.collectionName, { color: colors.bronzeText }]}>{c.name}</Text>
-                    <Text style={[styles.collectionCount, { color: colors.mutedText }]}>{c.count}</Text>
+                  <View style={{ flex: 1 }}>
+                    <View style={[styles.collectionHeaderRow, isRTL && styles.collectionHeaderRowRTL]}>
+                      <Text style={[styles.collectionName, { color: colors.bronzeText }]}>{c.name}</Text>
+                      {!c.available && (
+                        <View style={[styles.comingSoonBadge, { backgroundColor: colors.border + '60' }]}>
+                          <Text style={[styles.comingSoonText, { color: colors.mutedText }]}>
+                            {isArabic ? 'قريباً' : 'Coming Soon'}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={[styles.collectionCount, { color: colors.mutedText }]}>
+                      {c.available ? c.count : `${c.count} · ${isArabic ? 'قيد التدقيق (الإصدار 1.2)' : 'In Review (v1.2)'}`}
+                    </Text>
                   </View>
                 </Pressable>
               )
@@ -457,6 +446,35 @@ const styles = StyleSheet.create({
   stepContent: { marginBottom: SPACING.xl },
   stepTitle: { fontFamily: FONT_FAMILY.heading, fontSize: FONT_SIZES.xxl, fontWeight: '700', textAlign: 'center', marginBottom: SPACING.sm },
   stepSubtitle: { fontFamily: FONT_FAMILY.body, fontSize: FONT_SIZES.base, textAlign: 'center', marginBottom: SPACING.xl, lineHeight: 22 },
+  scopeBanner: {
+    padding: SPACING.sm,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    marginBottom: SPACING.md,
+  },
+  scopeBannerText: {
+    fontFamily: FONT_FAMILY.bodySemiBold,
+    fontSize: FONT_SIZES.sm,
+    textAlign: 'center',
+  },
+  collectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  collectionHeaderRowRTL: {
+    flexDirection: 'row-reverse',
+  },
+  comingSoonBadge: {
+    paddingHorizontal: SPACING.xs,
+    paddingVertical: 2,
+    borderRadius: BORDER_RADIUS.sm,
+  },
+  comingSoonText: {
+    fontFamily: FONT_FAMILY.body,
+    fontSize: 10,
+    fontWeight: '600',
+  },
   label: { fontFamily: FONT_FAMILY.bodySemiBold, fontSize: FONT_SIZES.base, fontWeight: '600', marginBottom: SPACING.xs, marginTop: SPACING.lg },
   langHint: { fontFamily: FONT_FAMILY.body, fontSize: FONT_SIZES.sm, marginBottom: SPACING.sm },
   langRow: { flexDirection: 'row', gap: SPACING.sm, marginBottom: SPACING.md },

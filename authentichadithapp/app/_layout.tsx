@@ -28,6 +28,7 @@ import { ThemeProvider, useTheme } from '@/lib/theme/ThemeProvider';
 import { LanguageProvider } from '@/lib/i18n/LanguageProvider';
 import { RevenueCatProvider, useRevenueCat } from '@/lib/revenuecat/RevenueCatProvider'
 import { registerForPushNotifications, markAppOpened, cancelAllNotifications } from '@/lib/notifications'
+import { retryPendingOnboardingSync } from '@/lib/sync/onboardingSync'
 import { supabase } from '@/lib/supabase/client';
 
 // FIX-071: preventAutoHideAsync at module level ensures the splash is held
@@ -85,7 +86,12 @@ function PushTokenSync() {
     markAppOpened().catch((err) => {
       __DEV__ && console.warn('[PushTokenSync] markAppOpened error:', err)
     })
-  }, [user?.id])
+
+    // Retries any server sync that was pending from onboarding (e.g. offline/RLS)
+    retryPendingOnboardingSync(supabase, user).catch((err) => {
+      __DEV__ && console.warn('[PushTokenSync] retryPendingOnboardingSync error:', err)
+    })
+  }, [user?.id, user])
 
   // On logout (user becomes null), clear push token from Supabase and cancel
   // all local notifications so no reminders fire for the previous account.
@@ -103,7 +109,7 @@ function PushTokenSync() {
         .eq('user_id', prevId)
         .then(() => {})
     }
-  }, [user?.id])
+  }, [user?.id, user])
 
   return null
 }
