@@ -9,6 +9,10 @@ on:
         description: 'EAS Build ID to inspect (skips build)'
         required: false
         default: ''
+      submit_build_id:
+        description: 'EAS Build ID to submit directly (skips build)'
+        required: false
+        default: ''
 
 jobs:
   build_and_submit:
@@ -84,7 +88,7 @@ jobs:
         run: node scripts/fetch-build-log.mjs "$BUILD_ID"
 
       - name: Remediate and Align Signing Credentials
-        if: "${{ github.event.inputs.inspect_build_id == '' }}"
+        if: "${{ github.event.inputs.inspect_build_id == '' && github.event.inputs.submit_build_id == '' }}"
         env:
           APPLE_API_KEY_JSON: ${{ secrets.APPLE_API_KEY_JSON }}
           EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
@@ -92,7 +96,7 @@ jobs:
         run: node scripts/manage-credentials.mjs
 
       - name: Build iOS via EAS Cloud
-        if: "${{ github.event.inputs.inspect_build_id == '' }}"
+        if: "${{ github.event.inputs.inspect_build_id == '' && github.event.inputs.submit_build_id == '' }}"
         env:
           EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
         run: eas build -p ios --profile production --non-interactive
@@ -102,10 +106,10 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
         run: |
-          if [ -f ./appstoreconnect.json ] && [ -s ./appstoreconnect.json ]; then
-            echo "Submitting using App Store Connect API key"
-            eas submit -p ios --latest --apple-api-key-path ./appstoreconnect.json --non-interactive
+          if [ -n "${{ github.event.inputs.submit_build_id }}" ]; then
+            echo "Submitting specific build ID: ${{ github.event.inputs.submit_build_id }}"
+            eas submit -p ios --id "${{ github.event.inputs.submit_build_id }}" --profile production --non-interactive
           else
-            echo "Submitting using Apple ID and Team ID fallback"
-            eas submit -p ios --latest --non-interactive --apple-id "${{ secrets.APPLE_ID }}" --apple-team-id "${{ secrets.APPLE_TEAM_ID }}"
+            echo "Submitting latest production build"
+            eas submit -p ios --latest --profile production --non-interactive
           fi
