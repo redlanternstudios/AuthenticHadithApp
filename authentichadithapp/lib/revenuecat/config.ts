@@ -50,6 +50,7 @@ export function isReviewerEmail(email: string | null | undefined): boolean {
 type RevenueCatKeySource =
   | 'expo-extra-ios'
   | 'expo-extra-legacy'
+  | 'expo-extra-android'
   | 'hardcoded-ios-public-fallback'
   | 'hardcoded-android-public-fallback'
   | 'missing'
@@ -71,7 +72,7 @@ export function getRevenueCatApiKey(): RevenueCatKeyResult {
   const extra = Constants.expoConfig?.extra ?? {}
 
   if (Platform.OS === 'ios') {
-    const iosExtra = extra.revenueCatApiKeyIos as string | undefined
+    const iosExtra = (extra.revenueCatApiKeyIos ?? extra.revenueCatApiKeyApple) as string | undefined
     if (isValidPublicKey(iosExtra)) {
       return { apiKey: iosExtra, source: 'expo-extra-ios' }
     }
@@ -87,10 +88,17 @@ export function getRevenueCatApiKey(): RevenueCatKeyResult {
     }
   }
 
-  if (Platform.OS === 'android' && isValidPublicKey(REVENUECAT_PUBLIC_KEYS.android)) {
-    return {
-      apiKey: REVENUECAT_PUBLIC_KEYS.android,
-      source: 'hardcoded-android-public-fallback',
+  if (Platform.OS === 'android') {
+    const androidExtra = (extra.revenueCatApiKeyAndroid ?? extra.revenueCatApiKeyGoogle) as string | undefined
+    if (isValidPublicKey(androidExtra)) {
+      return { apiKey: androidExtra, source: 'expo-extra-android' }
+    }
+
+    if (isValidPublicKey(REVENUECAT_PUBLIC_KEYS.android)) {
+      return {
+        apiKey: REVENUECAT_PUBLIC_KEYS.android,
+        source: 'hardcoded-android-public-fallback',
+      }
     }
   }
 

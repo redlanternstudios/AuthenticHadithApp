@@ -328,7 +328,7 @@ export default function NotificationsScreen() {
         <View style={[styles.infoBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Text style={[styles.infoText, { color: colors.mutedText }]}>
             All reminders are delivered on-device. No personal data is shared. Push notifications
-            for new collections are sent through Expo's free notification service.
+            for new collections are sent through Expo&apos;s free notification service.
           </Text>
         </View>
 

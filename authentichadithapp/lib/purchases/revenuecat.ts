@@ -40,6 +40,12 @@ export function isRevenueCatConfigured(): boolean {
   return isConfigured
 }
 
+/** Reset internal configuration and retry state for isolated unit tests. */
+export function _resetStateForTests(): void {
+  isConfigured = false
+  retryAttempted = false
+}
+
 /**
  * Bounded retry. At most ONE retry per app session.
  * No-op if configure already succeeded or if a retry has already been attempted.

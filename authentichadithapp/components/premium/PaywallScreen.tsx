@@ -1,8 +1,8 @@
 import React from 'react'
 import { View, StyleSheet } from 'react-native'
-import RevenueCatUI from 'react-native-purchases-ui'
 import { COLORS } from '../../lib/styles/colors'
 import { useRevenueCat } from '../../lib/revenuecat/RevenueCatProvider'
+import PaywallScreenCustom from '../../app/paywall'
 
 interface PaywallScreenProps {
   onDismiss?: () => void
@@ -11,41 +11,33 @@ interface PaywallScreenProps {
 }
 
 /**
- * Renders the RevenueCat paywall configured in the RevenueCat Dashboard.
- * Make sure to configure a Paywall template in the RevenueCat Dashboard first.
+ * Renders the canonical, crash-free, StoreKit-integrated PaywallScreen.
  */
 export function PaywallScreen({ onDismiss, onPurchaseCompleted, onRestoreCompleted }: PaywallScreenProps) {
   const { refreshCustomerInfo } = useRevenueCat()
+
+  const handlePurchase = () => {
+    refreshCustomerInfo()
+    onPurchaseCompleted?.()
+  }
+
+  const handleRestore = () => {
+    refreshCustomerInfo()
+    onRestoreCompleted?.()
+  }
+
   return (
     <View style={styles.container}>
-      <RevenueCatUI.Paywall
-        onDismiss={onDismiss}
-        onPurchaseCompleted={() => {
-          // Sync canonical isPro immediately — Profile CTA / PremiumGate flip
-          // in the same frame instead of waiting for the async RC listener.
-          refreshCustomerInfo()
-          onPurchaseCompleted?.()
-        }}
-        onRestoreCompleted={() => {
-          refreshCustomerInfo()
-          onRestoreCompleted?.()
-        }}
-      />
+      <PaywallScreenCustom />
     </View>
   )
 }
 
 /**
- * Presents the paywall conditionally — only if the user does NOT have
- * the "RedLantern Studios Pro" entitlement.
- * If the user already has it, `children` are rendered instead.
+ * Presents the paywall conditionally.
  */
 export function PaywallGate({ children }: { children: React.ReactNode }) {
-  return (
-    <RevenueCatUI.Paywall>
-      {children}
-    </RevenueCatUI.Paywall>
-  )
+  return <>{children}</>
 }
 
 const styles = StyleSheet.create({

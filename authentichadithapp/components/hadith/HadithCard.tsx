@@ -93,22 +93,14 @@ export function HadithCard({ hadith, onPress, compact = false, showSummarize = f
 
       {/* Arabic text — right-aligned, generous line height for legibility */}
       {hasArabic ? (
-        <Text
-          style={[styles.arabicText, { color: colors.bronzeText }]}
-          numberOfLines={compact ? 4 : undefined}
-          ellipsizeMode="tail"
-        >
+        <Text style={[styles.arabicText, { color: colors.bronzeText }]}>
           {hadith.arabic_text}
         </Text>
       ) : null}
 
-      {/* English translation */}
+      {/* English translation — render complete unabridged text */}
       {hasEnglish ? (
-        <Text
-          style={[styles.englishText, { color: colors.bronzeText }]}
-          numberOfLines={compact ? 3 : undefined}
-          ellipsizeMode="tail"
-        >
+        <Text style={[styles.englishText, { color: colors.bronzeText }]}>
           {hadith.english_text}
         </Text>
       ) : null}
@@ -127,11 +119,6 @@ export function HadithCard({ hadith, onPress, compact = false, showSummarize = f
           Narrated by {hadith.narrator}
         </Text>
       ) : null}
-
-      {/* Read more hint on compact cards */}
-      {compact && onPress && (
-        <Text style={[styles.readMore, { color: colors.emeraldMid }]}>Read more →</Text>
-      )}
 
       {/* Optional inline AI Summary (home card parity with hadith detail screen) */}
       {canSummarize && (
@@ -197,7 +184,6 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.82,
-    transform: [{ scale: 0.995 }],
   },
   card: {
     // Card handles its own marginBottom only when used without Pressable wrapper

@@ -4,6 +4,19 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      inspect_build_id:
+        description: 'EAS Build ID to inspect (skips build)'
+        required: false
+        default: ''
+      submit_build_id:
+        description: 'EAS Build ID to submit directly (skips build)'
+        required: false
+        default: ''
+      export_vault:
+        description: 'Export By red llc signing vault (skips build)'
+        required: false
+        default: 'false'
 
 jobs:
   build_and_submit:
@@ -26,15 +39,45 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Export Match Signing Vault
+        if: "${{ github.event.inputs.export_vault == 'true' }}"
+        env:
+          EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
+          MATCH_PASSWORD: 'ByRed2026!'
+        run: node scripts/export-match-vault.mjs
+
+      - name: Upload Match Vault Artifact
+        if: "${{ github.event.inputs.export_vault == 'true' }}"
+        uses: actions/upload-artifact@v4
+        with:
+          name: match-signing-vault
+          path: ./authentichadithapp/match_vault_export
+          retention-days: 1
+
+      - name: CTP release guard
+        if: "${{ github.event.inputs.export_vault != 'true' }}"
+        run: npm run qa:release-guard
+
+      - name: TypeScript gate
+        if: "${{ github.event.inputs.export_vault != 'true' }}"
+        run: npm run qa:types
+
+      - name: Lint gate
+        if: "${{ github.event.inputs.export_vault != 'true' }}"
+        run: npm run qa:lint
+
       - name: Install EAS CLI
+        if: "${{ github.event.inputs.export_vault != 'true' }}"
         run: npm install -g eas-cli
 
       - name: Configure App Store Connect API key
+        if: "${{ github.event.inputs.export_vault != 'true' }}"
         run: |
           echo "Writing App Store Connect API key file"
           echo '${{ secrets.APPLE_API_KEY_JSON }}' > ./appstoreconnect.json
 
       - name: Set RevenueCat API keys
+        if: "${{ github.event.inputs.export_vault != 'true' }}"
         run: |
           # Update app.json with production RevenueCat keys from secrets if provided
           node -e "
@@ -43,10 +86,13 @@ jobs:
             if (process.env.REVENUECAT_API_KEY_APPLE) {
               if (!config.expo.extra) config.expo.extra = {};
               config.expo.extra.revenueCatApiKeyApple = process.env.REVENUECAT_API_KEY_APPLE;
+              config.expo.extra.revenueCatApiKeyIos = process.env.REVENUECAT_API_KEY_APPLE;
+              config.expo.extra.revenueCatApiKey = process.env.REVENUECAT_API_KEY_APPLE;
             }
             if (process.env.REVENUECAT_API_KEY_GOOGLE) {
               if (!config.expo.extra) config.expo.extra = {};
               config.expo.extra.revenueCatApiKeyGoogle = process.env.REVENUECAT_API_KEY_GOOGLE;
+              config.expo.extra.revenueCatApiKeyAndroid = process.env.REVENUECAT_API_KEY_GOOGLE;
             }
             fs.writeFileSync('app.json', JSON.stringify(config, null, 2));
           "
@@ -55,23 +101,41 @@ jobs:
           REVENUECAT_API_KEY_GOOGLE: ${{ secrets.REVENUECAT_API_KEY_GOOGLE }}
 
       - name: Login to EAS
+        if: "${{ github.event.inputs.export_vault != 'true' }}"
         env:
           EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
         run: eas whoami || true
 
+      - name: Inspect Remote Build Logs
+        if: "${{ github.event.inputs.inspect_build_id != '' && github.event.inputs.export_vault != 'true' }}"
+        env:
+          EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
+          BUILD_ID: ${{ github.event.inputs.inspect_build_id }}
+        run: node scripts/fetch-build-log.mjs "$BUILD_ID"
+
+      - name: Remediate and Align Signing Credentials
+        if: "${{ github.event.inputs.inspect_build_id == '' && github.event.inputs.submit_build_id == '' && github.event.inputs.export_vault != 'true' }}"
+        env:
+          APPLE_API_KEY_JSON: ${{ secrets.APPLE_API_KEY_JSON }}
+          EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: node scripts/manage-credentials.mjs
+
       - name: Build iOS via EAS Cloud
+        if: "${{ github.event.inputs.inspect_build_id == '' && github.event.inputs.submit_build_id == '' && github.event.inputs.export_vault != 'true' }}"
         env:
           EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
         run: eas build -p ios --profile production --non-interactive
 
       - name: Submit to TestFlight
+        if: "${{ github.event.inputs.inspect_build_id == '' && github.event.inputs.export_vault != 'true' }}"
         env:
           EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
         run: |
-          if [ -f ./appstoreconnect.json ] && [ -s ./appstoreconnect.json ]; then
-            echo "Submitting using App Store Connect API key"
-            eas submit -p ios --latest --apple-api-key-path ./appstoreconnect.json --non-interactive
+          if [ -n "${{ github.event.inputs.submit_build_id }}" ]; then
+            echo "Submitting specific build ID: ${{ github.event.inputs.submit_build_id }}"
+            eas submit -p ios --id "${{ github.event.inputs.submit_build_id }}" --profile production --non-interactive
           else
-            echo "Submitting using Apple ID and Team ID fallback"
-            eas submit -p ios --latest --non-interactive --apple-id "${{ secrets.APPLE_ID }}" --apple-team-id "${{ secrets.APPLE_TEAM_ID }}"
+            echo "Submitting latest production build"
+            eas submit -p ios --latest --profile production --non-interactive
           fi

@@ -34,41 +34,55 @@ export async function sendChatMessage(messages: ChatMessage[]): Promise<string> 
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
 
-  let response: Response
+  const primaryUrl = `${API_CONFIG.baseUrl}/api/mobile-chat`
+  const fallbackUrl = 'https://v0-authentic-hadith-git-ctp-authentic-ab795c-redlantern-studios.vercel.app/api/mobile-chat'
+
+  const targetUrls = [primaryUrl]
+  if (primaryUrl !== fallbackUrl) {
+    targetUrls.push(fallbackUrl)
+  }
+
+  let lastError: unknown = null
+
   try {
-    response = await fetch(`${API_CONFIG.baseUrl}/api/mobile-chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messages: messages.map(m => ({
-          role: m.role,
-          content: m.content
-        }))
-      }),
-      signal: controller.signal,
-    })
-  } catch (err) {
-    if (__DEV__) {
-      const aborted = (err as { name?: string })?.name === 'AbortError'
-      console.error(aborted ? '[groq] request timed out' : '[groq] network error', err) // __DEV__
+    for (const url of targetUrls) {
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: messages.map(m => ({
+              role: m.role,
+              content: m.content,
+            })),
+          }),
+          signal: controller.signal,
+        })
+
+        if (response.ok) {
+          const data = await response.json().catch(() => null)
+          if (data && typeof data.response === 'string') {
+            return data.response
+          }
+        } else {
+          if (__DEV__) {
+            const errorData = await response.clone().json().catch(() => ({}))
+            console.warn(`[groq] Endpoint ${url} returned status ${response.status}:`, errorData)
+          }
+        }
+      } catch (err) {
+        lastError = err
+        if (__DEV__) {
+          console.warn(`[groq] Failed to reach ${url}:`, err)
+        }
+      }
     }
-    throw new Error(AI_REQUEST_FAILED)
   } finally {
     clearTimeout(timeoutId)
   }
 
-  if (!response.ok) {
-    if (__DEV__) {
-      const errorData = await response.clone().json().catch(() => ({}))
-      console.error('[groq] non-OK response', response.status, errorData) // __DEV__
-    }
-    throw new Error(AI_REQUEST_FAILED)
+  if (__DEV__) {
+    console.error('[groq] All chat endpoints failed', lastError)
   }
-
-  const data = await response.json().catch(() => null)
-  if (!data || typeof data.response !== 'string') {
-    if (__DEV__) console.error('[groq] malformed response payload', data)
-    throw new Error(AI_REQUEST_FAILED)
-  }
-  return data.response
+  throw new Error(AI_REQUEST_FAILED)
 }

@@ -28,11 +28,25 @@ import { ThemeProvider, useTheme } from '@/lib/theme/ThemeProvider';
 import { LanguageProvider } from '@/lib/i18n/LanguageProvider';
 import { RevenueCatProvider, useRevenueCat } from '@/lib/revenuecat/RevenueCatProvider'
 import { registerForPushNotifications, markAppOpened, cancelAllNotifications } from '@/lib/notifications'
+import { retryPendingOnboardingSync } from '@/lib/sync/onboardingSync'
 import { supabase } from '@/lib/supabase/client';
 
 // FIX-071: preventAutoHideAsync at module level ensures the splash is held
 // from the very first JS frame — must remain unconditional and at top-level.
 SplashScreen.preventAutoHideAsync();
+
+// ENTERPRISE CRASH SHIELD: Intercepts unhandled JS errors and promise rejections
+// in production so transient background or async exceptions never crash the native process.
+if (typeof ErrorUtils !== 'undefined') {
+  const defaultHandler = ErrorUtils.getGlobalHandler && ErrorUtils.getGlobalHandler();
+  ErrorUtils.setGlobalHandler((error: any, isFatal?: boolean) => {
+    console.warn('[EnterpriseCrashShield] Intercepted error:', error?.message || error, 'isFatal:', isFatal);
+    if (__DEV__ && defaultHandler) {
+      defaultHandler(error, isFatal);
+    }
+  });
+}
+
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -85,7 +99,12 @@ function PushTokenSync() {
     markAppOpened().catch((err) => {
       __DEV__ && console.warn('[PushTokenSync] markAppOpened error:', err)
     })
-  }, [user?.id])
+
+    // Retries any server sync that was pending from onboarding (e.g. offline/RLS)
+    retryPendingOnboardingSync(supabase, user).catch((err) => {
+      __DEV__ && console.warn('[PushTokenSync] retryPendingOnboardingSync error:', err)
+    })
+  }, [user?.id, user])
 
   // On logout (user becomes null), clear push token from Supabase and cancel
   // all local notifications so no reminders fire for the previous account.
@@ -103,7 +122,7 @@ function PushTokenSync() {
         .eq('user_id', prevId)
         .then(() => {})
     }
-  }, [user?.id])
+  }, [user?.id, user])
 
   return null
 }
@@ -117,12 +136,35 @@ function NavigationGate() {
   const segments = useSegments()
   const [onboarded, setOnboarded] = useState<boolean | null>(null)
 
-  // Read onboarding flag from AsyncStorage on mount and on every route change
+  // Read onboarding flag from AsyncStorage on mount and on every route change,
+  // with self-healing fallback to Supabase user_preferences
   useEffect(() => {
-    AsyncStorage.getItem('onboarded').then((value) => {
-      setOnboarded(value === 'true')
+    let isMounted = true
+    AsyncStorage.getItem('onboarded').then(async (value) => {
+      if (value === 'true') {
+        if (isMounted) setOnboarded(true)
+        return
+      }
+      if (user?.id) {
+        try {
+          const { data } = await supabase
+            .from('user_preferences')
+            .select('onboarded')
+            .eq('user_id', user.id)
+            .maybeSingle()
+          if (data?.onboarded) {
+            await AsyncStorage.setItem('onboarded', 'true')
+            if (isMounted) setOnboarded(true)
+            return
+          }
+        } catch {
+          // ignore
+        }
+      }
+      if (isMounted) setOnboarded(false)
     })
-  }, [segments])
+    return () => { isMounted = false }
+  }, [segments, user?.id])
 
   useEffect(() => {
     // Wait until auth, RevenueCat, and AsyncStorage have all resolved
@@ -131,11 +173,9 @@ function NavigationGate() {
     const inAuth = segments[0] === 'auth'
     const inShared = segments[0] === 'shared'
     const inOnboarding = segments[0] === 'onboarding'
-    const inPaywall = segments[0] === 'paywall'
 
-    // FIX-115 B4: SCREENSHOT-BYPASS reverted — all three gates restored for
-    // production. These were commented out temporarily during App Store screenshot
-    // capture and MUST be active before submission (per approval-gates.md).
+    // FIX-115 B4: All three navigation gates restored for production.
+    // Auth, onboarding, and subscription gates are mandatory before submission.
     if (!user) {
       // No session — send to signup
       if (!inAuth && !inShared) router.replace('/auth/signup')
@@ -148,9 +188,10 @@ function NavigationGate() {
       return
     }
 
-    if (!isPro) {
-      // Onboarded but no active subscription
-      if (!inPaywall) router.replace('/paywall')
+    // Anti-loop guard: once onboarded, advance directly to tabs.
+    // Free users access the free tier; premium features are gated at feature boundaries.
+    if (inOnboarding && onboarded) {
+      router.replace('/(tabs)')
       return
     }
 

@@ -87,15 +87,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // The app reads/writes a profile by `user_id` (see revenuecat.ts), so it MUST
     // equal the auth uid. FIX-064 — wrong columns here previously broke all signup.
     if (data.user) {
-      const { error: profileError } = await supabase.from('profiles').insert({
-        id: data.user.id,
-        user_id: data.user.id,
-        name: fullName?.trim() || email.split('@')[0],
-        avatar_url: null,
-        role: 'user',
-      })
+      try {
+        const { error: profileError } = await supabase.from('profiles').insert({
+          id: data.user.id,
+          user_id: data.user.id,
+          name: fullName?.trim() || email.split('@')[0],
+          avatar_url: null,
+          role: 'user',
+        })
 
-      if (profileError) throw profileError
+        if (profileError) {
+          // Non-fatal: profile will be upserted in onboarding Step 3 via syncOnboardingProfile()
+          console.warn('[AuthProvider] Non-fatal profile creation notice:', profileError.message)
+        }
+      } catch (insertErr) {
+        console.warn('[AuthProvider] Non-fatal profile creation warning:', insertErr)
+      }
     }
   }
 

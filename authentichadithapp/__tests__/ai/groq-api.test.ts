@@ -56,3 +56,34 @@ describe('Islamic Safety Filter', () => {
     expect(result.allowed).toBe(true);
   });
 });
+
+describe('sendChatMessage dual-endpoint resilience', () => {
+  const originalFetch = global.fetch;
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  it('falls back to secondary endpoint if primary endpoint returns non-OK', async () => {
+    const { sendChatMessage } = require('@/lib/api/groq');
+    global.fetch = jest.fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        clone: () => ({ json: async () => ({ error: 'model not found' }) }),
+        json: async () => ({ error: 'model not found' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ response: 'Alhamdulillah, here is your hadith answer.' }),
+      });
+
+    const answer = await sendChatMessage([
+      { id: '1', role: 'user', content: 'What is ihsan?', timestamp: '2026-09-06T00:00:00Z' },
+    ]);
+
+    expect(answer).toBe('Alhamdulillah, here is your hadith answer.');
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+});

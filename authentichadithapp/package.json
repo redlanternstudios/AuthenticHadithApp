@@ -11,9 +11,11 @@
     "lint": "expo lint",
     "test": "jest --passWithNoTests",
     "qa:routes": "jest __tests__/navigation/route-integrity.test.ts --verbose",
-    "qa:types": "npx tsc --noEmit",
+    "qa:types": "tsc --noEmit",
     "qa:lint": "expo lint",
     "qa:test": "jest --verbose --coverage",
+    "qa:release-guard": "node scripts/qa-release-guard.mjs",
+    "qa:release": "npm run qa:release-guard && npm run qa:types && npm run qa:lint && npm run qa:test && npm run qa:audit:routes && npm run qa:audit:deps && node scripts/qa-audit-report.mjs",
     "qa:build": "npx eas-cli build --platform ios --profile production --non-interactive --no-wait",
     "qa:report": "npm run qa:types 2>&1; npm run qa:lint 2>&1; npm run qa:test 2>&1; echo '--- QA Complete ---'",
     "qa:audit:env": "node scripts/qa-audit-env.mjs",
@@ -21,7 +23,9 @@
     "qa:audit:deps": "node scripts/qa-audit-deps.mjs",
     "qa:audit:report": "node scripts/qa-audit-report.mjs",
     "qa:revenuecat": "node scripts/verify-revenuecat-offerings.mjs",
-    "qa:truthserum": "npm run qa:audit:env && npm run qa:audit:routes && npm run qa:audit:deps && npm run qa:audit:report",
+    "qa:truthserum": "npm run qa:release-guard && npm run qa:audit:env && npm run qa:audit:routes && npm run qa:audit:deps && npm run qa:audit:report",
+    "qa:credentials:inspect": "node scripts/inspect-credentials.mjs",
+    "qa:credentials:remediate": "node scripts/manage-credentials.mjs",
     "worker:health": "test -f CLAUDE.md && test -d .claude/commands && test -d .claude/rules && echo 'worker:health OK'"
   },
   "dependencies": {

@@ -175,7 +175,14 @@ describe('isReviewerEmail — Apple reviewer premium bypass (Build 29)', () => {
 describe('getSubscriptionStatus — lifetime vs renewing classification (FIX-082)', () => {
   const Purchases = require('react-native-purchases').default
 
+  beforeEach(() => {
+    const { _resetStateForTests } = require('@/lib/purchases/revenuecat')
+    _resetStateForTests()
+    jest.clearAllMocks()
+  })
+
   it('classifies a far-future promotional grant (e.g. 2226) as lifetime, never a renewal date', async () => {
+    Purchases.configure.mockImplementationOnce(() => {})
     Purchases.getCustomerInfo.mockResolvedValueOnce({
       entitlements: { active: { premium: {
         productIdentifier: 'rc_promo_premium_lifetime',
@@ -183,16 +190,12 @@ describe('getSubscriptionStatus — lifetime vs renewing classification (FIX-082
         willRenew: false,
       } } },
     })
-    const { getSubscriptionStatus, _setConfiguredForTests } = require('@/lib/purchases/revenuecat')
-    if (_setConfiguredForTests) _setConfiguredForTests(true)
+    const { getSubscriptionStatus, configureRevenueCat } = require('@/lib/purchases/revenuecat')
+    await configureRevenueCat('test-user-lifetime')
     const status = await getSubscriptionStatus()
-    if (status.isActive) {
-      expect(status.tier).toBe('lifetime')
-    } else {
-      // degraded mode (RC not configured in test env) — classification logic
-      // is still covered by the inline expression test below
-      expect(status.tier).toBe('free')
-    }
+    expect(status.isActive).toBe(true)
+    expect(status.tier).toBe('lifetime')
+
     // Direct classification check (mirrors the shipped expression)
     const isLifetime = ('rc_promo_premium_lifetime' as string) === 'ah_lifetime_premium' ||
       new Date('2226-04-22T00:00:00Z').getFullYear() > 2100
@@ -208,8 +211,10 @@ describe('getSubscriptionStatus — lifetime vs renewing classification (FIX-082
   })
 
   it('free user with no entitlement stays free', async () => {
+    Purchases.configure.mockImplementationOnce(() => {})
     Purchases.getCustomerInfo.mockResolvedValueOnce({ entitlements: { active: {} } })
-    const { getSubscriptionStatus } = require('@/lib/purchases/revenuecat')
+    const { getSubscriptionStatus, configureRevenueCat } = require('@/lib/purchases/revenuecat')
+    await configureRevenueCat('test-user-free')
     const status = await getSubscriptionStatus()
     expect(status.isActive).toBe(false)
     expect(status.tier).toBe('free')
@@ -287,3 +292,252 @@ describe('Post-purchase/restore canonical refresh (FIX-083)', () => {
     expect((src.match(/refreshCustomerInfo\(\)/g) || []).length).toBeGreaterThanOrEqual(2)
   })
 })
+
+// ─── Regression Test Suite: Release Gate & Entitlement Verification (Cases A-E) ───
+
+describe('CASE A: User has no entitlement → premium access remains locked', () => {
+  const Purchases = require('react-native-purchases').default
+
+  beforeEach(() => {
+    const { _resetStateForTests } = require('@/lib/purchases/revenuecat')
+    _resetStateForTests()
+    jest.clearAllMocks()
+  })
+
+  it('evaluates isPro as false for unentitled normal user', () => {
+    const { isReviewerEmail, ENTITLEMENT_ID } = require('@/lib/revenuecat/config')
+    const customerInfo: any = {
+      entitlements: {
+        active: {},
+      },
+    }
+
+    const email = 'normal.user@example.com'
+    const isPro =
+      isReviewerEmail(email) ||
+      customerInfo?.entitlements.active[ENTITLEMENT_ID]?.isActive === true
+
+    expect(isPro).toBe(false)
+  })
+
+  it('getSubscriptionStatus returns isActive: false and tier: "free"', async () => {
+    Purchases.configure.mockImplementationOnce(() => {})
+    Purchases.getCustomerInfo.mockResolvedValueOnce({
+      entitlements: { active: {} },
+    })
+
+    const { configureRevenueCat, getSubscriptionStatus } = require('@/lib/purchases/revenuecat')
+    await configureRevenueCat('test-user-1')
+
+    const status = await getSubscriptionStatus()
+    expect(status.isActive).toBe(false)
+    expect(status.tier).toBe('free')
+    expect(status.expiresAt).toBeNull()
+  })
+})
+
+describe('CASE B: User has active entitlement → premium access unlocks', () => {
+  const Purchases = require('react-native-purchases').default
+
+  beforeEach(() => {
+    const { _resetStateForTests } = require('@/lib/purchases/revenuecat')
+    _resetStateForTests()
+    jest.clearAllMocks()
+  })
+
+  it('evaluates isPro as true when premium entitlement is active', () => {
+    const { isReviewerEmail, ENTITLEMENT_ID } = require('@/lib/revenuecat/config')
+    const customerInfo = {
+      entitlements: {
+        active: {
+          [ENTITLEMENT_ID]: {
+            identifier: 'premium',
+            isActive: true,
+            productIdentifier: 'ah_monthly_premium',
+            expirationDate: '2026-10-01T00:00:00Z',
+            willRenew: true,
+          },
+        },
+      },
+    }
+
+    const email = 'subscriber@example.com'
+    const isPro =
+      isReviewerEmail(email) ||
+      customerInfo?.entitlements.active[ENTITLEMENT_ID]?.isActive === true
+
+    expect(isPro).toBe(true)
+  })
+
+  it('getSubscriptionStatus returns isActive: true and tier: "premium" for monthly/annual subscriber', async () => {
+    Purchases.configure.mockImplementationOnce(() => {})
+    Purchases.getCustomerInfo.mockResolvedValueOnce({
+      entitlements: {
+        active: {
+          premium: {
+            productIdentifier: 'ah_annual_premium',
+            expirationDate: '2027-01-01T00:00:00Z',
+            willRenew: true,
+          },
+        },
+      },
+    })
+
+    const { configureRevenueCat, getSubscriptionStatus } = require('@/lib/purchases/revenuecat')
+    await configureRevenueCat('sub-user-2')
+    const status = await getSubscriptionStatus()
+    expect(status.isActive).toBe(true)
+    expect(status.tier).toBe('premium')
+    expect(status.willRenew).toBe(true)
+    expect(status.expiresAt).toBe('2027-01-01T00:00:00Z')
+  })
+})
+
+describe('CASE C: RevenueCat request temporarily fails → bounded retry occurs → premium is NOT granted by default', () => {
+  const Purchases = require('react-native-purchases').default
+
+  beforeEach(() => {
+    const { _resetStateForTests } = require('@/lib/purchases/revenuecat')
+    _resetStateForTests()
+    jest.clearAllMocks()
+  })
+
+  it('fails safely when Purchases.configure throws and does NOT grant premium', async () => {
+    const {
+      configureRevenueCat,
+      isRevenueCatConfigured,
+      getSubscriptionStatus,
+    } = require('@/lib/purchases/revenuecat')
+
+    Purchases.configure.mockImplementationOnce(() => {
+      throw new Error('Network timeout contacting RevenueCat')
+    })
+
+    const ok = await configureRevenueCat('user-fail-1')
+    expect(ok).toBe(false)
+    expect(isRevenueCatConfigured()).toBe(false)
+
+    // Fails closed — getSubscriptionStatus returns free tier
+    const status = await getSubscriptionStatus()
+    expect(status.isActive).toBe(false)
+    expect(status.tier).toBe('free')
+
+    // isPro evaluation on failed configure stays false for normal users
+    const { isReviewerEmail, ENTITLEMENT_ID } = require('@/lib/revenuecat/config')
+    const customerInfo: any = null
+    const isPro =
+      isReviewerEmail('normal@user.com') ||
+      customerInfo?.entitlements?.active?.[ENTITLEMENT_ID]?.isActive === true
+    expect(isPro).toBe(false)
+  })
+
+  it('bounds retry to at most ONE attempt per app session without infinite loops', async () => {
+    const {
+      configureRevenueCat,
+      attemptConfigureRetry,
+      isRevenueCatConfigured,
+    } = require('@/lib/purchases/revenuecat')
+
+    // First mount configure fails
+    Purchases.configure.mockImplementationOnce(() => {
+      throw new Error('Transient error')
+    })
+    const initial = await configureRevenueCat('user-retry-1')
+    expect(initial).toBe(false)
+    expect(isRevenueCatConfigured()).toBe(false)
+
+    // First retry is allowed
+    Purchases.configure.mockImplementationOnce(() => {})
+    const retry1 = await attemptConfigureRetry('user-retry-1')
+    expect(retry1).toBe(true)
+    expect(isRevenueCatConfigured()).toBe(true)
+
+    // Second retry is blocked (bounded to 1 retry per session)
+    const retry2 = await attemptConfigureRetry('user-retry-1')
+    expect(retry2).toBe(false)
+  })
+})
+
+describe('CASE D: Reviewer fallback applies only to the exact intended reviewer identity', () => {
+  const { isReviewerEmail, REVIEWER_EMAILS } = require('@/lib/revenuecat/config')
+
+  it('strictly matches all authorized reviewer and internal demo emails', () => {
+    for (const email of REVIEWER_EMAILS) {
+      expect(isReviewerEmail(email)).toBe(true)
+      expect(isReviewerEmail(email.toUpperCase())).toBe(true)
+      expect(isReviewerEmail(`  ${email}  `)).toBe(true)
+    }
+  })
+
+  it('strictly rejects unauthorized users, substrings, lookalikes, and edge-cases', () => {
+    const unauthorized = [
+      'user@gmail.com',
+      'attacker@authentichadith.app',
+      'apple.reviewer+20260604@evil.com',
+      'apple.reviewer+20260604@authentichadith.app.attacker.com',
+      'fake_apple.reviewer+20260604@authentichadith.app',
+      'apple.reviewer+20260604@authentichadith.apps',
+      'clashon64@gmail.com.co',
+      'roryleesemeah@gmail.com', // icloud is allowed, gmail is not
+      'g.homira@icloud.com', // gmail is allowed, icloud is not
+      '',
+      '   ',
+      null,
+      undefined,
+    ]
+
+    for (const email of unauthorized) {
+      expect(isReviewerEmail(email)).toBe(false)
+    }
+  })
+})
+
+describe('CASE E: A forbidden temporary release marker is introduced → qa-release-guard.mjs fails the check', () => {
+  const fs = require('fs')
+  const path = require('path')
+
+  const forbiddenRules = [
+    { label: 'temporary screenshot bypass marker', pattern: /SCREENSHOT-BYPASS/i },
+    { label: 'manual revert reminder in runtime/config code', pattern: /REVERT BEFORE COMMIT/i },
+    { label: 'forced premium entitlement', pattern: /\b(?:const|let|var)\s+(?:isPro|isPremium)\s*=\s*true\b/ },
+    { label: 'disabled RevenueCat retry/init marker', pattern: /no RC retry|skip RevenueCat configure entirely/i },
+  ]
+
+  it('detects each forbidden marker pattern deterministically', () => {
+    const violations = [
+      '// SCREENSHOT-BYPASS: forced pro',
+      '/* REVERT BEFORE COMMIT */',
+      'const isPro = true',
+      'let isPro = true',
+      'var isPremium = true',
+      'const isPremium = true',
+      '// no RC retry on sim',
+      '// skip RevenueCat configure entirely',
+    ]
+
+    for (const sample of violations) {
+      const matched = forbiddenRules.some((r) => r.pattern.test(sample))
+      expect(matched).toBe(true)
+    }
+  })
+
+  it('scans all critical runtime directories (app, components, hooks, lib, constants, types, app.config.js, app.json, eas.json)', () => {
+    const scriptSrc = fs.readFileSync(path.join(__dirname, '../scripts/qa-release-guard.mjs'), 'utf8')
+    expect(scriptSrc).toContain("'hooks'")
+    expect(scriptSrc).toContain("'constants'")
+    expect(scriptSrc).toContain("'types'")
+    expect(scriptSrc).toContain("'app.config.js'")
+    expect(scriptSrc).toContain("'app.json'")
+    expect(scriptSrc).toContain("'eas.json'")
+  })
+
+  it('passes cleanly against current repository state', () => {
+    const { execSync } = require('child_process')
+    const output = execSync('node scripts/qa-release-guard.mjs', {
+      cwd: path.join(__dirname, '..'),
+      encoding: 'utf8',
+    })
+    expect(output).toContain('CTP RELEASE GUARD: PASS')
+  })
+})
+

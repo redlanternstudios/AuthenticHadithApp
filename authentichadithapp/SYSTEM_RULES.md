@@ -14,13 +14,19 @@ Every coding agent, developer, or AI assistant working on this project must read
 
 # Core Principle
 
+> **Canonical Engineering Invariant:**  
+> **Code completion ≠ engineering completion.**  
+> A change is complete only when the expected behavior has been demonstrated with empirical evidence in the environment where users actually experience it.  
+> Full release governance is defined in `../RELEASE_ENGINEERING_SOP.md`.
+
 No issue is considered fully fixed until:
 
 1. The root cause is identified.
 2. The exact files changed are documented.
-3. The fix is verified through a build or test.
+3. The fix is verified through the canonical release gate chain (`npm run qa:release`).
 4. The lesson is added to `BUILD_FIX_LOG.md`.
-5. Any recurring pattern is converted into a permanent rule.
+5. Any recurring pattern is converted into a permanent rule or automated gate.
+6. The state advances through the 8-state model to `PHYSICAL DEVICE VERIFIED` before any `SHIP APPROVED` decision.
 
 ---
 
@@ -1188,3 +1194,33 @@ grep -n "fontSize:" src/**/*.tsx | grep -v "fontFamily:"
 **Applies to all future Red Lantern / By Red apps.** Any screen that gates content behind a purchase prompt is excluded from ASC screenshots by default.
 
 **Root cause reference**: KP directive 2026-06-24 — "Paywall can not be listed on Apple list ensure that is hardcoded." Source: session following FIX-108. Apple Guideline 2.3.7.
+
+---
+
+## Rule 044: Self-Healing Engineering Doctrine & Incident Conversion Rule
+
+**Trigger**: Every bug, build error, database rejection, deployment failure, or broken UX flow.
+
+**Rule**: 
+> **"Every failure must become a detector, recovery path, regression test, or escalation rule. Ideally, more than one."**
+
+1. **Build for the happy path. Engineer for the failure path. Verify both.**
+2. **If the system can safely heal itself, automate the recovery. If it cannot, automate the detection and escalation.**
+
+**The Incident Conversion Loop**:
+```text
+Incident → Root Cause → Failure Class → Recovery Strategy → Verification Evidence → Permanent Guardrail → Failure Registry Entry
+```
+
+**Definition of Done (DoD)**:
+A task is never finished because code compiles, tests pass, build succeeds, or an agent says "done." It is finished ONLY when:
+```text
+  feature works
++ failure path considered
++ observability exists
++ recovery behavior defined
++ regression protection exists
++ evidence recorded
+```
+
+**Root cause reference**: KP directive 2026-09-05 — Onboarding Supabase PostgREST 42501 permission error transformed into atomic local cache, non-blocking navigation, explicit sync_pending retry engine, and unit test regression guard.
