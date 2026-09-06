@@ -123,12 +123,35 @@ function NavigationGate() {
   const segments = useSegments()
   const [onboarded, setOnboarded] = useState<boolean | null>(null)
 
-  // Read onboarding flag from AsyncStorage on mount and on every route change
+  // Read onboarding flag from AsyncStorage on mount and on every route change,
+  // with self-healing fallback to Supabase user_preferences
   useEffect(() => {
-    AsyncStorage.getItem('onboarded').then((value) => {
-      setOnboarded(value === 'true')
+    let isMounted = true
+    AsyncStorage.getItem('onboarded').then(async (value) => {
+      if (value === 'true') {
+        if (isMounted) setOnboarded(true)
+        return
+      }
+      if (user?.id) {
+        try {
+          const { data } = await supabase
+            .from('user_preferences')
+            .select('onboarded')
+            .eq('user_id', user.id)
+            .maybeSingle()
+          if (data?.onboarded) {
+            await AsyncStorage.setItem('onboarded', 'true')
+            if (isMounted) setOnboarded(true)
+            return
+          }
+        } catch {
+          // ignore
+        }
+      }
+      if (isMounted) setOnboarded(false)
     })
-  }, [segments])
+    return () => { isMounted = false }
+  }, [segments, user?.id])
 
   useEffect(() => {
     // Wait until auth, RevenueCat, and AsyncStorage have all resolved
@@ -150,6 +173,16 @@ function NavigationGate() {
     if (!onboarded) {
       // Logged in but hasn't completed onboarding
       if (!inOnboarding) router.replace('/onboarding')
+      return
+    }
+
+    // Anti-loop guard: if already onboarded and somehow landed on onboarding, forward immediately
+    if (inOnboarding && onboarded) {
+      if (!isPro) {
+        router.replace('/paywall')
+      } else {
+        router.replace('/(tabs)')
+      }
       return
     }
 

@@ -137,11 +137,9 @@ export default function PaywallScreen() {
 
   // ─── Loading state ──────────────────────────────────────────────────────────
   const handleDismiss = () => {
-    if (router.canGoBack()) {
-      router.back()
-    } else {
-      router.replace('/(tabs)')
-    }
+    // Under no circumstances should dismissing the paywall loop back to onboarding.
+    // Always advance directly to main app tabs.
+    router.replace('/(tabs)')
   }
 
   if (isLoading) {

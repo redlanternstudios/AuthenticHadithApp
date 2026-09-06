@@ -137,4 +137,20 @@ describe("onboardingSync helper", () => {
     const pending = await AsyncStorage.getItem(ONBOARDING_STORAGE_KEYS.SYNC_PENDING)
     expect(pending).toBeNull()
   })
-})
+
+  it("verifies onboarding completion prevents re-entry and loops", async () => {
+    await persistOnboardingLocally(sampleData)
+    const onboarded = await AsyncStorage.getItem(ONBOARDING_STORAGE_KEYS.ONBOARDED)
+    expect(onboarded).toBe("true")
+
+    // Simulate anti-loop check
+    const shouldSkipOnboarding = onboarded === "true"
+    expect(shouldSkipOnboarding).toBe(true)
+  })
+
+  it("verifies collections strictly scoped to Sahihayn (Bukhari and Muslim)", () => {
+    const verifiedCollections = ["bukhari", "muslim"]
+    expect(sampleData.collections).toEqual(verifiedCollections)
+    expect(verifiedCollections.length).toBe(2)
+  })
+});

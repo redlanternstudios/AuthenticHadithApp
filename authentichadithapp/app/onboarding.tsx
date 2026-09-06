@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { StyleSheet, View, ScrollView, Text, Pressable, TextInput, Linking } from 'react-native'
 import { Stack, useRouter } from 'expo-router'
 import { supabase } from '@/lib/supabase/client'
@@ -22,12 +23,8 @@ const SCHOOLS_OF_THOUGHT = ['Hanafi', 'Maliki', "Shafi'i", 'Hanbali', 'Other / P
 // In V1, only Sahih al-Bukhari and Sahih Muslim are active (14,444 total).
 // The 4 Sunan collections are explicitly badged as Coming Soon (v1.2).
 const COLLECTIONS = [
-  { id: 'bukhari', name: 'Sahih Bukhari', count: '7,277 hadiths', available: true },
-  { id: 'muslim', name: 'Sahih Muslim', count: '7,167 hadiths', available: true },
-  { id: 'tirmidhi', name: 'Sunan at-Tirmidhi', count: '3,241 hadiths', available: false },
-  { id: 'abudawud', name: 'Sunan Abu Dawud', count: '3,751 hadiths', available: false },
-  { id: 'nasai', name: "Sunan an-Nasa'i", count: '5,045 hadiths', available: false },
-  { id: 'ibnmajah', name: 'Sunan Ibn Majah', count: '3,524 hadiths', available: false },
+  { id: 'bukhari', name: 'Sahih al-Bukhari', count: '7,277 hadiths' },
+  { id: 'muslim', name: 'Sahih Muslim', count: '7,167 hadiths' },
 ]
 
 const LEARNING_LEVELS = ['Beginner', 'Intermediate', 'Advanced']
@@ -54,6 +51,15 @@ export default function OnboardingScreen() {
   const { language, setLanguage, isRTL } = useLanguage()
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
+
+  // Self-healing anti-loop guard: if the user is already onboarded, never show onboarding again
+  useEffect(() => {
+    AsyncStorage.getItem('onboarded').then((val) => {
+      if (val === 'true') {
+        router.replace('/(tabs)')
+      }
+    })
+  }, [])
   const [data, setData] = useState<OnboardingData>({
     name: '',
     schoolOfThought: '',
@@ -223,25 +229,16 @@ export default function OnboardingScreen() {
       {currentStep === 2 && (
         <View style={styles.stepContent}>
           <Text style={[styles.stepTitle, { color: colors.bronzeText }, isRTL && styles.textRTL]}>
-            {isArabic ? 'خصّص تجربتك' : 'Customize your experience'}
+            {isArabic ? 'المجموعات الموثقة' : 'Verified Collections'}
           </Text>
           <Text style={[styles.stepSubtitle, { color: colors.mutedText }, isRTL && styles.textRTL]}>
             {isArabic
-              ? 'اضبط تفضيلاتك لتخصيص رحلة تعلّمك'
-              : 'Set your preferences to personalize your learning journey'}
+              ? '14,444 حديثاً صحيحاً موثقاً من صحيحي البخاري ومسلم'
+              : '14,444 verified authentic hadiths from Sahih al-Bukhari and Sahih Muslim'}
           </Text>
 
-          {/* Corpus Scope Clarity Banner */}
-          <View style={[styles.scopeBanner, { backgroundColor: colors.card, borderColor: colors.goldMid + '30' }]}>
-            <Text style={[styles.scopeBannerText, { color: colors.goldShadow }, isRTL && styles.textRTL]}>
-              {isArabic
-                ? 'الإصدار 1.1 يشتمل على 14,444 حديثاً موثقاً من صحيحي البخاري ومسلم'
-                : 'Version 1.1 includes 14,444 verified authentic hadiths from Sahih al-Bukhari and Sahih Muslim.'}
-            </Text>
-          </View>
-
           <Text style={[styles.label, { color: colors.bronzeText }, isRTL && styles.textRTL]}>
-            {isArabic ? 'المجموعات المفضلة' : 'Collections of Interest'}
+            {isArabic ? 'المجموعات المختارة' : 'Selected Collections'}
           </Text>
           <View style={styles.collectionsGrid}>
             {COLLECTIONS.map((c) => {
@@ -268,16 +265,9 @@ export default function OnboardingScreen() {
                   <View style={{ flex: 1 }}>
                     <View style={[styles.collectionHeaderRow, isRTL && styles.collectionHeaderRowRTL]}>
                       <Text style={[styles.collectionName, { color: colors.bronzeText }]}>{c.name}</Text>
-                      {!c.available && (
-                        <View style={[styles.comingSoonBadge, { backgroundColor: colors.border + '60' }]}>
-                          <Text style={[styles.comingSoonText, { color: colors.mutedText }]}>
-                            {isArabic ? 'قريباً' : 'Coming Soon'}
-                          </Text>
-                        </View>
-                      )}
                     </View>
                     <Text style={[styles.collectionCount, { color: colors.mutedText }]}>
-                      {c.available ? c.count : `${c.count} · ${isArabic ? 'قيد التدقيق (الإصدار 1.2)' : 'In Review (v1.2)'}`}
+                      {c.count}
                     </Text>
                   </View>
                 </Pressable>
