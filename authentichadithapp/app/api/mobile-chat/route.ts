@@ -83,7 +83,7 @@ export async function POST(request: Request) {
     }
 
     const { text } = await generateText({
-      model: groq('llama-3.3-70b-versatile'),
+      model: groq('llama-3.1-8b-instant'),
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         ...messages,

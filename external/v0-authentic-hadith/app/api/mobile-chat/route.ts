@@ -59,13 +59,27 @@ export async function POST(req: Request) {
 
     const system = buildGroundedSystem(SYSTEM_PROMPT, hadiths)
 
-    const { text } = await generateText({
-      model: getAssistantModel(),
-      system,
-      messages,
-      maxOutputTokens: 1024,
-      maxRetries: 2,
-    })
+    let text = ""
+    try {
+      const result = await generateText({
+        model: getAssistantModel(),
+        system,
+        messages,
+        maxOutputTokens: 1024,
+        maxRetries: 2,
+      })
+      text = result.text
+    } catch (primaryError) {
+      console.warn("[mobile-chat] Primary model generation failed, falling back to Vercel AI Gateway:", primaryError)
+      const fallbackResult = await generateText({
+        model: "openai/gpt-4o-mini" as any,
+        system,
+        messages,
+        maxOutputTokens: 1024,
+        maxRetries: 2,
+      })
+      text = fallbackResult.text
+    }
 
     return Response.json({ response: text })
   } catch (error) {

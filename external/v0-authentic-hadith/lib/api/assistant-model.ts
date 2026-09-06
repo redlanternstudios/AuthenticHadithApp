@@ -27,7 +27,7 @@ import type { LanguageModel } from "ai"
  */
 
 const DEFAULT_MODEL: Record<string, string> = {
-  groq: "llama-3.3-70b-versatile",
+  groq: "llama-3.1-8b-instant",
   anthropic: "claude-opus-4-8",
   openai: "openai/gpt-4o-mini",
 }
