@@ -417,6 +417,26 @@ async function main() {
   let remediationStrategy = '';
   let oldStaleEasCertIdToDelete = null;
 
+  // Check if assigned credentials in EAS are ALREADY valid, active, and matching on Apple Developer
+  const assignedCert = appBuildCred?.distributionCertificate;
+  const assignedProfile = appBuildCred?.provisioningProfile;
+
+  const isAssignedCertValidOnApple = assignedCert && validDistCertsInApple.some(
+    (ac) => ac.serialNumber === assignedCert.serialNumber || ac.id === assignedCert.developerPortalIdentifier
+  );
+  const isAssignedCertNotExpired = assignedCert && new Date(assignedCert.validityNotAfter) > now;
+  const isAssignedProfileValid = assignedProfile && (
+    !assignedProfile.expiration || new Date(assignedProfile.expiration) > now
+  );
+
+  if (isAssignedCertValidOnApple && isAssignedCertNotExpired && isAssignedProfileValid) {
+    console.log("[+] All iOS signing credentials are ALREADY valid, active on Apple Developer, and aligned in EAS:");
+    console.log(`    - Assigned Dist Cert ID: ${assignedCert.id} (serial: ${assignedCert.serialNumber})`);
+    console.log(`    - Assigned Profile ID:   ${assignedProfile.developerPortalIdentifier || assignedProfile.id}`);
+    console.log("[+] Skipping credential remediation. Ready to build.\n");
+    return;
+  }
+
   // Check Option A: Can we reuse an existing valid distribution certificate from EAS?
   const reusableEasCert = easCerts.find((ec) => {
     const validOnApple = validDistCertsInApple.some(
@@ -448,10 +468,17 @@ async function main() {
       fs.writeFileSync(tempInPath, Buffer.from(reusableEasCert.certificateP12, 'base64'));
 
       // OpenSSL extracts both private key and cert into PEM (can decrypt OpenSSL 3 PBES2/PBKDF2)
-      execSync(
-        `openssl pkcs12 -in "${tempInPath}" -passin pass:${reusableEasCert.certificatePassword || ''} -nodes -out "${tempPemPath}"`,
+      try {
+        execSync(
+          `openssl pkcs12 -legacy -in "${tempInPath}" -passin pass:${reusableEasCert.certificatePassword || ""} -nodes -out "${tempPemPath}"`,
+          { stdio: "pipe" }
+        );
+      } catch {
+        execSync(
+          `openssl pkcs12 -in "${tempInPath}" -passin pass:${reusableEasCert.certificatePassword || ''} -nodes -out "${tempPemPath}"`,
         { stdio: 'pipe' }
       );
+      }
 
       // Re-package as macOS-compatible legacy PKCS#12 (3DES / RC2)
       const newP12Password = crypto.randomBytes(16).toString('hex');
