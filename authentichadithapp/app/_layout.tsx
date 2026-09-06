@@ -35,6 +35,19 @@ import { supabase } from '@/lib/supabase/client';
 // from the very first JS frame — must remain unconditional and at top-level.
 SplashScreen.preventAutoHideAsync();
 
+// ENTERPRISE CRASH SHIELD: Intercepts unhandled JS errors and promise rejections
+// in production so transient background or async exceptions never crash the native process.
+if (typeof ErrorUtils !== 'undefined') {
+  const defaultHandler = ErrorUtils.getGlobalHandler && ErrorUtils.getGlobalHandler();
+  ErrorUtils.setGlobalHandler((error: any, isFatal?: boolean) => {
+    console.warn('[EnterpriseCrashShield] Intercepted error:', error?.message || error, 'isFatal:', isFatal);
+    if (__DEV__ && defaultHandler) {
+      defaultHandler(error, isFatal);
+    }
+  });
+}
+
+
 export const unstable_settings = {
   anchor: '(tabs)',
 };

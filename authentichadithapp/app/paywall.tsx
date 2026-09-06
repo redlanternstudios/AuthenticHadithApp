@@ -12,7 +12,7 @@ import {
 import { Stack, useRouter } from 'expo-router'
 import Purchases, { PurchasesPackage } from 'react-native-purchases'
 import { purchasePackage as safePurchasePackage } from '../lib/purchases/revenuecat'
-import { getPackageTrialDetails, TrialDetails } from '../lib/purchases/trial'
+import { getPackageTrialDetails } from '@/lib/purchases/trial'
 import { useTheme } from '@/lib/theme/ThemeProvider'
 import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
 import { FONT_FAMILY } from '@/constants/theme'
@@ -100,9 +100,11 @@ export default function PaywallScreen() {
           const res = await Purchases.checkTrialOrIntroductoryPriceEligibility(productIds)
           if (!cancelled && res) {
             const map: Record<string, boolean> = {}
-            for (const [id, info] of Object.entries(res)) {
+            for (const [id, info] of Object.entries(res || {})) {
               // 2 = INTRO_ELIGIBILITY_STATUS_ELIGIBLE, 0 = UNKNOWN (sandbox/unverified)
-              map[id] = info.status === 2 || info.status === 0
+              if (info && typeof info === 'object') {
+                map[id] = (info as any).status === 2 || (info as any).status === 0
+              }
             }
             setEligibilityMap(map)
           }

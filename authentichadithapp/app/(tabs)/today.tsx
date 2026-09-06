@@ -103,7 +103,7 @@ export default function TodayScreen() {
       // Bug 1 fix: ORDER BY id ensures deterministic row ordering regardless of
       // PostgREST's default undefined order. Without this, the same offset
       // returns a different row on every cold launch.
-      const { data } = await rowQuery.order('id', { ascending: true }).range(offset, offset).single()
+      const { data } = await rowQuery.order('id', { ascending: true }).range(offset, offset).maybeSingle()
       return data as Hadith | null
     },
   })

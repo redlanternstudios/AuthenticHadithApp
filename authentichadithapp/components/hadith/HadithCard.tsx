@@ -184,7 +184,6 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.82,
-    transform: [{ scale: 0.995 }],
   },
   card: {
     // Card handles its own marginBottom only when used without Pressable wrapper
