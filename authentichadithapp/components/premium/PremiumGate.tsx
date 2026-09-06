@@ -1,12 +1,12 @@
 import React from 'react'
-import { Text, StyleSheet, Modal, Pressable, ActivityIndicator, View } from 'react-native'
+import { useRouter } from 'expo-router'
+import { Text, StyleSheet, Pressable, ActivityIndicator, View } from 'react-native'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
 import { getColors, COLORS, SPACING, FONT_SIZES } from '../../lib/styles/colors'
 import { useTheme } from '../../lib/theme/ThemeProvider'
 import { FONT_FAMILY } from '../../constants/theme'
 import { usePremiumStatus } from '../../hooks/usePremiumStatus'
-import { PaywallScreen } from './PaywallScreen'
 
 interface PremiumGateProps {
   feature: string
@@ -18,7 +18,7 @@ export function PremiumGate({ feature, description, children }: PremiumGateProps
   const { isPremium, isLoading } = usePremiumStatus()
   const { isDark } = useTheme()
   const colors = getColors(isDark)
-  const [showPaywall, setShowPaywall] = React.useState(false)
+  const router = useRouter()
 
   if (isLoading) {
     // FIX-070: Brand skeleton — theme-aware background prevents white flash on
@@ -35,36 +35,21 @@ export function PremiumGate({ feature, description, children }: PremiumGateProps
   }
 
   return (
-    <>
-      <Pressable onPress={() => setShowPaywall(true)}>
-        <Card style={styles.lockedCard}>
-          <Text style={styles.lockIcon}>🔒</Text>
-          <Text style={styles.lockTitle}>Premium Feature</Text>
-          <Text style={styles.lockDescription}>
-            {description || `Unlock ${feature} with a premium subscription`}
-          </Text>
-          <Button
-            title="View Plans"
-            variant="primary"
-            onPress={() => setShowPaywall(true)}
-            style={styles.upgradeButton}
-          />
-        </Card>
-      </Pressable>
-
-      <Modal
-        visible={showPaywall}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowPaywall(false)}
-      >
-        <PaywallScreen
-          onDismiss={() => setShowPaywall(false)}
-          onPurchaseCompleted={() => setShowPaywall(false)}
-          onRestoreCompleted={() => setShowPaywall(false)}
+    <Pressable onPress={() => router.push('/paywall')}>
+      <Card style={styles.lockedCard}>
+        <Text style={styles.lockIcon}>🔒</Text>
+        <Text style={styles.lockTitle}>Premium Feature</Text>
+        <Text style={styles.lockDescription}>
+          {description || `Unlock ${feature} with a premium subscription`}
+        </Text>
+        <Button
+          title="View Plans"
+          variant="primary"
+          onPress={() => router.push('/paywall')}
+          style={styles.upgradeButton}
         />
-      </Modal>
-    </>
+      </Card>
+    </Pressable>
   )
 }
 

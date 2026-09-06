@@ -16,7 +16,6 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { usePremiumStatus } from '@/hooks/usePremiumStatus';
 import { useRevenueCatSubscription } from '@/hooks/useRevenueCatSubscription';
-import { PaywallScreen } from '@/components/premium/PaywallScreen';
 import { CustomerCenterScreen } from '@/components/premium/CustomerCenterScreen';
 import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS, LAYOUT } from '@/lib/styles/colors';
 import { FONT_FAMILY } from '@/constants/theme';
@@ -67,7 +66,6 @@ export default function ProfileScreen() {
   const { contentTop, contentBottom, pagePadding, maxContentWidth } = useDeviceLayout();
   const { isPremium } = usePremiumStatus();
   const { restorePurchases, expirationDate, productIdentifier } = useRevenueCatSubscription();
-  const [showPaywall, setShowPaywall] = React.useState(false);
   const [showCustomerCenter, setShowCustomerCenter] = React.useState(false);
   const [restoring, setRestoring] = React.useState(false);
   const [isSigningOut, setIsSigningOut] = React.useState(false);
@@ -160,7 +158,7 @@ export default function ProfileScreen() {
             title="Upgrade to Pro"
             variant="primary"
             size="medium"
-            onPress={() => setShowPaywall(true)}
+            onPress={() => router.push('/paywall')}
             style={{ marginTop: SPACING.md }}
           />
         )}
@@ -270,18 +268,6 @@ export default function ProfileScreen() {
       </Pressable>
 
       {/* Modals */}
-      <Modal
-        visible={showPaywall}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowPaywall(false)}
-      >
-        <PaywallScreen
-          onDismiss={() => setShowPaywall(false)}
-          onPurchaseCompleted={() => setShowPaywall(false)}
-          onRestoreCompleted={() => setShowPaywall(false)}
-        />
-      </Modal>
 
       <Modal
         visible={showCustomerCenter}
