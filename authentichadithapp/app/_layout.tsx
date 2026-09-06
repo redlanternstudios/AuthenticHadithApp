@@ -160,7 +160,6 @@ function NavigationGate() {
     const inAuth = segments[0] === 'auth'
     const inShared = segments[0] === 'shared'
     const inOnboarding = segments[0] === 'onboarding'
-    const inPaywall = segments[0] === 'paywall'
 
     // FIX-115 B4: All three navigation gates restored for production.
     // Auth, onboarding, and subscription gates are mandatory before submission.
@@ -176,19 +175,10 @@ function NavigationGate() {
       return
     }
 
-    // Anti-loop guard: if already onboarded and somehow landed on onboarding, forward immediately
+    // Anti-loop guard: once onboarded, advance directly to tabs.
+    // Free users access the free tier; premium features are gated at feature boundaries.
     if (inOnboarding && onboarded) {
-      if (!isPro) {
-        router.replace('/paywall')
-      } else {
-        router.replace('/(tabs)')
-      }
-      return
-    }
-
-    if (!isPro) {
-      // Onboarded but no active subscription
-      if (!inPaywall) router.replace('/paywall')
+      router.replace('/(tabs)')
       return
     }
 

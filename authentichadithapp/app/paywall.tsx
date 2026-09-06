@@ -10,8 +10,9 @@ import {
   Linking,
 } from 'react-native'
 import { Stack, useRouter } from 'expo-router'
-import { PurchasesPackage } from 'react-native-purchases'
+import Purchases, { PurchasesPackage } from 'react-native-purchases'
 import { purchasePackage as safePurchasePackage } from '../lib/purchases/revenuecat'
+import { getPackageTrialDetails, TrialDetails } from '../lib/purchases/trial'
 import { useTheme } from '@/lib/theme/ThemeProvider'
 import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
 import { FONT_FAMILY } from '@/constants/theme'
@@ -23,8 +24,8 @@ import { ENTITLEMENT_ID } from '@/lib/revenuecat/config'
 const VALUE_PROPS = [
   {
     icon: '📚',
-    title: 'Complete Collection',
-    desc: 'All 6 major hadith books — over 30,000 authenticated hadiths',
+    title: 'Complete Authentic Corpus',
+    desc: 'Sahih al-Bukhari & Sahih Muslim — 14,444 verified authentic hadiths',
   },
   {
     icon: '🤖',
@@ -86,6 +87,42 @@ export default function PaywallScreen() {
   const packages = useMemo(() => currentOffering?.availablePackages ?? [], [currentOffering])
 
   const [selectedPackage, setSelectedPackage] = useState<PurchasesPackage | null>(null)
+  const [eligibilityMap, setEligibilityMap] = useState<Record<string, boolean>>({})
+
+  // Fetch StoreKit introductory trial eligibility for packages
+  useEffect(() => {
+    let cancelled = false
+    async function checkEligibility() {
+      if (!packages.length) return
+      try {
+        const productIds = packages.map((p) => p.product.identifier)
+        if (typeof Purchases?.checkTrialOrIntroductoryPriceEligibility === 'function') {
+          const res = await Purchases.checkTrialOrIntroductoryPriceEligibility(productIds)
+          if (!cancelled && res) {
+            const map: Record<string, boolean> = {}
+            for (const [id, info] of Object.entries(res)) {
+              // 2 = INTRO_ELIGIBILITY_STATUS_ELIGIBLE, 0 = UNKNOWN (sandbox/unverified)
+              map[id] = info.status === 2 || info.status === 0
+            }
+            setEligibilityMap(map)
+          }
+        }
+      } catch (err) {
+        __DEV__ && console.warn('[Paywall] checkTrialOrIntroductoryPriceEligibility error:', err)
+      }
+    }
+    checkEligibility()
+    return () => {
+      cancelled = true
+    }
+  }, [packages])
+
+  const selectedTrialDetails = useMemo(() => {
+    if (!selectedPackage) return null
+    const eligible = eligibilityMap[selectedPackage.product.identifier]
+    return getPackageTrialDetails(selectedPackage, eligible)
+  }, [selectedPackage, eligibilityMap])
+
   const [purchasing, setPurchasing] = useState(false)
   const [restoring, setRestoring] = useState(false)
 
@@ -255,6 +292,7 @@ export default function PaywallScreen() {
         {packages.map((pkg) => {
           const isSelected = selectedPackage?.identifier === pkg.identifier
           const isAnnual = pkg.packageType === 'ANNUAL'
+          const trialDetails = getPackageTrialDetails(pkg, eligibilityMap[pkg.product.identifier])
           return (
             <Pressable
               key={pkg.identifier}
@@ -271,12 +309,16 @@ export default function PaywallScreen() {
               accessibilityState={{ checked: isSelected }}
               accessibilityLabel={`Select ${getPlanLabel(pkg.packageType)} plan`}
             >
-              {/* Best Value badge */}
-              {isAnnual && (
+              {/* Badge: Free Trial or Best Value */}
+              {trialDetails.hasTrial ? (
+                <View style={[styles.badge, { backgroundColor: colors.goldMid }]}>
+                  <Text style={[styles.badgeText, { color: colors.white }]}>{trialDetails.badgeText}</Text>
+                </View>
+              ) : isAnnual ? (
                 <View style={[styles.badge, { backgroundColor: colors.emeraldMid }]}>
                   <Text style={[styles.badgeText, { color: colors.white }]}>Best Value</Text>
                 </View>
-              )}
+              ) : null}
 
               <View style={styles.planCardInner}>
                 {/* Top row: radio + label + price */}
@@ -312,13 +354,19 @@ export default function PaywallScreen() {
       {/* ── CTA Button ── */}
       <View style={styles.ctaSection}>
         <Button
-          title={purchasing ? 'Processing...' : 'Start My Plan'}
+          title={purchasing ? 'Processing...' : (selectedTrialDetails?.ctaText || 'Start My Plan')}
           variant="primary"
           size="large"
           onPress={handlePurchase}
           disabled={!selectedPackage || purchasing}
           isLoading={purchasing}
         />
+
+        {selectedTrialDetails?.billingSubtext ? (
+          <Text style={[styles.trialSubtext, { color: colors.mutedText }]}>
+            {selectedTrialDetails.billingSubtext}
+          </Text>
+        ) : null}
 
         {/* ── Restore Link ── */}
         <Pressable
@@ -532,6 +580,14 @@ const styles = StyleSheet.create({
   ctaSection: {
     alignItems: 'center',
     gap: SPACING.md,
+  },
+  trialSubtext: {
+    fontFamily: FONT_FAMILY.body,
+    fontSize: FONT_SIZES.sm,
+    textAlign: 'center',
+    marginTop: -SPACING.xs,
+    paddingHorizontal: SPACING.md,
+    lineHeight: 18,
   },
   restoreButton: {
     paddingVertical: SPACING.xs,
