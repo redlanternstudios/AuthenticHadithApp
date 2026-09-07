@@ -31,7 +31,15 @@ export default function LoginScreen() {
       await signIn(email, password);
       router.replace('/(tabs)');
     } catch (error: any) {
-      Alert.alert('Login Failed', error.message || 'Invalid credentials');
+      const msg = error?.message || '';
+      if (msg.toLowerCase().includes('email not confirmed')) {
+        Alert.alert(
+          'Email Not Confirmed',
+          'Please check your inbox and confirm your email before signing in.'
+        );
+      } else {
+        Alert.alert('Login Failed', msg || 'Invalid credentials');
+      }
     } finally {
       setIsLoading(false);
     }

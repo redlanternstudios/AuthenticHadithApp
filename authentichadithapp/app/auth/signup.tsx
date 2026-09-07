@@ -32,8 +32,17 @@ export default function SignupScreen() {
     setIsLoading(true);
     try {
       await signUp(email, password, fullName);
-      Alert.alert('Success', 'Account created! Please sign in.');
-      router.replace('/auth/login');
+      Alert.alert(
+        'Check Your Email',
+        'We sent a confirmation link to your email address. Please click the link to verify your account, then sign in.',
+        [
+          {
+            text: 'Go to Sign In',
+            onPress: () => router.replace('/auth/login'),
+          },
+        ],
+        { cancelable: false }
+      );
     } catch (error: any) {
       Alert.alert('Signup Failed', error.message || 'Could not create account');
     } finally {
