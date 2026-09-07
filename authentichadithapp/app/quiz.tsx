@@ -44,7 +44,20 @@ export default function QuizScreen() {
       // Skip rows with empty english_text or empty narrator — questions built
       // off them are nonsensical ("Who narrated this hadith? <blank>"). UI guard
       // only; content backfill is a separate ops task.
-      const offsets = Array.from({ length: 10 }, () => Math.floor(Math.random() * 5000))
+      let countQuery = supabase
+        .from('hadiths')
+        .select('id', { count: 'exact', head: true })
+        .not('english_text', 'is', null)
+        .neq('english_text', '')
+        .not('narrator', 'is', null)
+        .neq('narrator', '')
+      if (HIDDEN_COLLECTION_FILTER) {
+        countQuery = countQuery.not('collection_slug', 'in', HIDDEN_COLLECTION_FILTER)
+      }
+      const { count } = await countQuery
+      if (!count) return []
+
+      const offsets = Array.from({ length: 10 }, () => Math.floor(Math.random() * count))
       const results: Hadith[] = []
       for (const offset of offsets) {
         let q = supabase
@@ -58,7 +71,10 @@ export default function QuizScreen() {
         if (HIDDEN_COLLECTION_FILTER) {
           q = q.not('collection_slug', 'in', HIDDEN_COLLECTION_FILTER)
         }
-        const { data } = await q.range(offset, offset).single()
+        // Bug fix (mirrors today.tsx Bug 1 fix): ORDER BY id for deterministic
+        // PostgREST offsets, and maybeSingle() so a miss returns null instead
+        // of erroring out the whole queryFn.
+        const { data } = await q.order('id', { ascending: true }).range(offset, offset).maybeSingle()
         if (data) results.push(data as Hadith)
       }
       return results

@@ -40,8 +40,17 @@ SplashScreen.preventAutoHideAsync();
 if (typeof ErrorUtils !== 'undefined') {
   const defaultHandler = ErrorUtils.getGlobalHandler && ErrorUtils.getGlobalHandler();
   ErrorUtils.setGlobalHandler((error: any, isFatal?: boolean) => {
-    console.warn('[EnterpriseCrashShield] Intercepted error:', error?.message || error, 'isFatal:', isFatal);
-    if (__DEV__ && defaultHandler) {
+    if (isFatal) {
+      console.error('[EnterpriseCrashShield] Fatal error, forwarding to native handler:', error?.message || error);
+    } else {
+      console.warn('[EnterpriseCrashShield] Intercepted non-fatal error:', error?.message || error);
+    }
+    // Bug fix: previously only forwarded to the native/default handler in
+    // __DEV__, which meant production fatal errors were fully swallowed —
+    // no crash-and-restart, no crash telemetry, just a silently corrupted
+    // session. Fatal errors must always reach the native handler so RN's
+    // normal crash/restart path still runs in production.
+    if (defaultHandler && (isFatal || __DEV__)) {
       defaultHandler(error, isFatal);
     }
   });
