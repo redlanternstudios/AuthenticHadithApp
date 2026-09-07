@@ -1,6 +1,6 @@
 import React from 'react'
 import { StyleSheet, View, Text, FlatList, Pressable } from 'react-native'
-import { useLocalSearchParams, useRouter } from 'expo-router'
+import { Stack,  useLocalSearchParams, useRouter } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
 import { getFolderByShareToken } from '@/lib/api/my-hadith'
 import { useAuth } from '@/lib/auth/AuthProvider'
@@ -43,6 +43,7 @@ export default function SharedFolderScreen() {
   if (isLoading) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Stack.Screen options={{ headerShown: false }} />
         <ScreenHeader title="Shared Folder" showBack />
         <LoadingSpinner />
       </View>
@@ -91,6 +92,7 @@ export default function SharedFolderScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Stack.Screen options={{ headerShown: false }} />
       <ScreenHeader title={folder.name ?? 'Shared Folder'} subtitle={subtitle} showBack />
 
       <FlatList

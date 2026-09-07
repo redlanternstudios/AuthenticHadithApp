@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { StyleSheet, View, Text, FlatList, Pressable, Share, Alert } from 'react-native'
-import { useLocalSearchParams, useRouter } from 'expo-router'
+import { Stack,  useLocalSearchParams, useRouter } from 'expo-router'
 import { useFolderHadiths } from '@/hooks/useMyHadith'
 import { useQuery } from '@tanstack/react-query'
 import { generateShareToken } from '@/lib/api/my-hadith'
@@ -65,6 +65,7 @@ export default function FolderDetailScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Stack.Screen options={{ headerShown: false }} />
       <ScreenHeader
         title={folder?.name ?? 'Folder'}
         showBack

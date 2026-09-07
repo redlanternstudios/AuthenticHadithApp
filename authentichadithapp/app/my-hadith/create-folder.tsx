@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { StyleSheet, View, Text, TextInput, ScrollView, Pressable, Alert } from 'react-native'
-import { useRouter } from 'expo-router'
+import { Stack,  useRouter } from 'expo-router'
 import { useCreateFolder } from '@/hooks/useMyHadith'
 import { useAuth } from '@/lib/auth/AuthProvider'
 import { Button } from '@/components/ui/Button'
@@ -46,6 +46,7 @@ export default function CreateFolderScreen() {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+      <Stack.Screen options={{ headerShown: false }} />
       <ScreenHeader title="Create Folder" showBack />
 
       <View style={styles.form}>
