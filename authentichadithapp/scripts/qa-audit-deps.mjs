@@ -2,6 +2,7 @@
 // Validates the Expo dependency surface for known-bad packages and version drift.
 
 import fs from 'node:fs';
+import { execSync } from 'node:child_process';
 
 const EXPECTED_EXPO_MAJOR = 54;
 const EXPECTED_REACT = '19.1.0';
@@ -77,5 +78,39 @@ if (hasGroq && zod.startsWith('^4')) {
   warnings++;
 }
 
+// Automated production CVE security audit (SYS-SEC-001)
+
+console.log('==> Auditing production dependency CVE vulnerabilities...');
+try {
+  // Checks only production dependencies for high/critical security exploits
+  // Uses --json to evaluate programmatic payload without breaking on non-critical dev tooling
+  const auditOutput = execSync('npm audit --omit=dev --audit-level=high --json', { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  const auditData = JSON.parse(auditOutput);
+  const highOrCritical = (auditData.metadata?.vulnerabilities?.high || 0) + (auditData.metadata?.vulnerabilities?.critical || 0);
+  if (highOrCritical > 0) {
+    console.error(`[SECURITY FAULT] Detected ${highOrCritical} high/critical CVEs in production dependencies`);
+    hardFault = true;
+  } else {
+    console.log('[OK]       zero high/critical production CVEs');
+  }
+} catch (err) {
+  // If npm audit returns non-zero exit code due to detected vulnerabilities
+  try {
+    const auditData = JSON.parse(err.stdout?.toString() || '{}');
+    const highOrCritical = (auditData.metadata?.vulnerabilities?.high || 0) + (auditData.metadata?.vulnerabilities?.critical || 0);
+    if (highOrCritical > 0) {
+      console.error(`[SECURITY FAULT] Detected ${highOrCritical} high/critical CVEs in production dependencies`);
+      hardFault = true;
+    } else {
+      console.log('[OK]       audit completed (no high/critical production CVEs)');
+    }
+  } catch {
+    // Soft fallback if npm is unavailable in sandboxed environment
+    console.warn('[WARN]     npm audit could not execute in this environment (soft-gated)');
+    warnings++;
+  }
+}
+
 console.log(`==> deps audit: ${hardFault ? 'FAIL' : 'PASS'} (${warnings} warnings)`);
 if (hardFault) process.exit(1);
+

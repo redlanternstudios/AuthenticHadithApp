@@ -31,3 +31,5 @@ All AI agents (@Money-Maker, @Jobo, @Bob-the-Builder, Claude, Codex, Gemini) ope
 3. **Non-Fatal Auth Profile Writes**: Never allow `profiles.insert` during `signUp()` to throw modal alerts. Secondary profile creation is non-fatal; onboarding Step 3 handles persistent reconciliation.
 4. **Resilient Multi-Tier AI Cascade**: Always implement multi-model fallbacks (Groq `llama-3.1-8b-instant` -> Vercel AI Gateway `openai/gpt-4o-mini`) and dual-endpoint client routing (`[primaryApexUrl, previewVercelUrl]`).
 5. **Unabridged Sacred Text Display**: Never clamp hadith text with 3-line or 4-line ellipses (`numberOfLines`). All hadiths must render completely in Arabic and English.
+6. **Enterprise Security Tripwires (SYS-SEC-001)**: Enforce zero client-side server secrets, cryptographically strict environment schema validation, and transport cleartext bans before every production build or deployment dispatch.
+

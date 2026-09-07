@@ -54,17 +54,9 @@ jobs:
           path: ./authentichadithapp/match_vault_export
           retention-days: 1
 
-      - name: CTP release guard
+      - name: Canonical QA Release Gate (SYS-SEC-001)
         if: "${{ github.event.inputs.export_vault != 'true' }}"
-        run: npm run qa:release-guard
-
-      - name: TypeScript gate
-        if: "${{ github.event.inputs.export_vault != 'true' }}"
-        run: npm run qa:types
-
-      - name: Lint gate
-        if: "${{ github.event.inputs.export_vault != 'true' }}"
-        run: npm run qa:lint
+        run: npm run qa:release
 
       - name: Install EAS CLI
         if: "${{ github.event.inputs.export_vault != 'true' }}"

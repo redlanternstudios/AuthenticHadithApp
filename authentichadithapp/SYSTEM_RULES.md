@@ -1224,3 +1224,17 @@ A task is never finished because code compiles, tests pass, build succeeds, or a
 ```
 
 **Root cause reference**: KP directive 2026-09-05 — Onboarding Supabase PostgREST 42501 permission error transformed into atomic local cache, non-blocking navigation, explicit sync_pending retry engine, and unit test regression guard.
+
+---
+
+## Rule 046: Enterprise Production Security Tripwires (SYS-SEC-001)
+
+**Standard Authority**: JP & Keymon Penn (Penn Enterprises LLC)  
+**Applicability**: All production repositories (Mobile, Web, Serverless, AI Automations).
+
+Every build pre-flight and CI/CD release gate must enforce these three zero-dependency security tripwires as hard blockers:
+
+1. **Tripwire 1 (Client Secret Boundary)**: Zero server-role keys, Stripe private secrets (`sk_live_`), raw LLM provider tokens, or bearer tokens in client-bundled directories (`app/`, `components/`, `lib/`, `src/client/`).
+2. **Tripwire 2 (Cryptographic Env Integrity)**: Pre-flight environment validators must verify key shapes and protocols (e.g. Apple RevenueCat keys prefix `appl_`, Supabase domains match HTTPS, anon keys are valid base64 JWTs), never just basic existence.
+3. **Tripwire 3 (Cleartext Transport Ban)**: Zero unencrypted `http://` endpoints permitted outside of local development (`localhost` / `127.0.0.1`).
+
