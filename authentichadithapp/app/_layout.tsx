@@ -299,11 +299,10 @@ export default function RootLayout() {
                   {/* Fires handleAuthReady once Supabase session resolves */}
                   <AppReadySignal onReady={handleAuthReady} />
                   {(!fontsLoaded && !fontError) ? (
-                    // FIX-107: No spinner — the native splash covers this window.
-                    // Plain background matching the splash prevents the "black
-                    // circle with line" artifact that appears when
-                    // preventAutoHideAsync races on cold launch.
-                    <View style={{ flex: 1, backgroundColor: colorScheme === 'dark' ? '#000000' : '#1b5e43' }} />
+                    // FIX-107 & FIX-123: No spinner — the native splash covers this window.
+                    // Plain emerald background matching the splash prevents any black flash
+                    // or black square artifact regardless of system dark/light mode.
+                    <View style={{ flex: 1, backgroundColor: '#1b5e43' }} />
                   ) : (
                     <AppContent />
                   )}

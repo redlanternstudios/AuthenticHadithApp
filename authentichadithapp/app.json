@@ -67,7 +67,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#1b5e43"
       }
     },
     "web": {
@@ -85,7 +85,7 @@
           "backgroundColor": "#1b5e43",
           "dark": {
             "image": "./assets/images/splash-icon.png",
-            "backgroundColor": "#000000",
+            "backgroundColor": "#1b5e43",
             "imageWidth": 200
           }
         }

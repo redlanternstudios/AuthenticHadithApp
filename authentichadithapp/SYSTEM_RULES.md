@@ -1263,4 +1263,19 @@ Every build pre-flight and CI/CD release gate must enforce these three zero-depe
 2. **Single Source of Truth**: Global entity totals must import canonical constants (`VISIBLE_HADITH_TOTAL = 14,444` in `lib/hadith/visibleCollections.ts`) or run `COUNT(DISTINCT entity_id)` queries.
 3. **Sacred Data Fidelity**: In all Islamic/authentic hadith and high-trust applications, numerical accuracy is sacred. Exaggerating counts ruins spiritual trust and violates Apple App Store Guideline 2.3.
 
+---
+
+## Rule 048: Mobile Splash Screen & Brand Asset Integrity Invariant (Anti-Placeholder Hardcode)
+
+**Standard Authority**: JP & Keymon Penn (Penn Enterprises LLC)  
+**Applicability**: All mobile applications across Penn Enterprises LLC.
+
+**Rule**:
+1. **Canonical RGBA Asset Lock**: `assets/images/splash-icon.png` MUST be the canonical, 32-bit RGBA (Truecolor with alpha), 1024x1024 brand emblem (>200KB). The default Expo calibration template / grid / concentric circles ("the black square") is strictly forbidden in any build or staging environment.
+2. **Uniform Brand Background**: The splash screen background across BOTH light and dark modes must be hardcoded to the brand emerald `#1b5e43` in `app.json` (`splash.backgroundColor` and `expo-splash-screen.dark.backgroundColor`). Never permit a pure black (`#000000`) splash screen background that flashes a black box or disorients dark-mode users.
+3. **Zero FOUC / Zero Black Flash**: In `app/_layout.tsx`, the font-loading and auth-resolution fallback `<View>` must match `#1b5e43` exactly, ensuring the transition into the loaded React Native application is completely seamless without a single black frame.
+4. **Platform Asset Parity**: All platform icon targets (`icon.png`, `android-icon-foreground.png`, `android-icon-background.png`, `favicon.png`) must reflect the authentic brand identity, eliminating default Expo chevron or grid placeholders.
+5. **Mandatory Invariant Test**: Guarded by `__tests__/assets/splash-and-branding-integrity.test.ts`.
+
+
 

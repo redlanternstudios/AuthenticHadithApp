@@ -4631,3 +4631,38 @@ Submit for Review = KP's finger only.
 - `__tests__/navigation/header-integrity-invariants.test.ts`
 - `SYSTEM_RULES.md`
 - `BUILD_FIX_LOG.md`
+
+---
+
+## [FIX-123] — Mobile Splash Screen & Brand Emblem Hardcoding (Anti-Black-Square Invariant)
+**Date**: 2026-09-08 · Penn Enterprises LLC Quality Gate
+**Severity**: High — Brand presentation failure / placeholder leak on launch.
+
+**Symptoms**:
+1. Previous test builds (e.g. Build 132) on physical iPhone exhibited a black square with calibration rings/grid on cold boot.
+2. Dark-mode launch configurations specified `"backgroundColor": "#000000"`, causing dark-mode devices to flash a black background instead of the signature emerald green (`#1b5e43`).
+3. Secondary platform targets (Android adaptive icon foreground/background/monochrome, web favicon) were still referencing default Expo template assets.
+
+**Root Causes**:
+1. **Placeholder Asset in Prior Builds**: Earlier EAS builds had bundled the default Expo 41KB calibration grid (`splash-icon.png`) before commit `ee45879` replaced it with the 503KB canonical emblem.
+2. **Dark Mode Black Background Leak**: In `app.json`, `plugins[expo-splash-screen].dark.backgroundColor` was set to `#000000`, and `app/_layout.tsx` rendered `<View style={{ flex: 1, backgroundColor: colorScheme === 'dark' ? '#000000' : '#1b5e43' }} />`, creating an intentional black screen whenever dark mode was active.
+
+**Fixes Applied**:
+1. **Verified Canonical Brand Asset**: Confirmed `assets/images/splash-icon.png` is the genuine 32-bit RGBA 1024x1024 Authentic Hadith golden arch, mihrab, and Arabic calligraphy emblem (503KB, 0% opacity outside emblem).
+2. **Locked Emerald Splash Background**: Changed `app.json` `expo-splash-screen.dark.backgroundColor` from `#000000` to `#1b5e43` so dark mode never renders a black launch screen.
+3. **Erased Font-Loading Black Flash**: Updated `app/_layout.tsx` font-loading placeholder to `<View style={{ flex: 1, backgroundColor: '#1b5e43' }} />` unconditionally.
+4. **Platform Brand Parity**: Generated brand-matching assets for `android-icon-foreground.png`, solid emerald `android-icon-background.png`, white-on-transparent `android-icon-monochrome.png`, and `favicon.png`.
+5. **Hardened Invariant Test Guard**: Created `__tests__/assets/splash-and-branding-integrity.test.ts` enforcing asset size, format, color depth, and `#1b5e43` splash background locks.
+6. **Codified Rule 048**: Added Rule 048 (Mobile Splash Screen & Brand Asset Integrity Invariant) to `SYSTEM_RULES.md`.
+
+**Files Changed**:
+- `app.json`
+- `app/_layout.tsx`
+- `assets/images/android-icon-foreground.png`
+- `assets/images/android-icon-background.png`
+- `assets/images/android-icon-monochrome.png`
+- `assets/images/favicon.png`
+- `__tests__/assets/splash-and-branding-integrity.test.ts` (created)
+- `SYSTEM_RULES.md`
+- `BUILD_FIX_LOG.md`
+
