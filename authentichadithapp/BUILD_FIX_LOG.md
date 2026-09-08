@@ -4577,3 +4577,57 @@ Portal capability → EAS build. Failing this order → XCODE_BUILD_ERROR on ent
 ### Next gate: Rule 040 — KP device QA on TestFlight Build 80
 Install Build 80 from TestFlight on physical iPhone. Complete 8-item checklist.
 Submit for Review = KP's finger only.
+
+---
+
+## [PROCESS-001] — BUILD_FIX_LOG documentation gap discovered (Build 80 → v1.1.2 live → v1.1.3/6 local)
+**Date**: 2026-09-07 · App Store readiness reconciliation session
+**Pattern category**: Process — mandatory documentation protocol not followed
+
+**Finding**: This log's last entry before today was the 2026-06-26 Build 80 (v1.1.0) TestFlight receipt. Since then:
+1. The live App Store listing moved to **v1.1.2** (verified via live fetch, last updated Aug 1) with **zero BUILD_FIX_LOG entries** covering the 1.1.0 → 1.1.2 path — no record of what shipped, what QA was done, or when Submit for Review was pressed.
+2. `main` then moved to **v1.1.3 / buildNumber 6** (commit `e0a08af`, 2026-09-03) with five further commits (`06cfc11`, `7d86dbc`, `38934fa`, `09240d3`, `1444823`) touching auth, security tripwires, crash handling, paywall routing, and AI fallback — none logged here per the root `CLAUDE.md` mandatory post-fix protocol.
+
+**Why this matters**: `SYSTEM_RULES.md` Rule 040 says a prior build's device QA does not carry forward to a new build number, and this log is the repo's only record of what was actually tested and shipped. With this gap, there is no way for a future session (or KP) to know from this repo alone whether 1.1.2's ship was QA'd per Rule 040, or what state 1.1.3/6 is actually in.
+
+**Action needed** (KP or a follow-up session with commit access to the missing details): backfill at minimum a batch summary entry for the 1.1.0→1.1.2 release and for each of the five undocumented 1.1.3 commits, OR explicitly accept the gap and start a clean documentation trail from 1.1.3 forward.
+
+**Files changed**: None (documentation-only finding; no code touched).
+
+**Lesson**: When `app.json` version/buildNumber changes without a matching BUILD_FIX_LOG entry in the same commit or session, flag it immediately rather than letting the gap compound across multiple releases.
+
+---
+
+## [FIX-122] — Topics Screen Header De-duplication, Chrome Suppression, & Corpus Count Correction
+**Date**: 2026-09-08 · Penn Enterprises LLC Quality Gate
+**Severity**: High — Visual regression (double navigation headers leaking onto physical devices) and critical data integrity failure (172,735 false hadith count).
+
+**Symptoms**:
+1. On opening "Topics" (`app/topics/index.tsx`), a native iOS navigation header displayed `< Home` and `Topics`, while the body immediately underneath displayed another large header `Browse by Topic`.
+2. The subtitle on the Topics screen claimed "172,735 Verified Hadiths across 74 topics", creating massive credibility loss when the actual authentic Bukhari & Muslim corpus is exactly 14,444 hadiths.
+
+**Root Causes**:
+1. **Missing Layout & Header Suppression**: `app/topics/` lacked its own `_layout.tsx`, inheriting native stack presentation by default. Furthermore, individual screens (`index.tsx` and `[slug].tsx`) did not suppress native headers (`headerShown: false`).
+2. **Junction Summation Bug**: Subtitle summed `tags.usage_count` via `.reduce((sum, t) => sum + (t.usage_count || 0), 0)`. Because hadiths have multiple topic tags (e.g. prayer, faith, ethics), summing tag frequencies counted individual hadiths up to 15 times over, fabricating an impossible 172,735 total.
+
+**Fixes Applied**:
+1. **Created `app/topics/_layout.tsx`**: Declared `<Stack screenOptions={{ headerShown: false }} />` to enforce native header suppression across all routes in the topics group.
+2. **Standardized `app/topics/index.tsx`**:
+   - Replaced duplicate native headers with canonical `<ScreenHeader title="Browse by Topic" subtitle="Categorizing 14,444 authentic hadiths across X topics" showBack />`.
+   - Replaced the erroneous reduce calculation with the canonical constant `VISIBLE_HADITH_TOTAL` (`14,444`) imported from `@/lib/hadith/visibleCollections`.
+3. **Standardized `app/topics/[slug].tsx`**:
+   - Suppressed native headers via `<Stack.Screen options={{ headerShown: false }} />`.
+   - Rendered canonical `<ScreenHeader title={tag.name_en} subtitle="..." showBack />`.
+4. **Hardened Invariant Test Suite**:
+   - Added `topics` to `subdirsWithScreens` in `__tests__/navigation/header-integrity-invariants.test.ts`.
+   - Added assertions ensuring `app/topics/_layout.tsx` suppresses native headers and that `topics/index.tsx` and `topics/[slug].tsx` enforce `headerShown: false`.
+5. **Institutionalized Self-Healing Rules**:
+   - Codified **Rule 045 (Navigation Chrome & Route Leak Invariant)** and **Rule 047 (Corpus Count Integrity & Junction Sum Ban)** into `SYSTEM_RULES.md`.
+
+**Files Changed**:
+- `app/topics/_layout.tsx` (created)
+- `app/topics/index.tsx`
+- `app/topics/[slug].tsx`
+- `__tests__/navigation/header-integrity-invariants.test.ts`
+- `SYSTEM_RULES.md`
+- `BUILD_FIX_LOG.md`

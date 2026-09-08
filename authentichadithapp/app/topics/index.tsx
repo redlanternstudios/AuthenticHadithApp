@@ -6,6 +6,8 @@ import { supabase } from '@/lib/supabase/client'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { getColors, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
 import { useTheme } from '@/lib/theme/ThemeProvider'
+import { ScreenHeader } from '@/components/ui/ScreenHeader'
+import { VISIBLE_HADITH_TOTAL } from '@/lib/hadith/visibleCollections'
 import { QueryErrorBanner } from '@/components/common/QueryErrorBanner'
 
 interface Tag {
@@ -40,21 +42,20 @@ export default function TopicsScreen() {
     },
   })
 
-  const totalHadiths = tags?.reduce((sum, tag) => sum + (tag.usage_count || 0), 0) || 0
-
   if (isLoading) {
     return <LoadingSpinner />
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
-      <Stack.Screen options={{ title: 'Topics', headerShown: true }} />
-      {isError && <QueryErrorBanner onRetry={refetch} />}
-
-      <Text style={[styles.title, { color: colors.bronzeText }]}>Browse by Topic</Text>
-      <Text style={[styles.subtitle, { color: colors.mutedText }]}>
-        {totalHadiths.toLocaleString()} verified hadiths across {tags?.length || 0} topics
-      </Text>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <ScreenHeader
+        title="Browse by Topic"
+        subtitle={`Categorizing ${VISIBLE_HADITH_TOTAL.toLocaleString()} authentic hadiths across ${tags?.length || 0} topics`}
+        showBack
+      />
+      <ScrollView contentContainerStyle={styles.content}>
+        {isError && <QueryErrorBanner onRetry={refetch} />}
 
       {tags?.length === 0 && (
         <Text style={[styles.subtitle, { color: colors.mutedText, marginTop: SPACING.xl, textAlign: 'center' }]}>
@@ -80,7 +81,8 @@ export default function TopicsScreen() {
           </Pressable>
         ))}
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   )
 }
 

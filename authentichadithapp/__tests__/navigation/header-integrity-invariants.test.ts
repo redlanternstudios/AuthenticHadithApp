@@ -14,7 +14,7 @@ const APP_DIR = path.resolve(__dirname, '../../app');
 
 describe('Header Integrity & Anti-Leak Invariants', () => {
   // Invariant 1: All subdirectories in app/ that contain multi-screen flows must have an explicit _layout.tsx
-  const subdirsWithScreens = ['stories', 'my-hadith', 'auth', '(tabs)'];
+  const subdirsWithScreens = ['stories', 'my-hadith', 'auth', '(tabs)', 'topics'];
 
   subdirsWithScreens.forEach((subdir) => {
     it(`subdirectory "app/${subdir}" must have an explicit _layout.tsx`, () => {
@@ -23,9 +23,15 @@ describe('Header Integrity & Anti-Leak Invariants', () => {
     });
   });
 
-  // Invariant 2: app/my-hadith/_layout.tsx must suppress native headers (screenOptions={{ headerShown: false }})
+  // Invariant 2: app/my-hadith/_layout.tsx and app/topics/_layout.tsx must suppress native headers
   it('app/my-hadith/_layout.tsx suppresses native headers for custom ScreenHeader components', () => {
     const layoutPath = path.join(APP_DIR, 'my-hadith', '_layout.tsx');
+    const content = fs.readFileSync(layoutPath, 'utf-8');
+    expect(content).toContain('headerShown: false');
+  });
+
+  it('app/topics/_layout.tsx suppresses native headers for custom ScreenHeader components', () => {
+    const layoutPath = path.join(APP_DIR, 'topics', '_layout.tsx');
     const content = fs.readFileSync(layoutPath, 'utf-8');
     expect(content).toContain('headerShown: false');
   });
@@ -45,6 +51,8 @@ describe('Header Integrity & Anti-Leak Invariants', () => {
     'my-hadith/create-folder.tsx',
     'my-hadith/folder/[id].tsx',
     'my-hadith/shared/[token].tsx',
+    'topics/index.tsx',
+    'topics/[slug].tsx',
   ];
 
   screensUsingScreenHeader.forEach((relPath) => {

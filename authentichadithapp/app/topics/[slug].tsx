@@ -9,6 +9,7 @@ import { Hadith } from '@/types/hadith'
 import { getColors, SPACING, FONT_SIZES } from '@/lib/styles/colors'
 import { useTheme } from '@/lib/theme/ThemeProvider'
 import { HIDDEN_COLLECTION_FILTER } from '@/lib/hadith/visibleCollections'
+import { ScreenHeader } from '@/components/ui/ScreenHeader'
 
 export default function TopicHadithsScreen() {
   const { isDark } = useTheme()
@@ -66,9 +67,12 @@ export default function TopicHadithsScreen() {
 
   if (!tag) {
     return (
-      <View style={[styles.errorContainer, { backgroundColor: colors.background }]}>
-        <Stack.Screen options={{ title: 'Topic', headerShown: true }} />
-        <Text style={[styles.errorText, { color: colors.mutedText }]}>Topic not found</Text>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <ScreenHeader title="Topic Not Found" showBack />
+        <View style={styles.errorContainer}>
+          <Text style={[styles.errorText, { color: colors.mutedText }]}>This topic could not be found.</Text>
+        </View>
       </View>
     )
   }
@@ -77,18 +81,15 @@ export default function TopicHadithsScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen
         options={{
-          title: tag.name_en,
-          headerShown: true,
+          headerShown: false,
         }}
       />
 
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.bronzeText }]}>{tag.name_en}</Text>
-        {tag.name_ar && <Text style={[styles.arabic, { color: colors.goldMid }]}>{tag.name_ar}</Text>}
-        <Text style={[styles.subtitle, { color: colors.mutedText }]}>
-          {hadithsLoading ? tag.usage_count : (hadiths?.length ?? 0)} hadiths
-        </Text>
-      </View>
+      <ScreenHeader
+        title={tag.name_en}
+        subtitle={`${hadithsLoading ? tag.usage_count : (hadiths?.length ?? 0)} hadiths${tag.name_ar ? ` • ${tag.name_ar}` : ''}`}
+        showBack
+      />
 
       <HadithList
         hadiths={hadiths || []}
@@ -103,22 +104,6 @@ export default function TopicHadithsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    padding: SPACING.md,
-    paddingBottom: SPACING.sm,
-  },
-  title: {
-    fontSize: FONT_SIZES.xxl,
-    fontWeight: '700',
-  },
-  arabic: {
-    fontSize: FONT_SIZES.lg,
-    marginTop: 2,
-  },
-  subtitle: {
-    fontSize: FONT_SIZES.base,
-    marginTop: SPACING.xs,
   },
   errorContainer: {
     flex: 1,

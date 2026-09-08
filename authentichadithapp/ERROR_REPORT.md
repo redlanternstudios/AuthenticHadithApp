@@ -9,20 +9,14 @@
 
 **Status**: 🟢 No active errors
 
-**Current state**: Build 77 (v1.1.0, build 77) confirmed in TestFlight "Ready to Submit". All P0 bugs fixed: FIX-115 (auth gates + push token), FIX-118 (slug leaks E2E), FIX-119 (bookmark save). TypeScript clean (EXIT:0). Awaiting KP Rule 040 device QA on physical iPhone before Submit for Review.
+**Current state (reconciled 2026-09-07 — this block was stale, referencing Build 77 while BUILD_FIX_LOG.md already had a later Build 80 receipt and `app.json` had already moved to 1.1.3/6)**:
 
-**Build 77 receipts**:
-- EAS Build ID: `4947bf11-5c46-4d3d-af37-31905a1dfab4`
-- App Version: 1.1.0, Build Number: 77
-- EAS Build finished: `2026-06-26T00:46:49Z`
-- TestFlight status: "Ready to Submit" — verified in ASC dashboard `appstoreconnect.apple.com/apps/6764673665/testflight/ios`
-- Assigned to test group: AH - Authentic Hadith App - Test Group
-- Commit: `d18a515` on `main`
-- `npx tsc --noEmit` → EXIT:0
+- **Verified live** (App Store Connect public listing, fetched 2026-09-07): the App Store is serving **v1.1.2**, last updated **Aug 1**. This is a shipped version with **no corresponding BUILD_FIX_LOG.md entry at all** — the log jumps from the 2026-06-26 "Build 80 / v1.1.0" TestFlight receipt straight to unrelated later work. How v1.1.0 → v1.1.2 was QA'd, submitted, and approved is Unknown from this repo's records.
+- **Verified in repo**: `main` (HEAD `7bb02ef` as of this reconciliation) has `app.json` at **version 1.1.3, buildNumber 6** (bumped 2026-09-03, commit `e0a08af`), with five feature/fix commits after that bump (`06cfc11` auth signup freeze, `7d86dbc` SYS-SEC-001 tripwires, `38934fa` groq timeout/crash isolation, `09240d3` paywall routing fix, `1444823` AI gateway fallback + unabridged hadith text) that have **no BUILD_FIX_LOG.md entries**, violating this repo's own mandatory post-fix documentation protocol (root `CLAUDE.md`, "After Fixing Any Bug").
+- **Unknown, not Unverified-as-safe**: whether 1.1.3/6 has been built via EAS, whether it has undergone Rule 040 device QA, and whether App Store Connect / RevenueCat / Apple Developer Portal state (IAP products, entitlements, capabilities) is current for it. No receipt exists for any of this in the repo as of this reconciliation.
+- Full external gap list (App Store Connect, RevenueCat, Apple Developer Portal, privacy policy hosting, Rule 040 device QA) handed to KP separately as a readiness report on 2026-09-07.
 
-**EAS Submit note (FIX-120)**: All `eas submit` attempts showed ERRORED. First submission at `00:49:49Z` uploaded successfully; subsequent attempts hit Apple's duplicate-binary gate (391ms = instant reject). Binary was in ASC the entire time. See `BUILD_FIX_LOG.md` FIX-120.
-
-**Remaining gate**: Rule 040 — KP device QA on physical iPhone (8-item checklist) required before "Submit for Review" in ASC. Content Integrity items below remain open governance decisions (not code bugs).
+**Remaining gate**: Rule 040 — KP device QA on physical iPhone (8-item checklist) required before any "Submit for Review," re-confirmed fresh for whichever build number actually ships next (a prior build's QA does not carry forward per Rule 040). Content Integrity items below remain open governance decisions (not code bugs).
 
 ---
 

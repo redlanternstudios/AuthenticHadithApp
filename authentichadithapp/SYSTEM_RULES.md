@@ -1238,3 +1238,29 @@ Every build pre-flight and CI/CD release gate must enforce these three zero-depe
 2. **Tripwire 2 (Cryptographic Env Integrity)**: Pre-flight environment validators must verify key shapes and protocols (e.g. Apple RevenueCat keys prefix `appl_`, Supabase domains match HTTPS, anon keys are valid base64 JWTs), never just basic existence.
 3. **Tripwire 3 (Cleartext Transport Ban)**: Zero unencrypted `http://` endpoints permitted outside of local development (`localhost` / `127.0.0.1`).
 
+---
+
+## Rule 045: Navigation Chrome & Route Leak Invariant
+
+**Standard Authority**: JP & Keymon Penn (Penn Enterprises LLC)  
+**Applicability**: All mobile navigation stacks and subdirectories (`app/**`).
+
+**Rule**:
+1. **Explicit Route Group Layout**: Every multi-screen directory in `app/` (e.g. `stories`, `my-hadith`, `auth`, `topics`, `(tabs)`) MUST provide an explicit `_layout.tsx` defining navigation presentation.
+2. **Zero Double-Header / Zero Chrome Leak**: If a screen renders a custom header component (`ScreenHeader`), native iOS headers MUST be suppressed (`screenOptions={{ headerShown: false }}`) at both the stack layout and individual screen options. Never render both native header chrome and custom in-screen headers.
+3. **Human-Readable Fallbacks**: Where native headers are intentionally used, explicit human-readable titles and back-button titles must be provided; raw file route paths (such as `prophet/[slug]`) must never leak to the top navigation bar.
+4. **Mandatory Test Guard**: Verified by `__tests__/navigation/header-integrity-invariants.test.ts`.
+
+---
+
+## Rule 047: Corpus Count Integrity & Junction Sum Ban
+
+**Standard Authority**: JP & Keymon Penn (Penn Enterprises LLC)  
+**Applicability**: All analytics, metrics displays, subtitles, and header counters across all Penn Enterprises LLC apps.
+
+**Rule**:
+1. **Zero Junction Summation**: NEVER sum tag or junction table usage counts (`tags.usage_count`, `hadith_tags`) to represent the total number of parent records. Because entities have many-to-many relationships, summing junction rows multiplies the apparent count exponentially (e.g. falsely reporting 172,735 hadiths instead of the authentic 14,444 corpus).
+2. **Single Source of Truth**: Global entity totals must import canonical constants (`VISIBLE_HADITH_TOTAL = 14,444` in `lib/hadith/visibleCollections.ts`) or run `COUNT(DISTINCT entity_id)` queries.
+3. **Sacred Data Fidelity**: In all Islamic/authentic hadith and high-trust applications, numerical accuracy is sacred. Exaggerating counts ruins spiritual trust and violates Apple App Store Guideline 2.3.
+
+
