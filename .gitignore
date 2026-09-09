@@ -15,3 +15,7 @@ node_modules/
 # Local Claude settings
 .claude/
 **/.claude/
+
+# Environment & Secrets
+.env*
+!.env.example
