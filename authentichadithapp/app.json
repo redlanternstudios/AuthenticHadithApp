@@ -10,12 +10,25 @@
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#1b5e43"
+      "backgroundColor": "#1b5e43",
+      "dark": {
+        "image": "./assets/images/splash-icon.png",
+        "backgroundColor": "#1b5e43"
+      }
     },
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
+      "splash": {
+        "image": "./assets/images/splash-icon.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#1b5e43",
+        "dark": {
+          "image": "./assets/images/splash-icon.png",
+          "backgroundColor": "#1b5e43"
+        }
+      },
       "supportsTablet": true,
       "bundleIdentifier": "com.byred.authentichadith",
       "buildNumber": "6",
