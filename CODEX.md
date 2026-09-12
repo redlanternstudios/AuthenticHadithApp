@@ -1,17 +1,6 @@
-<!-- CLAUDEX:START -->
-# Claudex Bridge Boot
-
-Before product instructions:
-
-1. Read `.claudex.json`.
-2. Resolve `local_bridge_path`. If unavailable, use `bridge_repo`, `bridge_ref`, and `bridge_file`.
-3. Read the canonical bridge, protocol, alignment policy, current intent, and latest receipt.
-4. Select product key `authentic_hadith`.
-5. Use the worse of global and product sync colors.
-6. RED means stop. YELLOW means continue with the warning. GREEN means continue.
-7. Never create a product local bridge or copy secret values.
-
-<!-- CLAUDEX:END -->
+<!-- CODEX:START -->
+# Codex Agent Configuration & Operating Rules
+# Project: Authentic Hadith (Penn Enterprises LLC)
 
 ## Release Engineering Standard Operating Protocol (MANDATORY)
 
@@ -34,3 +23,9 @@ All AI agents (@Money-Maker, @Jobo, @Bob-the-Builder, Claude, Codex, Gemini) ope
 6. **Enterprise Security Tripwires (SYS-SEC-001)**: Enforce zero client-side server secrets, cryptographically strict environment schema validation, and transport cleartext bans before every production build or deployment dispatch.
 7. **Autonomous Enterprise Automation & Stack Upgrades (SYS-AUTO-001)**: All AI agents must prioritize continuous, hands-free automation over manual operational toil. Every recommendation and implementation must automatically bake in proactive telemetry, background self-healing hooks (e.g., git post-commit hooks, automated RAG updates), and concrete architectural stack upgrades rather than manual maintenance steps.
 8. **Autonomous Context-Aware Telemetry Reflex (SYS-REFLEX-001)**: Keymon must never have to manually prompt an agent to log receipts, quantify deliverables, sync skills, or update telemetry. Upon completing any task, PR, bug fix, or milestone, all agents must autonomously infer the context (ENGINEERING, RELEASE_GUARD, CLIENT_DELIVERY, INFRASTRUCTURE, OPERATIONS) and reflexively invoke the correlating skill and receipt engine.
+
+## Telemetry, Output Quantification & RAG
+- Log completed work using: `python3 scripts/penn_rag.py receipt --agent "@Bob-the-Builder" --category "<CAT>" --summary "<SUMMARY>" --impact "<IMPACT>"`
+- Query past architectural decisions: `python3 scripts/penn_rag.py query "<QUERY>"`
+- Check velocity dashboard: `python3 scripts/penn_rag.py quantify`
+<!-- CODEX:END -->
