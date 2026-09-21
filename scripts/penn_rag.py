@@ -476,6 +476,9 @@ def main():
     # Propagate Hooks command
     subparsers.add_parser("propagate-hooks", help="Propagate dual-stage git hooks to global templates and repositories")
 
+    # Sort Downloads command
+    subparsers.add_parser("sort-downloads", help="Sort loose files in Downloads and auto-index documents into RAG")
+
     args = parser.parse_args()
     
     if args.command == "ingest":
@@ -490,6 +493,10 @@ def main():
         sync_skills()
     elif args.command == "propagate-hooks":
         propagate_git_templates()
+    elif args.command == "sort-downloads":
+        sorter = Path.home() / "Desktop/Penn Enterprises LLC/bin/penn_download_sorter.py"
+        if sorter.exists():
+            subprocess.run(["python3", str(sorter)])
     else:
         # Default behavior if no args: Ingest and Quantify
         ingest_all()
