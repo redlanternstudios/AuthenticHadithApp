@@ -78,10 +78,16 @@
       }
     },
     "android": {
+      "package": "com.byred.authentichadith",
+      "versionCode": 6,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundColor": "#1b5e43"
-      }
+      },
+      "permissions": [
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
+      ]
     },
     "web": {
       "bundler": "metro",

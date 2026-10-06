@@ -13,6 +13,11 @@ Before product instructions:
 
 <!-- CLAUDEX:END -->
 
+## Penn Enterprises infrastructure policy
+Read `../../AGENTS.md` and `../../.agents/skills/infrastructure-invariants/SKILL.md`.
+Enforce `../../knowledge/graph/guards/guard-six-pillar-invariants.md`; retain every stricter product gate below.
+
+
 ## Release Engineering Standard Operating Protocol (MANDATORY)
 
 Before implementing, building, packaging, or authorizing any release:

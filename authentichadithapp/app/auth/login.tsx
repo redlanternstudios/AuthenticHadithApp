@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, Alert } from 'react-native';
+import { StyleSheet, View, Text, Alert, Platform } from 'react-native';
 import { useRouter, Link, Stack } from 'expo-router';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import { Input } from '@/components/ui/Input';
@@ -108,21 +108,24 @@ export default function LoginScreen() {
           isLoading={isLoading}
         />
 
-        {/* Divider */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 12 }}>
-          <View style={{ flex: 1, height: 1, backgroundColor: '#333' }} />
-          <Text style={{ color: '#888', marginHorizontal: 8, fontSize: 13 }}>or</Text>
-          <View style={{ flex: 1, height: 1, backgroundColor: '#333' }} />
-        </View>
+        {/* Sign in with Apple (iOS only) */}
+        {Platform.OS === 'ios' && (
+          <>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 12 }}>
+              <View style={{ flex: 1, height: 1, backgroundColor: '#333' }} />
+              <Text style={{ color: '#888', marginHorizontal: 8, fontSize: 13 }}>or</Text>
+              <View style={{ flex: 1, height: 1, backgroundColor: '#333' }} />
+            </View>
 
-        {/* Sign in with Apple */}
-        <AppleAuthentication.AppleAuthenticationButton
-          buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-          buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
-          cornerRadius={8}
-          style={{ width: '100%', height: 50 }}
-          onPress={handleAppleSignIn}
-        />
+            <AppleAuthentication.AppleAuthenticationButton
+              buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
+              cornerRadius={8}
+              style={{ width: '100%', height: 50 }}
+              onPress={handleAppleSignIn}
+            />
+          </>
+        )}
 
         <Link href="/auth/forgot-password" style={styles.link}>
           <Text style={[styles.linkText, { color: colors.emeraldMid }]}>Forgot password?</Text>
