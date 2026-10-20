@@ -1,0 +1,23 @@
+{
+  "project_name": "AuthenticHadithApp",
+  "category": "Citadel Workspace Project",
+  "active_platforms": {
+    "antigravity": true,
+    "chatgpt": true,
+    "claude": false,
+    "hermes": false,
+    "github": true
+  },
+  "file_routing": {
+    "master_context": "AUTHENTICHADITHAPP_CONTEXT.md",
+    "duties": "KEYMON_DUTIES_AND_EXECUTION_ROADMAP.md",
+    "system_status": "PROJECT_STATE.md"
+  },
+  "monitored_keywords": [
+    "hadith",
+    "authentic hadith",
+    "bukhari",
+    "muslim",
+    "sunnah"
+  ]
+}
