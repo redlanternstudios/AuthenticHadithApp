@@ -1,0 +1,21 @@
+{
+  "project_name": "AuthenticHadithApp-final-submission",
+  "category": "Citadel Workspace Project",
+  "active_platforms": {
+    "antigravity": true,
+    "chatgpt": true,
+    "claude": false,
+    "hermes": false,
+    "github": true
+  },
+  "file_routing": {
+    "master_context": "AUTHENTICHADITHAPP-FINAL-SUBMISSION_CONTEXT.md",
+    "duties": "KEYMON_DUTIES_AND_EXECUTION_ROADMAP.md",
+    "system_status": "PROJECT_STATE.md"
+  },
+  "monitored_keywords": [
+    "hadith app final submission",
+    "hadith submission",
+    "hadith app submission"
+  ]
+}
