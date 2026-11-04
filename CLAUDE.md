@@ -13,6 +13,10 @@ Before product instructions:
 
 <!-- CLAUDEX:END -->
 
+## Local Testing Authority
+
+Read and apply the root `AGENTS.md` SYS-MOD-022 Level A2 Bounded Delegation and GUARD-TEST-IMMUTABILITY-001 when resolving local testing friction. The authorization is confined to development routes, fixtures, synthetic local sessions, and native `.mjs` runners. It does not advance a release state or supersede the release SOP.
+
 ## Release Engineering Standard Operating Protocol (MANDATORY)
 
 Before implementing, building, packaging, or authorizing any release:

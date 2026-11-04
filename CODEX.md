@@ -2,6 +2,10 @@
 # Codex Agent Configuration & Operating Rules
 # Project: Authentic Hadith (Penn Enterprises LLC)
 
+## Local Testing Authority
+
+Read and apply root `AGENTS.md` SYS-MOD-022 Level A2 Bounded Delegation and GUARD-TEST-IMMUTABILITY-001. Resolve local test friction autonomously within that scope, preserve test files, and keep synthetic evidence separate from release proof.
+
 ## Release Engineering Standard Operating Protocol (MANDATORY)
 
 Before implementing, building, packaging, or authorizing any release:

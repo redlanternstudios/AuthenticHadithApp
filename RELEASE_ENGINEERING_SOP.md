@@ -89,6 +89,10 @@ Machine-enforced via `scripts/qa-release-guard.mjs`. The build process immediate
 
 ## 4. Critical Engineering Principles
 
+### Local test friction authority
+
+Execution agents have Level A2 authority under `AGENTS.md` to use development-only route overrides, fixture-route middleware bypasses, synthetic local sessions and data, and native `.mjs` runners to get local tests running. Keep each bypass confined to development or test fixtures and verify the real path before claiming feature or release readiness. Never change test files or test configuration to force a pass (GUARD-TEST-IMMUTABILITY-001). Production database DDL, paid external API credits, and direct production binary deployments require a Level A1 Keymon decision. All release states and gates below still apply.
+
 1. **Context $\rightarrow$ Task $\rightarrow$ Proof:** Every engineering action must state why the change exists (Context), what exact edit is authorized (Task), and what empirical evidence proves it works (Proof). Never report completion without Proof.
 2. **Architecture Before Editing:** Inspect UI/component, state management, navigation hierarchy, backend schema, auth lifecycle, RevenueCat SDK, StoreKit, Expo config, EAS configuration, and CI/CD workflows before modifying code.
 3. **Smallest Coherent Fix:** Apply the minimal targeted change that completely resolves the root cause. Opportunistic refactoring, cleanup, and dependency updates during release recovery are strictly forbidden.

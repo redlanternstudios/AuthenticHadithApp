@@ -6,6 +6,10 @@
 
 ## 1. Low-Risk Autonomous Self-Healing Scope
 
+### Level A2 Local Test Friction
+
+Under `../../../AGENTS.md` SYS-MOD-022, @Bob-the-Builder, Codex, and Antigravity may autonomously add development-only route overrides, `/test-*` or fixture-route middleware bypasses, synthetic local sessions and database fixtures, and native `.mjs` test runners. This scoped authorization removes a separate human prompt for local test friction. GUARD-TEST-IMMUTABILITY-001 forbids changing test files or test configuration to force a pass. Synthetic results never establish production behavior or release readiness. Production DDL, paid external API credits, and direct production binary deployment remain Level A1 decisions; other release and external-action gates still apply.
+
 You may initiate code generation, run test cycles, and self-heal from errors WITHOUT explicit approval for:
 
 ### Import & Module Resolution

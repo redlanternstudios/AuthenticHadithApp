@@ -40,3 +40,18 @@ All AI agents (@Money-Maker, @Jobo, @Bob-the-Builder, Claude, Codex, Gemini) ope
 7. **Autonomous Enterprise Automation & Stack Upgrades (SYS-AUTO-001)**: All AI agents must prioritize continuous, hands-free automation over manual operational toil. Every recommendation and implementation must automatically bake in proactive telemetry, background self-healing hooks (e.g., git post-commit hooks, automated RAG updates), and concrete architectural stack upgrades rather than manual maintenance steps.
 8. **Autonomous Context-Aware Telemetry Reflex (SYS-REFLEX-001)**: Keymon must never have to manually prompt an agent to log receipts, quantify deliverables, sync skills, or update telemetry. Upon completing any task, PR, bug fix, or milestone, all agents must autonomously infer the context (ENGINEERING, RELEASE_GUARD, CLIENT_DELIVERY, INFRASTRUCTURE, OPERATIONS) and reflexively invoke the correlating skill and receipt engine.
 
+## Local Testing Authority (SYS-MOD-022 / Level A2 Bounded Delegation)
+
+@Bob-the-Builder, Codex, and Antigravity may resolve local testing friction within the authorized task without asking Keymon to operate the tools. This authority covers:
+
+1. `NODE_ENV === 'development'` overrides for routes under test.
+2. Development-only middleware bypasses for `/test-*` and fixture routes.
+3. Synthetic sessions, mocked client tokens and cookies, and local database fixtures.
+4. Native `.mjs` runners when a package manager prevents local test execution.
+
+Keep these mechanisms restricted to development or local fixtures. Do not place secrets in mocks, weaken production authentication or authorization, or use synthetic results as evidence of production behavior. Run the real route and applicable release guards before any build dispatch. The release state model and all existing security and approval gates remain in force.
+
+**GUARD-TEST-IMMUTABILITY-001:** Do not modify test files, assertions, snapshots, or test configuration to force a pass. During feature implementation or bug repair, fix the implementation when a test fails; preserve the existing test harness.
+
+**Level A1 escalation for this local testing delegation:** Stop and ask Keymon before applying production database DDL, allocating paid external API credits, or deploying binaries directly to production. These are the only Keymon prompts introduced by local testing friction; other actions still follow their existing release and external-action gates.
+
