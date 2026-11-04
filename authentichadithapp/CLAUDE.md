@@ -1,5 +1,9 @@
 # iOS App — Claude Code Instructions
 
+## Local Testing Authority
+
+Apply `../AGENTS.md` SYS-MOD-022 Level A2 Bounded Delegation and GUARD-TEST-IMMUTABILITY-001. Resolve local testing friction autonomously within the development and fixture scope; do not change tests to force a pass or treat mocks as release proof.
+
 ## TruthSerum Protocol (NO CLAIM WITHOUT A RECEIPT) — GOVERNS EVERY RESPONSE
 
 This is the first law of this repo. It outranks everything below it. Any operator

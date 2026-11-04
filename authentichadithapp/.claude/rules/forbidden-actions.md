@@ -3,6 +3,8 @@
 > Stack: Expo SDK 54 + React Native 0.81.5 + Supabase + RevenueCat. iOS production target via EAS Build.
 > This file extends the root `CLAUDE.md` mandatory startup protocol. It does not replace it.
 
+The root `AGENTS.md` Level A2 delegation authorizes development-only test and fixture paths within an approved task. It does not authorize changes to production auth, RLS, secrets, purchases, or release configuration. Preserve test files under GUARD-TEST-IMMUTABILITY-001.
+
 ## 1. Hard-Locked Operational Zones
 
 You are structurally PROHIBITED from autonomous code mutations, write operations, or automated edits inside the following paths. If a task targets any of these, HALT execution and prompt for human review with a diff preview.
