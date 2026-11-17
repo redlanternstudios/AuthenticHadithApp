@@ -47,20 +47,25 @@ export default function LandingPage() {
                 Browse, search, and understand authentic hadith — with Arabic text, scholarly grading, AI-powered explanation, and stories of the Prophets and Companions.
               </p>
 
-              {/* App Store Buttons */}
+              {/* App Store & Web Buttons */}
               <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                <Link href="/login" className="px-6 py-4 bg-white text-[#0d2b1e] rounded-xl font-semibold hover:bg-gray-100 transition-all flex items-center gap-3 justify-center">
+                <a
+                  href="https://apps.apple.com/us/app/authentic-hadith/id6764673665"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-6 py-4 bg-white text-[#0d2b1e] rounded-xl font-semibold hover:bg-gray-100 transition-all flex items-center gap-3 justify-center"
+                >
                   <Apple className="w-5 h-5" />
                   <div>
                     <div className="text-xs text-gray-600">Download on</div>
                     <div>App Store</div>
                   </div>
-                </Link>
-                <Link href="/login" className="px-6 py-4 bg-white text-[#0d2b1e] rounded-xl font-semibold hover:bg-gray-100 transition-all flex items-center gap-3 justify-center">
+                </a>
+                <Link href="/login" className="px-6 py-4 bg-[#b8860b] text-[#0d2b1e] rounded-xl font-semibold hover:bg-[#d4af37] transition-all flex items-center gap-3 justify-center">
                   <Smartphone className="w-5 h-5" />
                   <div>
-                    <div className="text-xs text-gray-600">Get it on</div>
-                    <div>Google Play</div>
+                    <div className="text-xs text-[#0d2b1e]/80">Open on</div>
+                    <div>Web App</div>
                   </div>
                 </Link>
               </div>
@@ -353,27 +358,32 @@ export default function LandingPage() {
           <p className="text-xs uppercase tracking-widest text-[#b8860b] font-semibold mb-4">Begin with knowledge</p>
           <h2 className="font-serif text-4xl md:text-5xl text-white mb-6">Download Authentic Hadith today</h2>
           <p className="text-lg text-gray-300 mb-10">
-            64,464 authentic hadiths from Sahih Bukhari, Sahih Muslim, and the Four Sunans — in one beautifully designed app.
+            14,444 authenticated hadiths from Al-Sahihayn (Sahih al-Bukhari and Sahih Muslim) — in one beautifully designed app.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <Link href="/login" className="px-8 py-4 bg-white text-[#0d2b1e] rounded-xl font-semibold hover:bg-gray-100 transition-all flex items-center gap-3 justify-center">
+            <a
+              href="https://apps.apple.com/us/app/authentic-hadith/id6764673665"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-8 py-4 bg-white text-[#0d2b1e] rounded-xl font-semibold hover:bg-gray-100 transition-all flex items-center gap-3 justify-center"
+            >
               <Apple className="w-5 h-5" />
               <div>
                 <div className="text-xs text-gray-600">Download on</div>
                 <div>App Store</div>
               </div>
-            </Link>
-            <Link href="/login" className="px-8 py-4 bg-white text-[#0d2b1e] rounded-xl font-semibold hover:bg-gray-100 transition-all flex items-center gap-3 justify-center">
+            </a>
+            <Link href="/login" className="px-8 py-4 bg-[#b8860b] text-[#0d2b1e] rounded-xl font-semibold hover:bg-[#d4af37] transition-all flex items-center gap-3 justify-center">
               <Smartphone className="w-5 h-5" />
               <div>
-                <div className="text-xs text-gray-600">Get it on</div>
-                <div>Google Play</div>
+                <div className="text-xs text-[#0d2b1e]/80">Open on</div>
+                <div>Web App</div>
               </div>
             </Link>
           </div>
 
-          <p className="text-sm text-gray-400">Available on iOS and Android · Free with optional premium features</p>
+          <p className="text-sm text-gray-400">Available on iOS App Store & Web · Free with optional premium features</p>
         </div>
       </section>
 
@@ -384,27 +394,27 @@ export default function LandingPage() {
             <div>
               <p className="text-white font-semibold mb-4">Product</p>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li><Link href="#" className="hover:text-white transition">Browse Hadiths</Link></li>
-                <li><Link href="#" className="hover:text-white transition">HadithChat</Link></li>
-                <li><Link href="#" className="hover:text-white transition">Sunnah Practices</Link></li>
-                <li><Link href="#" className="hover:text-white transition">Stories</Link></li>
+                <li><Link href="/topics" className="hover:text-white transition">Browse Hadiths</Link></li>
+                <li><Link href="/assistant" className="hover:text-white transition">HadithChat</Link></li>
+                <li><Link href="/sunnah" className="hover:text-white transition">Sunnah Practices</Link></li>
+                <li><Link href="/stories" className="hover:text-white transition">Stories</Link></li>
               </ul>
             </div>
             <div>
               <p className="text-white font-semibold mb-4">Company</p>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li><Link href="#" className="hover:text-white transition">About</Link></li>
-                <li><Link href="#" className="hover:text-white transition">Blog</Link></li>
-                <li><Link href="#" className="hover:text-white transition">Careers</Link></li>
-                <li><Link href="#" className="hover:text-white transition">Contact</Link></li>
+                <li><Link href="/about" className="hover:text-white transition">About</Link></li>
+                <li><Link href="/collections" className="hover:text-white transition">Collections</Link></li>
+                <li><Link href="/pricing" className="hover:text-white transition">Pricing</Link></li>
+                <li><Link href="/contact" className="hover:text-white transition">Contact</Link></li>
               </ul>
             </div>
             <div>
               <p className="text-white font-semibold mb-4">Legal</p>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li><Link href="#" className="hover:text-white transition">Privacy</Link></li>
-                <li><Link href="#" className="hover:text-white transition">Terms</Link></li>
-                <li><Link href="#" className="hover:text-white transition">License</Link></li>
+                <li><Link href="/privacy" className="hover:text-white transition">Privacy</Link></li>
+                <li><Link href="/terms" className="hover:text-white transition">Terms</Link></li>
+                <li><a href="https://apps.apple.com/us/app/authentic-hadith/id6764673665" target="_blank" rel="noopener noreferrer" className="hover:text-white transition">iOS App Store</a></li>
               </ul>
             </div>
             <div className="col-span-2 md:col-span-2">
@@ -412,13 +422,13 @@ export default function LandingPage() {
                 <Image src="/authentic-hadith-logo.png" alt="Authentic Hadith" width={32} height={32} className="w-8 h-8 object-contain" />
                 <span className="text-white font-semibold">Authentic Hadith</span>
               </Link>
-              <p className="text-sm text-gray-400">64,464 authenticated hadiths from the Six Books of Hadith</p>
+              <p className="text-sm text-gray-400">14,444 authenticated hadiths from Al-Sahihayn (Sahih al-Bukhari & Sahih Muslim)</p>
             </div>
           </div>
 
           <div className="border-t border-gray-800 pt-8">
             <p className="text-sm text-gray-400 text-center">
-              © 2026 Authentic Hadith. All rights reserved. Hadiths sourced from Sahih Bukhari, Sahih Muslim, Abu Dawud, Tirmidhi, Ibn Majah, and Nasai.
+              © 2026 Authentic Hadith. All rights reserved. Hadiths sourced exclusively from Sahih al-Bukhari and Sahih Muslim (Al-Sahihayn).
             </p>
           </div>
         </div>

@@ -1,0 +1,33 @@
+name: Authentic Hadith Web Truth & Store Link Gate
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "external/v0-authentic-hadith/**"
+      - ".github/workflows/web-truth-gate.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "external/v0-authentic-hadith/**"
+      - ".github/workflows/web-truth-gate.yml"
+
+jobs:
+  verify-truth:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: external/v0-authentic-hadith
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run static & live Apple iTunes parity gate
+        run: node scripts/verify-truth-and-links.mjs --live
