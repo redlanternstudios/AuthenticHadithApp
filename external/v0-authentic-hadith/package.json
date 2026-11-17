@@ -3,10 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "next build",
+    "build": "node scripts/verify-truth-and-links.mjs && next build",
     "dev": "next dev",
     "lint": "eslint .",
-    "start": "next start"
+    "start": "next start",
+    "verify:truth": "node scripts/verify-truth-and-links.mjs",
+    "verify:truth:live": "node scripts/verify-truth-and-links.mjs --live"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.89",
